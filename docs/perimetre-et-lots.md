@@ -5,7 +5,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | Lot | Contenu | Semaines | Heures | État |
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
-| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **API faite**, écrans à faire |
+| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
 | 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | À faire |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |

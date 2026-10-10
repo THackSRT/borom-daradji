@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Check, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
@@ -13,22 +11,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { constructionServices, completedProjects } from '@/data/services';
-import { toast } from 'sonner';
+import { LeadForm } from '@/components/public/LeadForm';
+import { useCompany } from '@/lib/public';
 
 export default function TravauxPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    serviceType: '',
-    description: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Votre demande de devis a été envoyée ! Nous vous contacterons sous 24h.');
-    setFormData({ name: '', email: '', phone: '', serviceType: '', description: '' });
-  };
+  const [serviceType, setServiceType] = useState('');
+  const serviceLabel = constructionServices.find((s) => s.id === serviceType)?.title;
+  const { data: company } = useCompany();
 
   return (
     <>
@@ -59,7 +48,7 @@ export default function TravauxPage() {
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
-                <a href="tel:+221771234567">
+                <a href={company?.phone ? `tel:${company.phone}` : "/contact"}>
                   <Button variant="hero-outline" size="xl">
                     <Phone className="h-5 w-5" />
                     Nous appeler
@@ -224,55 +213,22 @@ export default function TravauxPage() {
 
               <Card variant="elevated">
                 <CardContent className="p-8">
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        placeholder="Votre nom *"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                      <Input
-                        type="email"
-                        placeholder="Votre email *"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <Input
-                      type="tel"
-                      placeholder="Votre téléphone *"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      required
-                    />
-                    <Select 
-                      value={formData.serviceType} 
-                      onValueChange={(v) => setFormData({ ...formData, serviceType: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Type de travaux *" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {constructionServices.map((service) => (
-                          <SelectItem key={service.id} value={service.id}>
-                            {service.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Textarea
-                      placeholder="Décrivez votre projet (surface, travaux souhaités, délais...)"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={5}
-                    />
-                    <Button type="submit" variant="gold" size="lg" className="w-full">
-                      Demander mon devis gratuit
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </form>
+                  <LeadForm
+                    messagePrefix={`Demande de devis travaux${serviceLabel ? ` — ${serviceLabel}` : ""}`}
+                    submitLabel="Demander mon devis gratuit"
+                    extraFields={
+                      <Select value={serviceType} onValueChange={setServiceType}>
+                        <SelectTrigger aria-label="Type de travaux">
+                          <SelectValue placeholder="Type de travaux" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {constructionServices.map((service) => (
+                            <SelectItem key={service.id} value={service.id}>{service.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    }
+                  />
                 </CardContent>
               </Card>
             </div>

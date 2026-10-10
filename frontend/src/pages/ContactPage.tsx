@@ -1,79 +1,50 @@
-import { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LeadForm } from "@/components/public/LeadForm";
+import { formatPhone, useCompany, whatsappLink } from "@/lib/public";
 
-const contactInfo = [
-  {
-    icon: Phone,
-    title: 'Téléphone',
-    lines: ['+221 77 123 45 67', '+221 33 867 89 00'],
-    action: 'tel:+221771234567'
-  },
-  {
-    icon: Mail,
-    title: 'Email',
-    lines: ['contact@boromdaradji.sn', 'commercial@boromdaradji.sn'],
-    action: 'mailto:contact@boromdaradji.sn'
-  },
-  {
-    icon: MapPin,
-    title: 'Adresse',
-    lines: ['123 Avenue Cheikh Anta Diop', 'Dakar, Sénégal'],
-    action: null
-  },
-  {
-    icon: Clock,
-    title: 'Horaires',
-    lines: ['Lun - Ven : 8h30 - 18h00', 'Sam : 9h00 - 13h00'],
-    action: null
-  }
+const subjects = [
+  { value: "achat", label: "Projet d'achat" },
+  { value: "location", label: "Recherche de location" },
+  { value: "vente", label: "Vendre ou mettre en location mon bien" },
+  { value: "gestion", label: "Gestion locative de mon bien" },
+  { value: "travaux", label: "Travaux / rénovation" },
+  { value: "materiaux", label: "Matériaux de construction" },
+  { value: "autre", label: "Autre demande" },
 ];
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: ''
-  });
+  const { data: company } = useCompany();
+  const [subject, setSubject] = useState("");
+  const subjectLabel = subjects.find((s) => s.value === subject)?.label;
+  const address = [company?.address, company?.city].filter(Boolean).join(", ");
+  const whatsapp = whatsappLink(company?.whatsapp ?? company?.phone, "Bonjour, je vous contacte depuis votre site.");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Votre message a été envoyé ! Nous vous répondrons rapidement.');
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-  };
+  const info = [
+    company?.phone && { icon: Phone, title: "Téléphone", lines: [formatPhone(company.phone)], href: `tel:${company.phone}` },
+    whatsapp && { icon: MessageCircle, title: "WhatsApp", lines: [formatPhone(company?.whatsapp ?? company?.phone)], href: whatsapp, external: true },
+    company?.email && { icon: Mail, title: "Email", lines: [company.email], href: `mailto:${company.email}` },
+    address && { icon: MapPin, title: "Adresse", lines: [address], href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, external: true },
+    { icon: Clock, title: "Horaires", lines: ["Lun - Ven : 8h30 - 18h00", "Sam : 9h00 - 13h00"] },
+  ].filter(Boolean) as { icon: typeof Phone; title: string; lines: string[]; href?: string; external?: boolean }[];
 
   return (
     <>
       <Helmet>
-        <title>Contactez-nous | Borom Daradji - Agence Immobilière Dakar</title>
-        <meta name="description" content="Contactez l'Agence Immobilière Borom Daradji à Dakar. Nous sommes à votre disposition pour tous vos projets immobiliers et travaux." />
+        <title>Contactez-nous | Borom Daradji - Agence immobilière à Dakar</title>
+        <meta name="description" content="Contactez l'agence Borom Daradji à Dakar pour vos projets immobiliers, de travaux ou de matériaux. Réponse rapide, par téléphone ou WhatsApp." />
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        {/* Hero */}
         <section className="bg-navy py-20">
           <div className="container">
             <div className="max-w-3xl">
-              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-6">
-                Contactez-nous
-              </h1>
-              <p className="text-primary-foreground/80 text-lg">
-                Une question, un projet ? Notre équipe est à votre disposition 
-                pour vous accompagner dans vos démarches immobilières.
+              <h1 className="mb-6 font-display text-3xl font-bold text-primary-foreground md:text-4xl lg:text-5xl">Contactez-nous</h1>
+              <p className="text-lg text-primary-foreground/80">
+                Une question, un projet ? Laissez-nous un message : un conseiller vous rappelle, au Sénégal comme à l'étranger.
               </p>
             </div>
           </div>
@@ -81,112 +52,47 @@ export default function ContactPage() {
 
         <section className="py-20">
           <div className="container">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Contact info */}
-              <div className="space-y-6">
-                {contactInfo.map((info) => (
-                  <Card key={info.title} variant="service">
-                    <CardContent className="p-6">
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
-                          <info.icon className="h-6 w-6 text-accent" />
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              <div className="space-y-4">
+                {info.map((item) => {
+                  const content = (
+                    <Card variant="service">
+                      <CardContent className="p-0">
+                        <div className="flex gap-4">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10">
+                            <item.icon className="h-6 w-6 text-accent" />
+                          </div>
+                          <div>
+                            <h3 className="mb-1 font-semibold text-foreground">{item.title}</h3>
+                            {item.lines.map((line) => <p key={line} className="text-muted-foreground">{line}</p>)}
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground mb-1">{info.title}</h3>
-                          {info.lines.map((line, index) => (
-                            info.action ? (
-                              <a 
-                                key={index}
-                                href={info.action}
-                                className="block text-muted-foreground hover:text-accent transition-colors"
-                              >
-                                {line}
-                              </a>
-                            ) : (
-                              <p key={index} className="text-muted-foreground">{line}</p>
-                            )
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                  return item.href ? (
+                    <a key={item.title} href={item.href} target={item.external ? "_blank" : undefined} rel={item.external ? "noreferrer" : undefined} className="block">{content}</a>
+                  ) : <div key={item.title}>{content}</div>;
+                })}
               </div>
 
-              {/* Contact form */}
               <div className="lg:col-span-2">
                 <Card variant="elevated">
                   <CardContent className="p-8">
-                    <h2 className="font-display text-2xl font-bold text-foreground mb-6">
-                      Envoyez-nous un message
-                    </h2>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                          placeholder="Votre nom *"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                        />
-                        <Input
-                          type="email"
-                          placeholder="Votre email *"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Input
-                          type="tel"
-                          placeholder="Votre téléphone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        />
-                        <Select 
-                          value={formData.subject} 
-                          onValueChange={(v) => setFormData({ ...formData, subject: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sujet *" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="achat">Projet d'achat</SelectItem>
-                            <SelectItem value="vente">Mise en vente</SelectItem>
-                            <SelectItem value="location">Location</SelectItem>
-                            <SelectItem value="travaux">Travaux / Rénovation</SelectItem>
-                            <SelectItem value="estimation">Estimation gratuite</SelectItem>
-                            <SelectItem value="autre">Autre demande</SelectItem>
-                          </SelectContent>
+                    <h2 className="mb-2 font-display text-2xl font-bold text-foreground">Envoyez-nous un message</h2>
+                    <p className="mb-6 text-sm text-muted-foreground">Nous vous répondons généralement dans la journée.</p>
+                    <LeadForm
+                      messagePrefix={subjectLabel ? `Sujet : ${subjectLabel}` : ""}
+                      extraFields={
+                        <Select value={subject} onValueChange={setSubject}>
+                          <SelectTrigger aria-label="Sujet"><SelectValue placeholder="Sujet de votre demande" /></SelectTrigger>
+                          <SelectContent>{subjects.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
                         </Select>
-                      </div>
-                      <Textarea
-                        placeholder="Votre message *"
-                        value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        rows={6}
-                        required
-                      />
-                      <Button type="submit" variant="gold" size="lg">
-                        Envoyer le message
-                        <Send className="h-5 w-5" />
-                      </Button>
-                    </form>
+                      }
+                    />
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Map placeholder */}
-        <section className="h-96 bg-muted relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <MapPin className="h-12 w-12 text-accent mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                123 Avenue Cheikh Anta Diop, Dakar
-              </p>
             </div>
           </div>
         </section>

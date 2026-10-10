@@ -1,4 +1,5 @@
 import { Check, Phone, Users, Award, Building2 } from 'lucide-react';
+import { formatPhone, useCompany } from '@/lib/public';
 
 const stats = [
   { icon: Building2, value: '500+', label: 'Biens vendus' },
@@ -17,6 +18,7 @@ const features = [
 ];
 
 export function WhyChooseUs() {
+  const { data: company } = useCompany();
   return (
     <section className="py-20 gradient-hero text-primary-foreground overflow-hidden relative">
       {/* Background pattern */}
@@ -55,11 +57,11 @@ export function WhyChooseUs() {
 
             {/* CTA */}
             <a 
-              href="tel:+221771234567"
+              href={company?.phone ? `tel:${company.phone}` : '/contact'}
               className="inline-flex items-center gap-3 bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-4 rounded-lg font-semibold transition-all shadow-gold"
             >
               <Phone className="h-5 w-5" />
-              Appelez-nous : +221 77 123 45 67
+              {company?.phone ? `Appelez-nous : ${formatPhone(company.phone)}` : 'Contactez-nous'}
             </a>
           </div>
 

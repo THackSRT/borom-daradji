@@ -46,12 +46,12 @@ export function HeroSection() {
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </Link>
-            <a href="tel:+221771234567">
+            <Link to="/contact">
               <Button variant="hero-outline">
                 <Phone className="h-5 w-5" />
                 Nous contacter
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
 

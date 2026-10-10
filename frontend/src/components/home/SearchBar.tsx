@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { propertyTypes, transactionTypes, cities } from '@/data/properties';
+import { budgetOptions, propertyTypes, transactionTypes, usePlaces } from '@/lib/public';
 
 export function SearchBar() {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ export function SearchBar() {
   const [transaction, setTransaction] = useState<string>('');
   const [city, setCity] = useState<string>('');
   const [priceMax, setPriceMax] = useState<string>('');
+  const { data: places } = usePlaces();
+  const cities = places?.map((p) => p.city) ?? [];
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -32,7 +34,7 @@ export function SearchBar() {
     <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:p-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Transaction type */}
-        <Select value={transaction} onValueChange={setTransaction}>
+        <Select value={transaction} onValueChange={(v) => { setTransaction(v); setPriceMax(''); }}>
           <SelectTrigger className="h-12">
             <SelectValue placeholder="Acheter ou Louer" />
           </SelectTrigger>
@@ -81,11 +83,9 @@ export function SearchBar() {
             <SelectValue placeholder="Budget max" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="50000000">50 000 000 FCFA</SelectItem>
-            <SelectItem value="100000000">100 000 000 FCFA</SelectItem>
-            <SelectItem value="200000000">200 000 000 FCFA</SelectItem>
-            <SelectItem value="500000000">500 000 000 FCFA</SelectItem>
-            <SelectItem value="1000000000">1 000 000 000+ FCFA</SelectItem>
+            {budgetOptions(transaction).map((b) => (
+              <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

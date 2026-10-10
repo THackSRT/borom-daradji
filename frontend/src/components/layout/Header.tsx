@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { formatPhone, useCompany } from '@/lib/public';
 import { useState } from 'react';
 import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ const navigation = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { data: company } = useCompany();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -21,14 +23,18 @@ export function Header() {
       <div className="bg-navy text-primary-foreground py-2 hidden md:block">
         <div className="container flex justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            <a href="tel:+221771234567" className="flex items-center gap-2 hover:text-accent transition-colors">
-              <Phone className="h-4 w-4" />
-              +221 77 123 45 67
-            </a>
-            <a href="mailto:contact@boromdaradji.sn" className="flex items-center gap-2 hover:text-accent transition-colors">
-              <Mail className="h-4 w-4" />
-              contact@boromdaradji.sn
-            </a>
+            {company?.phone && (
+              <a href={`tel:${company.phone}`} className="flex items-center gap-2 hover:text-accent transition-colors">
+                <Phone className="h-4 w-4" />
+                {formatPhone(company.phone)}
+              </a>
+            )}
+            {company?.email && (
+              <a href={`mailto:${company.email}`} className="flex items-center gap-2 hover:text-accent transition-colors">
+                <Mail className="h-4 w-4" />
+                {company.email}
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
@@ -73,7 +79,7 @@ export function Header() {
           <div className="hidden lg:flex items-center gap-4">
             <Link to="/admin">
               <Button variant="ghost" size="sm">
-                Admin
+                Espace agence
               </Button>
             </Link>
             <Link to="/biens">
@@ -119,7 +125,7 @@ export function Header() {
               <div className="pt-4 space-y-2">
                 <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full">
-                    Admin
+                    Espace agence
                   </Button>
                 </Link>
                 <Link to="/biens" onClick={() => setMobileMenuOpen(false)}>

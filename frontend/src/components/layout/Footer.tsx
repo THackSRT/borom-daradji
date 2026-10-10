@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { formatPhone, useCompany } from '@/lib/public';
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 
 const navigation = {
@@ -30,6 +31,7 @@ const socialLinks = [
 ];
 
 export function Footer() {
+  const { data: company } = useCompany();
   return (
     <footer className="bg-navy text-primary-foreground">
       {/* Main footer */}
@@ -100,26 +102,27 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold text-lg mb-6">Contact</h4>
             <ul className="space-y-4">
-              <li>
-                <a href="tel:+221771234567" className="flex items-start gap-3 text-primary-foreground/80 hover:text-accent transition-colors text-sm">
-                  <Phone className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p>+221 77 123 45 67</p>
-                    <p>+221 33 867 89 00</p>
-                  </div>
-                </a>
-              </li>
-              <li>
-                <a href="mailto:contact@boromdaradji.sn" className="flex items-center gap-3 text-primary-foreground/80 hover:text-accent transition-colors text-sm">
-                  <Mail className="h-5 w-5 flex-shrink-0" />
-                  contact@boromdaradji.sn
-                </a>
-              </li>
+              {company?.phone && (
+                <li>
+                  <a href={`tel:${company.phone}`} className="flex items-center gap-3 text-primary-foreground/80 hover:text-accent transition-colors text-sm">
+                    <Phone className="h-5 w-5 flex-shrink-0" />
+                    {formatPhone(company.phone)}
+                  </a>
+                </li>
+              )}
+              {company?.email && (
+                <li>
+                  <a href={`mailto:${company.email}`} className="flex items-center gap-3 text-primary-foreground/80 hover:text-accent transition-colors text-sm">
+                    <Mail className="h-5 w-5 flex-shrink-0" />
+                    {company.email}
+                  </a>
+                </li>
+              )}
               <li className="flex items-start gap-3 text-primary-foreground/80 text-sm">
                 <MapPin className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p>123 Avenue Cheikh Anta Diop</p>
-                  <p>Dakar, Sénégal</p>
+                  {company?.address && <p>{company.address}</p>}
+                  <p>{company?.city ?? 'Dakar'}, Sénégal</p>
                 </div>
               </li>
             </ul>

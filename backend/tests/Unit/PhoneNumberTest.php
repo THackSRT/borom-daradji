@@ -23,7 +23,12 @@ class PhoneNumberTest extends TestCase
             'points et tirets' => ['77.123-45-67', '+221771234567'],
             'trop court' => ['77 123 45', null],
             'préfixe inconnu' => ['55 123 45 67', null],
-            'numéro étranger' => ['+33 6 12 34 56 78', null],
+            'France avec +' => ['+33 6 12 34 56 78', '+33612345678'],
+            'France avec 00' => ['0033 6 12 34 56 78', '+33612345678'],
+            'Canada' => ['+1 (514) 555-0199', '+15145550199'],
+            'numéro français sans indicatif' => ['06 12 34 56 78', null],
+            'indicatif seul' => ['+33 12', null],
+            '+221 avec préfixe inconnu' => ['+221 55 123 45 67', null],
             'vide' => ['', null],
             'null' => [null, null],
         ];

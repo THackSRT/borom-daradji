@@ -128,6 +128,15 @@ class PublicCatalogTest extends TestCase
         $this->assertSame(0, Client::count());
     }
 
+    public function test_a_diaspora_visitor_can_leave_a_foreign_number(): void
+    {
+        $this->postJson('/api/public/leads', ['name' => 'Moussa (Paris)', 'phone' => '+33 6 12 34 56 78', 'message' => 'Je cherche un terrain à Thiès'])
+            ->assertAccepted();
+
+        $client = Client::where('phone', '+33612345678')->firstOrFail();
+        $this->assertSame('https://wa.me/33612345678', $client->whatsappUrl());
+    }
+
     public function test_an_invalid_phone_is_rejected(): void
     {
         $this->postJson('/api/public/leads', ['name' => 'X', 'phone' => '0612345678', 'message' => 'Bonjour'])

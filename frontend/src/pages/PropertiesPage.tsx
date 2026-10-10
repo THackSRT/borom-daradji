@@ -1,191 +1,86 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import { Search, SlidersHorizontal, Grid3X3, List, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { PropertyCard } from '@/components/properties/PropertyCard';
-import { properties, propertyTypes, transactionTypes, cities, neighborhoods } from '@/data/properties';
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { PropertyCard, PropertyCardSkeleton } from "@/components/properties/PropertyCard";
+import { budgetOptions, propertyTypes, transactionTypes, useCatalog, usePlaces } from "@/lib/public";
+
+const FILTERS = ["type", "transaction", "city", "neighborhood", "priceMax", "surfaceMin", "search", "sort"] as const;
+type FilterKey = (typeof FILTERS)[number];
+
+const sorts = [
+  { value: "recent", label: "Plus récents" },
+  { value: "price_asc", label: "Prix croissant" },
+  { value: "price_desc", label: "Prix décroissant" },
+  { value: "surface_desc", label: "Plus grande surface" },
+];
 
 export default function PropertiesPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [params, setParams] = useSearchParams();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const { data: places } = usePlaces();
 
-  // Filters from URL
-  const type = searchParams.get('type') || '';
-  const transaction = searchParams.get('transaction') || '';
-  const city = searchParams.get('city') || '';
-  const neighborhood = searchParams.get('neighborhood') || '';
-  const priceMin = searchParams.get('priceMin') || '';
-  const priceMax = searchParams.get('priceMax') || '';
-  const surfaceMin = searchParams.get('surfaceMin') || '';
-  const search = searchParams.get('search') || '';
+  const filters = Object.fromEntries(FILTERS.map((k) => [k, params.get(k) ?? ""])) as Record<FilterKey, string>;
+  const page = Number(params.get("page") ?? 1) || 1;
+  const { data, isLoading, isFetching } = useCatalog({ ...filters, page, per_page: 12 });
 
-  const updateFilter = (key: string, value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    setSearchParams(newParams);
+  const update = (key: FilterKey, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && value !== "all") next.set(key, value); else next.delete(key);
+    // Changer de ville vide le quartier ; changer de transaction vide le budget (vente ≠ loyer).
+    if (key === "city") next.delete("neighborhood");
+    if (key === "transaction") next.delete("priceMax");
+    next.delete("page");
+    setParams(next);
   };
-
-  const clearFilters = () => {
-    setSearchParams(new URLSearchParams());
+  const goTo = (p: number) => {
+    const next = new URLSearchParams(params);
+    next.set("page", String(p));
+    setParams(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const clear = () => setParams(new URLSearchParams());
 
-  const filteredProperties = useMemo(() => {
-    return properties.filter((property) => {
-      if (type && property.type !== type) return false;
-      if (transaction && property.transaction !== transaction) return false;
-      if (city && property.location.city !== city) return false;
-      if (neighborhood && property.location.neighborhood !== neighborhood) return false;
-      if (priceMin && property.price < parseInt(priceMin)) return false;
-      if (priceMax && property.price > parseInt(priceMax)) return false;
-      if (surfaceMin && property.surface < parseInt(surfaceMin)) return false;
-      if (search && !property.title.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }, [type, transaction, city, neighborhood, priceMin, priceMax, surfaceMin, search]);
+  const neighborhoods = places?.find((p) => p.city === filters.city)?.neighborhoods ?? places?.flatMap((p) => p.neighborhoods) ?? [];
+  const active = FILTERS.some((k) => k !== "sort" && filters[k]);
+  const total = data?.meta.total ?? 0;
 
-  const hasActiveFilters = type || transaction || city || neighborhood || priceMin || priceMax || surfaceMin || search;
+  const select = (key: FilterKey, label: string, placeholder: string, options: { value: string; label: string }[]) => (
+    <div>
+      <label className="mb-2 block text-sm font-medium">{label}</label>
+      <Select value={filters[key] || "all"} onValueChange={(v) => update(key, v)}>
+        <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{placeholder}</SelectItem>
+          {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
-  const FiltersContent = () => (
+  const filtersContent = (
     <div className="space-y-6">
-      {/* Search */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Rechercher</label>
+        <label className="mb-2 block text-sm font-medium">Rechercher</label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Mot-clé..."
-            value={search}
-            onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-10"
-          />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input key={filters.search} placeholder="Quartier, type, référence…" defaultValue={filters.search} className="pl-10"
+            onKeyDown={(e) => e.key === "Enter" && update("search", e.currentTarget.value)}
+            onBlur={(e) => e.target.value !== filters.search && update("search", e.target.value)} />
         </div>
       </div>
-
-      {/* Transaction */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Transaction</label>
-        <Select value={transaction || "all"} onValueChange={(v) => updateFilter('transaction', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Tous" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous</SelectItem>
-            {transactionTypes.map((t) => (
-              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Type */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Type de bien</label>
-        <Select value={type || "all"} onValueChange={(v) => updateFilter('type', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Tous" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous</SelectItem>
-            {propertyTypes.map((t) => (
-              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* City */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Ville</label>
-        <Select value={city || "all"} onValueChange={(v) => updateFilter('city', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Toutes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes</SelectItem>
-            {cities.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Neighborhood */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Quartier</label>
-        <Select value={neighborhood || "all"} onValueChange={(v) => updateFilter('neighborhood', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Tous" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous</SelectItem>
-            {neighborhoods.map((n) => (
-              <SelectItem key={n} value={n}>{n}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Price */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Budget maximum</label>
-        <Select value={priceMax || "all"} onValueChange={(v) => updateFilter('priceMax', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Pas de limite" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Pas de limite</SelectItem>
-            <SelectItem value="50000000">50 000 000 FCFA</SelectItem>
-            <SelectItem value="100000000">100 000 000 FCFA</SelectItem>
-            <SelectItem value="200000000">200 000 000 FCFA</SelectItem>
-            <SelectItem value="500000000">500 000 000 FCFA</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Surface */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Surface minimum</label>
-        <Select value={surfaceMin || "all"} onValueChange={(v) => updateFilter('surfaceMin', v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Pas de minimum" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Pas de minimum</SelectItem>
-            <SelectItem value="50">50 m²</SelectItem>
-            <SelectItem value="100">100 m²</SelectItem>
-            <SelectItem value="200">200 m²</SelectItem>
-            <SelectItem value="500">500 m²</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Clear filters */}
-      {hasActiveFilters && (
-        <Button variant="outline" className="w-full" onClick={clearFilters}>
-          <X className="h-4 w-4 mr-2" />
-          Effacer les filtres
-        </Button>
+      {select("transaction", "Transaction", "Vente et location", transactionTypes)}
+      {select("type", "Type de bien", "Tous les types", propertyTypes)}
+      {select("city", "Ville", "Toutes les villes", (places ?? []).map((p) => ({ value: p.city, label: p.city })))}
+      {select("neighborhood", "Quartier", "Tous les quartiers", neighborhoods.map((n) => ({ value: n, label: n })))}
+      {select("priceMax", filters.transaction === "location" ? "Loyer maximum" : "Budget maximum", "Pas de limite", budgetOptions(filters.transaction))}
+      {select("surfaceMin", "Surface minimum", "Pas de minimum", ["50", "100", "200", "500"].map((v) => ({ value: v, label: `${v} m²` })))}
+      {active && (
+        <Button variant="outline" className="w-full" onClick={clear}><X className="mr-2 h-4 w-4" /> Effacer les filtres</Button>
       )}
     </div>
   );
@@ -193,99 +88,78 @@ export default function PropertiesPage() {
   return (
     <>
       <Helmet>
-        <title>Nos Biens Immobiliers | Borom Daradji - Dakar, Sénégal</title>
-        <meta name="description" content="Découvrez notre sélection de biens immobiliers à Dakar et au Sénégal : villas, appartements, terrains, maisons à vendre ou à louer." />
+        <title>Nos biens immobiliers | Borom Daradji - Dakar, Sénégal</title>
+        <meta name="description" content="Villas, appartements, terrains et maisons à vendre ou à louer à Dakar et au Sénégal. Biens vérifiés par l'agence Borom Daradji." />
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        {/* Header */}
         <div className="bg-navy py-16">
           <div className="container">
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
-              Nos Biens Immobiliers
-            </h1>
-            <p className="text-primary-foreground/80 text-lg max-w-2xl">
-              Découvrez notre sélection de biens de qualité à Dakar et dans tout le Sénégal.
+            <h1 className="mb-4 font-display text-3xl font-bold text-primary-foreground md:text-4xl lg:text-5xl">Nos biens immobiliers</h1>
+            <p className="max-w-2xl text-lg text-primary-foreground/80">
+              Chaque bien publié a fait l'objet d'une vérification foncière par notre équipe.
             </p>
           </div>
         </div>
 
         <div className="container py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Desktop Filters Sidebar */}
-            <aside className="hidden lg:block w-72 flex-shrink-0">
-              <div className="sticky top-32 bg-card rounded-xl border p-6">
-                <h2 className="font-display font-semibold text-lg mb-6">Filtres</h2>
-                <FiltersContent />
+          <div className="flex flex-col gap-8 lg:flex-row">
+            <aside className="hidden w-72 flex-shrink-0 lg:block">
+              <div className="sticky top-32 rounded-xl border bg-card p-6">
+                <h2 className="mb-6 font-display text-lg font-semibold">Filtres</h2>
+                {filtersContent}
               </div>
             </aside>
 
-            {/* Main content */}
             <div className="flex-1">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between mb-6 gap-4">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <p className="text-muted-foreground">
-                  <span className="font-semibold text-foreground">{filteredProperties.length}</span> bien(s) trouvé(s)
+                  <span className="font-semibold text-foreground">{isLoading ? "…" : total}</span> bien{total > 1 ? "s" : ""} trouvé{total > 1 ? "s" : ""}
                 </p>
-
                 <div className="flex items-center gap-2">
-                  {/* Mobile filters */}
                   <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden">
-                        <SlidersHorizontal className="h-4 w-4 mr-2" />
-                        Filtres
-                      </Button>
+                      <Button variant="outline" className="lg:hidden"><SlidersHorizontal className="mr-2 h-4 w-4" /> Filtres</Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-80">
-                      <SheetHeader>
-                        <SheetTitle>Filtres</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-6">
-                        <FiltersContent />
-                      </div>
+                    <SheetContent side="left" className="w-80 overflow-y-auto">
+                      <SheetHeader><SheetTitle>Filtres</SheetTitle></SheetHeader>
+                      <div className="mt-6">{filtersContent}</div>
                     </SheetContent>
                   </Sheet>
-
-                  {/* View toggle */}
-                  <div className="flex border rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 ${viewMode === 'grid' ? 'bg-accent text-accent-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}
-                    >
-                      <Grid3X3 className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}
-                    >
-                      <List className="h-5 w-5" />
-                    </button>
-                  </div>
+                  <Select value={filters.sort || "recent"} onValueChange={(v) => update("sort", v === "recent" ? "" : v)}>
+                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>{sorts.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {/* Properties grid/list */}
-              {filteredProperties.length > 0 ? (
-                <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
-                  {filteredProperties.map((property, index) => (
-                    <div 
-                      key={property.id}
-                      className="animate-fade-up"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <PropertyCard property={property} />
+              {isLoading ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <PropertyCardSkeleton key={i} />)}</div>
+              ) : data && data.data.length > 0 ? (
+                <>
+                  <div className={`grid grid-cols-1 gap-6 transition-opacity md:grid-cols-2 xl:grid-cols-3 ${isFetching ? "opacity-60" : ""}`}>
+                    {data.data.map((property, index) => (
+                      <div key={property.slug} className="animate-fade-up" style={{ animationDelay: `${index * 50}ms` }}>
+                        <PropertyCard property={property} />
+                      </div>
+                    ))}
+                  </div>
+                  {data.meta.last_page > 1 && (
+                    <div className="mt-10 flex items-center justify-center gap-3">
+                      <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => goTo(page - 1)} aria-label="Page précédente"><ChevronLeft className="h-4 w-4" /></Button>
+                      <span className="text-sm text-muted-foreground">Page {page} sur {data.meta.last_page}</span>
+                      <Button variant="outline" size="icon" disabled={page >= data.meta.last_page} onClick={() => goTo(page + 1)} aria-label="Page suivante"><ChevronRight className="h-4 w-4" /></Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               ) : (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground text-lg mb-4">
-                    Aucun bien ne correspond à vos critères.
-                  </p>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Réinitialiser les filtres
-                  </Button>
+                <div className="rounded-xl border border-dashed py-16 text-center">
+                  <p className="mb-2 text-lg font-medium text-foreground">Aucun bien ne correspond à vos critères.</p>
+                  <p className="mb-6 text-muted-foreground">Laissez-nous votre recherche : nous vous prévenons dès qu'un bien correspond.</p>
+                  <div className="flex justify-center gap-3">
+                    <Button variant="outline" onClick={clear}>Réinitialiser les filtres</Button>
+                    <Button variant="gold" asChild><a href="/contact">Confier ma recherche</a></Button>
+                  </div>
                 </div>
               )}
             </div>

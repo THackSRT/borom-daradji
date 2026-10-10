@@ -1,80 +1,64 @@
-import { Link } from 'react-router-dom';
-import { MapPin, Maximize, BedDouble, Bath } from 'lucide-react';
-import { Property, formatPrice } from '@/data/properties';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Link } from "react-router-dom";
+import { Bath, BedDouble, Home, MapPin, Maximize } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { formatPrice, type PublicProperty } from "@/lib/public";
 
-interface PropertyCardProps {
-  property: Property;
-}
+export function PropertyCard({ property }: { property: PublicProperty }) {
+  const place = [property.neighborhood, property.city].filter(Boolean).join(", ");
 
-export function PropertyCard({ property }: PropertyCardProps) {
   return (
     <Link to={`/biens/${property.slug}`}>
       <Card variant="property" className="h-full">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img
-            src={property.images[0]}
-            alt={property.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-navy/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
-          {/* Badges */}
-          <div className="absolute top-4 left-4 flex gap-2">
-            <Badge variant={property.transaction === 'vente' ? 'default' : 'secondary'}>
-              {property.transaction === 'vente' ? 'Vente' : 'Location'}
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          {property.cover_url ? (
+            <img src={property.cover_url} alt={property.title} loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          ) : (
+            <div className="flex h-full items-center justify-center"><Home className="h-10 w-10 text-muted-foreground/40" /></div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-navy/70 via-transparent to-transparent" />
+
+          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+            <Badge variant={property.transaction.value === "vente" ? "default" : "secondary"}>
+              {property.transaction.value === "vente" ? "Vente" : "Location"}
             </Badge>
-            {property.featured && (
-              <Badge variant="gold">
-                En vedette
-              </Badge>
-            )}
+            {property.status.value === "en_negociation" && <Badge className="border-transparent bg-amber-500 text-white">En négociation</Badge>}
+            {property.is_featured && property.status.value !== "en_negociation" && <Badge variant="gold">En vedette</Badge>}
           </div>
 
-          {/* Price tag */}
           <div className="absolute bottom-4 left-4 right-4">
-            <p className="text-primary-foreground font-display font-bold text-xl drop-shadow-lg">
-              {formatPrice(property.price, property.transaction)}
-            </p>
+            <p className="font-display text-xl font-bold text-primary-foreground drop-shadow-lg">{formatPrice(property)}</p>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-5 space-y-3">
+        <div className="space-y-3 p-5">
           <div>
-            <h3 className="font-display font-semibold text-lg text-foreground line-clamp-2 group-hover:text-accent transition-colors">
-              {property.title}
-            </h3>
-            <p className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
-              <MapPin className="h-4 w-4" />
-              {property.location.neighborhood}, {property.location.city}
-            </p>
+            <h3 className="line-clamp-2 font-display text-lg font-semibold text-foreground transition-colors group-hover:text-accent">{property.title}</h3>
+            {place && (
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="h-4 w-4" />{place}</p>
+            )}
           </div>
-
-          {/* Features */}
-          <div className="flex items-center gap-4 pt-2 border-t border-border">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Maximize className="h-4 w-4" />
-              <span>{property.surface} m²</span>
-            </div>
-            {property.bedrooms > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <BedDouble className="h-4 w-4" />
-                <span>{property.bedrooms} ch.</span>
-              </div>
-            )}
-            {property.bathrooms > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Bath className="h-4 w-4" />
-                <span>{property.bathrooms} sdb</span>
-              </div>
-            )}
+          <div className="flex items-center gap-4 border-t border-border pt-2 text-sm text-muted-foreground">
+            {property.surface && <span className="flex items-center gap-1.5"><Maximize className="h-4 w-4" />{property.surface} m²</span>}
+            {!!property.bedrooms && <span className="flex items-center gap-1.5"><BedDouble className="h-4 w-4" />{property.bedrooms} ch.</span>}
+            {!!property.bathrooms && <span className="flex items-center gap-1.5"><Bath className="h-4 w-4" />{property.bathrooms} sdb</span>}
+            <span className="ml-auto text-xs">{property.type.label}</span>
           </div>
         </div>
       </Card>
     </Link>
+  );
+}
+
+export function PropertyCardSkeleton() {
+  return (
+    <div className="h-full overflow-hidden rounded-xl bg-card shadow-md">
+      <div className="aspect-[4/3] animate-pulse bg-muted" />
+      <div className="space-y-3 p-5">
+        <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
   );
 }
