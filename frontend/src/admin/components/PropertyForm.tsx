@@ -122,7 +122,7 @@ export function PropertyForm({
 
       <div className="flex justify-end gap-2">
         {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>}
-        <Button type="submit" variant="gold" disabled={pending}>Enregistrer</Button>
+        <Button type="submit" disabled={pending}>Enregistrer</Button>
       </div>
     </form>
   );

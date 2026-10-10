@@ -14,7 +14,7 @@ import { fromNow } from "@/lib/format";
 import { useAuth } from "../auth";
 import { useApiMutation, useOptions } from "../hooks";
 import type { Paginated, User } from "../types";
-import { EmptyState, Field, FormError, LoadingBlock, PageHeader, Pagination } from "../components/ui";
+import { Avatar, EmptyState, Field, FormError, LoadingBlock, PageHeader, Pagination } from "../components/ui";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
@@ -31,19 +31,19 @@ export default function UsersPage() {
       <PageHeader
         title="Comptes"
         description="Qui a accès au back-office, avec quels rôles. Un compte n'est jamais supprimé : il est désactivé."
-        actions={<Button variant="gold" onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> Nouveau compte</Button>}
+        actions={<Button onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> Nouveau compte</Button>}
       />
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Nom, email ou téléphone" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        <Input className="bg-card pl-9" placeholder="Nom, email ou téléphone" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
       </div>
 
       {isLoading ? <LoadingBlock /> : !data?.data.length ? <EmptyState>Aucun compte.</EmptyState> : (
-        <Card>
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/40">
                 <TableHead>Nom</TableHead>
                 <TableHead className="hidden md:table-cell">Contact</TableHead>
                 <TableHead>Rôles</TableHead>
@@ -55,7 +55,7 @@ export default function UsersPage() {
               {data.data.map((u) => (
                 <TableRow key={u.id} className={u.is_active ? "" : "opacity-50"}>
                   <TableCell className="font-medium">
-                    {u.name}
+                    <span className="inline-flex items-center gap-3"><Avatar name={u.name} size="sm" />{u.name}</span>
                     {!u.is_active && <Badge variant="outline" className="ml-2">Désactivé</Badge>}
                   </TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
@@ -72,7 +72,7 @@ export default function UsersPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       )}
       {data && <Pagination page={data.meta.current_page} lastPage={data.meta.last_page} total={data.meta.total} onChange={setPage} />}
 
@@ -160,7 +160,7 @@ function UserDialog({ user, onClose }: { user: User | null; onClose: () => void 
           <FormError message={error?.field("is_active")} />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-            <Button type="submit" variant="gold" disabled={mutation.isPending}>Enregistrer</Button>
+            <Button type="submit" disabled={mutation.isPending}>Enregistrer</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -2,13 +2,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useApiMutation } from "../hooks";
 import type { CompanySettings } from "../types";
-import { Field, LoadingBlock, PageHeader } from "../components/ui";
+import { Field, LoadingBlock, PageHeader, Panel } from "../components/ui";
 
 type FormState = Record<keyof Omit<CompanySettings, "logo_url" | "currency" | "vat_rate">, string> & { vat_rate: string };
 
@@ -73,9 +72,7 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Paramètres de l'entreprise" description="Repris sur les factures, quittances, devis et le site vitrine." />
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-lg">Coordonnées et mentions légales</CardTitle></CardHeader>
-          <CardContent>
+        <Panel className="lg:col-span-2" title="Coordonnées et mentions légales" description="Reprises sur les factures, quittances, devis et le site.">
             <form onSubmit={submit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 {fields.map(({ key, label, hint, type }) => (
@@ -89,14 +86,11 @@ export default function SettingsPage() {
                 <Textarea id="invoice_footer" rows={3} value={form.invoice_footer}
                   onChange={(e) => setForm({ ...form, invoice_footer: e.target.value })} />
               </Field>
-              <Button type="submit" variant="gold" disabled={save.isPending}>Enregistrer</Button>
+              <Button type="submit" disabled={save.isPending}>Enregistrer les paramètres</Button>
             </form>
-          </CardContent>
-        </Card>
+        </Panel>
 
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Logo</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
+        <Panel title="Logo" description="Affiché sur les documents et le site." bodyClassName="space-y-4 p-5">
             <div className="flex h-32 items-center justify-center rounded-lg border bg-muted/40">
               {data.logo_url ? <img src={data.logo_url} alt="Logo" className="max-h-28 object-contain" /> : <span className="text-sm text-muted-foreground">Aucun logo</span>}
             </div>
@@ -109,8 +103,7 @@ export default function SettingsPage() {
             </Button>
             {logo.error?.field("logo") && <p className="text-xs text-destructive">{logo.error.field("logo")}</p>}
             <p className="text-xs text-muted-foreground">PNG, JPG ou WebP, 2 Mo maximum. Devise : {data.currency}.</p>
-          </CardContent>
-        </Card>
+        </Panel>
       </div>
     </>
   );

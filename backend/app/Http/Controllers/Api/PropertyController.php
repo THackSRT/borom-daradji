@@ -31,27 +31,36 @@ class PropertyController extends Controller
             'price_min' => ['nullable', 'integer', 'min:0'],
             'price_max' => ['nullable', 'integer', 'min:0'],
             'archived' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $properties = Property::query()
-            ->with(['cover', 'agent:id,name', 'owner:id,name,phone'])
+        $base = Property::query()
             ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
             ->when($filters['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
                 ->orWhere('reference', 'like', "%{$search}%")))
             ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['transaction'] ?? null, fn ($q, $v) => $q->where('transaction', $v))
-            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['city'] ?? null, fn ($q, $v) => $q->where('city', $v))
             ->when($filters['neighborhood'] ?? null, fn ($q, $v) => $q->where('neighborhood', $v))
             ->when($filters['agent_id'] ?? null, fn ($q, $v) => $q->where('agent_id', $v))
             ->when($filters['price_min'] ?? null, fn ($q, $v) => $q->where('price', '>=', $v))
-            ->when($filters['price_max'] ?? null, fn ($q, $v) => $q->where('price', '<=', $v))
+            ->when($filters['price_max'] ?? null, fn ($q, $v) => $q->where('price', '<=', $v));
+
+        // Compteurs par statut avec les autres filtres appliqués : ils alimentent les filtres rapides de l'écran.
+        $statusCounts = (clone $base)->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+
+        $properties = $base
+            ->with(['cover', 'agent:id,name', 'owner:id,name,phone'])
+            ->withCount(['checks', 'checks as checks_cleared_count' => fn ($q) => $q->whereIn('status', ['ok', 'sans_objet'])])
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->latest()
-            ->paginate(25)
+            ->paginate($request->integer('per_page', 25) ?: 25)
             ->withQueryString();
 
-        return PropertyResource::collection($properties);
+        return PropertyResource::collection($properties)->additional([
+            'status_counts' => collect(PropertyStatus::cases())->mapWithKeys(fn ($s) => [$s->value => (int) ($statusCounts[$s->value] ?? 0)]),
+        ]);
     }
 
     public function store(PropertyRequest $request): PropertyResource

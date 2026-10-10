@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider, RequireAuth } from "./auth";
 import { AdminLayout } from "./components/AdminLayout";
 import { LoadingBlock } from "./components/ui";
 
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const PropertiesPage = lazy(() => import("./pages/PropertiesPage"));
 const PropertyDetailPage = lazy(() => import("./pages/PropertyDetailPage"));
@@ -19,13 +20,20 @@ const ActivityPage = lazy(() => import("./pages/ActivityPage"));
  * Back-office, monté sous /admin. Chargé à la demande : le site vitrine ne télécharge pas ce code.
  */
 export default function AdminApp() {
+  // Styles du back-office sur <body> : les fenêtres et menus (portails Radix) en héritent aussi.
+  useEffect(() => {
+    document.body.classList.add("admin");
+    return () => document.body.classList.remove("admin");
+  }, []);
+
   return (
     <AuthProvider>
-      <Suspense fallback={<LoadingBlock />}>
+      <Suspense fallback={<div className="p-8"><LoadingBlock /></div>}>
         <Routes>
           <Route path="connexion" element={<LoginPage />} />
           <Route element={<RequireAuth><AdminLayout /></RequireAuth>}>
-            <Route index element={<TasksPage />} />
+            <Route index element={<DashboardPage />} />
+            <Route path="taches" element={<TasksPage />} />
             <Route path="biens" element={<PropertiesPage />} />
             <Route path="biens/:id" element={<PropertyDetailPage />} />
             <Route path="clients" element={<ClientsPage />} />

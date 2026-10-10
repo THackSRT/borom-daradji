@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import type { ActivityLog, Paginated } from "../types";
-import { EmptyState, LoadingBlock, PageHeader, Pagination } from "../components/ui";
+import { Avatar, EmptyState, LoadingBlock, PageHeader, Pagination } from "../components/ui";
 
 const actions: Record<string, string> = {
   created: "Création",
@@ -56,22 +55,23 @@ export default function ActivityPage() {
 
       <div className="mb-4 flex flex-wrap gap-3">
         <Select value={action} onValueChange={(v) => { setAction(v); setPage(1); }}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-48 bg-card"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes les actions</SelectItem>
             {Object.entries(actions).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Input type="date" className="w-44" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} aria-label="Du" />
-        <Input type="date" className="w-44" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} aria-label="Au" />
+        <Input type="date" className="w-44 bg-card" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} aria-label="Du" />
+        <Input type="date" className="w-44 bg-card" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} aria-label="Au" />
       </div>
 
       {isLoading ? <LoadingBlock /> : !data?.data.length ? <EmptyState>Aucune entrée.</EmptyState> : (
-        <Card className="divide-y">
+        <div className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
           {data.data.map((log) => (
             <div key={log.id} className="p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p>
+                <p className="flex flex-wrap items-center gap-1">
+                  <Avatar name={log.user?.name ?? "Système"} size="sm" className="mr-1" />
                   <span className="font-medium">{log.user?.name ?? "Système"}</span>{" "}
                   <span className="text-muted-foreground">· {actions[log.action] ?? log.action}</span>
                   {log.subject_type && (
@@ -92,7 +92,7 @@ export default function ActivityPage() {
               )}
             </div>
           ))}
-        </Card>
+        </div>
       )}
       {data && <Pagination page={data.meta.current_page} lastPage={data.meta.last_page} total={data.meta.total} onChange={setPage} />}
     </>

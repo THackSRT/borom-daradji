@@ -49,6 +49,11 @@ class PropertyResource extends JsonResource
             'is_featured' => $this->is_featured,
             'published_at' => $this->published_at?->toIso8601String(),
             'cover_url' => $this->whenLoaded('cover', fn () => $this->cover?->url()),
+            // Progression de la vérification foncière dans les listes (le détail exact, avec l'ancienneté, est dans « checks »).
+            'checks_progress' => $this->when(isset($this->checks_count), fn () => [
+                'cleared' => (int) $this->checks_cleared_count,
+                'total' => (int) $this->checks_count,
+            ]),
             'owner' => $this->whenLoaded('owner', fn () => $this->owner ? [
                 'id' => $this->owner->id,
                 'name' => $this->owner->name,

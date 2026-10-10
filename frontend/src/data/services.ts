@@ -1,10 +1,11 @@
+import type { LucideIcon } from 'lucide-react';
 import { Building2, Home, Hammer, Package, Paintbrush, Wrench, Zap, Droplets, Wind, TreeDeciduous } from 'lucide-react';
 
 export interface Service {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   features: string[];
 }
 

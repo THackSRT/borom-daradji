@@ -1,194 +1,110 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
-import { formatDateTime, fromNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../auth";
-import { useApiMutation, useOptions } from "../hooks";
-import type { Paginated, Task, User } from "../types";
-import { EmptyState, Field, LoadingBlock, PageHeader, StatusBadge, WhatsAppLink } from "../components/ui";
+import { useApiMutation } from "../hooks";
+import type { Paginated, Task } from "../types";
+import { TaskItem } from "../components/TaskItem";
+import { useQuickCreate } from "../components/QuickCreate";
+import { EmptyState, FilterChips, LoadingBlock, PageHeader, Panel } from "../components/ui";
 
-type Filter = "today" | "week" | "all" | "done";
+type View = "open" | "done";
+
+const presets = [
+  { key: "today", label: "Aujourd'hui", at: () => { const d = new Date(); d.setHours(18, 0, 0, 0); return d; } },
+  { key: "tomorrow", label: "Demain", at: () => { const d = new Date(Date.now() + 86_400_000); d.setHours(9, 0, 0, 0); return d; } },
+  { key: "week", label: "Lundi prochain", at: () => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); d.setHours(9, 0, 0, 0); return d; } },
+] as const;
+
+function group(tasks: Task[]) {
+  const startOfToday = new Date(new Date().toDateString()).getTime();
+  const day = 86_400_000;
+  const groups: Record<string, Task[]> = { "En retard": [], "Aujourd'hui": [], Demain: [], "Plus tard": [] };
+  for (const t of tasks) {
+    const due = new Date(t.due_at).getTime();
+    if (t.is_overdue && due < startOfToday) groups["En retard"].push(t);
+    else if (due < startOfToday + day) groups["Aujourd'hui"].push(t);
+    else if (due < startOfToday + 2 * day) groups.Demain.push(t);
+    else groups["Plus tard"].push(t);
+  }
+  return Object.entries(groups).filter(([, list]) => list.length);
+}
 
 export default function TasksPage() {
-  const { user, isDirigeant } = useAuth();
-  const [filter, setFilter] = useState<Filter>("today");
+  const { isDirigeant } = useAuth();
+  const quickCreate = useQuickCreate();
+  const [view, setView] = useState<View>("open");
   const [team, setTeam] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState("");
+  const [preset, setPreset] = useState<(typeof presets)[number]["key"]>("today");
 
-  const query = {
-    due: filter === "today" || filter === "week" ? filter : undefined,
-    state: filter === "done" ? "done" : "open",
-    all: isDirigeant && team,
-  };
+  const query = { state: view, all: isDirigeant && team };
+  const { data, isLoading } = useQuery({ queryKey: ["tasks", query], queryFn: () => api<Paginated<Task>>("/tasks", { query }) });
+  const sections = useMemo(() => (data ? group(data.data) : []), [data]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["tasks", query],
-    queryFn: () => api<Paginated<Task>>("/tasks", { query }),
-  });
-
-  const toggle = useApiMutation(
-    ({ id, done }: { id: number; done: boolean }) => api(`/tasks/${id}`, { method: "PUT", body: { done } }),
-    { invalidate: [["tasks"]] },
+  const add = useApiMutation(
+    () => api("/tasks", { method: "POST", body: { title, due_at: presets.find((p) => p.key === preset)!.at().toISOString() } }),
+    { success: "Tâche ajoutée.", invalidate: [["tasks"], ["dashboard"]], onSuccess: () => setTitle("") },
   );
+
+  const submit = (e: FormEvent) => { e.preventDefault(); if (title.trim()) add.mutate(undefined); };
 
   return (
     <>
       <PageHeader
-        title={`Bonjour ${user?.name.split(" ")[0] ?? ""}`}
-        description="Vos rappels, demandes du site et biens à proposer."
-        actions={
-          <Button variant="gold" onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Nouvelle tâche
-          </Button>
-        }
+        title="Tâches"
+        description="Rappels, demandes du site à rappeler, biens à proposer à vos prospects."
+        actions={<Button variant="outline" onClick={() => quickCreate.open("task")}><Plus className="h-4 w-4" /> Tâche détaillée</Button>}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-          <TabsList className="flex h-auto flex-wrap justify-start">
-            <TabsTrigger value="today">Aujourd'hui</TabsTrigger>
-            <TabsTrigger value="week">Cette semaine</TabsTrigger>
-            <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="done">Terminées</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <form onSubmit={submit} className="mb-6 rounded-xl border bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Input className="border-0 bg-transparent text-base shadow-none focus-visible:ring-0" placeholder="Ajouter une tâche… ex. « Rappeler Mme Sow pour la visite »"
+            value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="flex shrink-0 items-center gap-1">
+            {presets.map((p) => (
+              <button key={p.key} type="button" onClick={() => setPreset(p.key)}
+                className={cn("rounded-md px-2.5 py-1 text-xs font-medium transition", preset === p.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted")}>
+                {p.label}
+              </button>
+            ))}
+            <Button type="submit" size="sm" disabled={!title.trim() || add.isPending}>Ajouter</Button>
+          </div>
+        </div>
+      </form>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <FilterChips<View> value={view} onChange={setView} options={[{ value: "open", label: "À faire", count: view === "open" ? data?.meta.total : undefined }, { value: "done", label: "Terminées" }]} />
         {isDirigeant && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Checkbox checked={team} onCheckedChange={(v) => setTeam(v === true)} /> Toute l'équipe
+            <Switch checked={team} onCheckedChange={setTeam} /> Toute l'équipe
           </label>
         )}
       </div>
 
-      {isLoading ? (
-        <LoadingBlock />
-      ) : !data?.data.length ? (
-        <EmptyState>{filter === "done" ? "Aucune tâche terminée." : "Rien à faire pour l'instant."}</EmptyState>
+      {isLoading ? <LoadingBlock /> : !data?.data.length ? (
+        <EmptyState icon={CheckCircle2} title={view === "done" ? "Aucune tâche terminée" : "Rien à faire, bravo"}>
+          {view === "open" && "Ajoutez une tâche ci-dessus, ou laissez le site et les rapprochements vous en créer."}
+        </EmptyState>
+      ) : view === "done" ? (
+        <Panel bodyClassName="divide-y p-2">{data.data.map((t) => <TaskItem key={t.id} task={t} showOwner={team} />)}</Panel>
       ) : (
-        <div className="space-y-2">
-          {data.data.map((task) => (
-            <Card key={task.id} className={cn("flex items-start gap-3 p-4", task.is_overdue && "border-red-300")}>
-              <Checkbox
-                className="mt-1"
-                checked={task.done_at !== null}
-                onCheckedChange={(v) => toggle.mutate({ id: task.id, done: v === true })}
-                aria-label="Marquer comme fait"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className={cn("font-medium", task.done_at && "text-muted-foreground line-through")}>{task.title}</p>
-                  {task.priority.value === "haute" && <StatusBadge option={task.priority} />}
-                </div>
-                {task.details && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{task.details}</p>}
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span className={cn(task.is_overdue && "font-medium text-red-600")}>
-                    {formatDateTime(task.due_at)} ({fromNow(task.due_at)})
-                  </span>
-                  {task.client && (
-                    <Link to={`/admin/clients/${task.client.id}`} className="text-primary hover:underline">
-                      {task.client.name}
-                    </Link>
-                  )}
-                  {task.property && (
-                    <Link to={`/admin/biens/${task.property.id}`} className="text-primary hover:underline">
-                      {task.property.reference}
-                    </Link>
-                  )}
-                  {team && task.user && <span>Pour {task.user.name}</span>}
-                </div>
-              </div>
-              {task.client?.whatsapp_url && !task.done_at && <WhatsAppLink url={task.client.whatsapp_url} />}
-            </Card>
+        <div className="space-y-6">
+          {sections.map(([label, list]) => (
+            <section key={label}>
+              <h2 className={cn("mb-2 flex items-center gap-2 text-sm font-semibold", label === "En retard" ? "text-red-600" : "text-foreground")}>
+                {label} <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground">{list.length}</span>
+              </h2>
+              <Panel bodyClassName="divide-y p-2">{list.map((t) => <TaskItem key={t.id} task={t} showOwner={team} />)}</Panel>
+            </section>
           ))}
         </div>
       )}
-
-      <TaskDialog open={creating} onOpenChange={setCreating} />
     </>
-  );
-}
-
-function TaskDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { user } = useAuth();
-  const priorities = useOptions("task_priorities");
-  const empty = { title: "", details: "", due_at: "", priority: "normale", user_id: "" };
-  const [form, setForm] = useState(empty);
-
-  const { data: users } = useQuery({
-    queryKey: ["users", "assignable"],
-    queryFn: () => api<Paginated<User>>("/users", { query: { active: true } }),
-    enabled: open && !!user?.roles.some((r) => r.value === "dirigeant"),
-  });
-
-  const mutation = useApiMutation(
-    (body: typeof form) =>
-      api("/tasks", { method: "POST", body: { ...body, user_id: body.user_id ? Number(body.user_id) : undefined } }),
-    {
-      success: "Tâche créée.",
-      invalidate: [["tasks"]],
-      onSuccess: () => {
-        setForm(empty);
-        onOpenChange(false);
-      },
-    },
-  );
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    mutation.mutate(form);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nouvelle tâche</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <Field label="Quoi ?" htmlFor="title" error={mutation.error?.field("title")}>
-            <Input id="title" placeholder="Rappeler M. Diop" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Pour quand ?" htmlFor="due_at" error={mutation.error?.field("due_at")}>
-              <Input id="due_at" type="datetime-local" value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} required />
-            </Field>
-            <Field label="Priorité" htmlFor="priority">
-              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                <SelectTrigger id="priority"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {priorities.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-          {users && (
-            <Field label="Pour qui ?" htmlFor="user_id">
-              <Select value={form.user_id || String(user?.id)} onValueChange={(v) => setForm({ ...form, user_id: v })}>
-                <SelectTrigger id="user_id"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {users.data.map((u) => <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-          <Field label="Détails" htmlFor="details">
-            <Textarea id="details" rows={3} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })} />
-          </Field>
-          <DialogFooter>
-            <Button type="submit" variant="gold" disabled={mutation.isPending}>Créer</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

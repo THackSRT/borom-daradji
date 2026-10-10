@@ -248,3 +248,22 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Back-office : typographie sans empattement, plus nette pour des écrans de travail.
+   La classe est posée sur <body> (voir AdminApp) pour que les fenêtres et menus, rendus hors de l'arbre, en profitent.
+   « accent » redevient le gris neutre de shadcn (survols, éléments de menu) ; l'or de la marque reste disponible via « gold ». */
+@layer base {
+  .admin {
+    font-family: var(--font-body);
+    --accent: 220 14% 95%;
+    --accent-foreground: 222 47% 11%;
+  }
+
+  .admin h1,
+  .admin h2,
+  .admin h3,
+  .admin h4 {
+    font-family: var(--font-body);
+    letter-spacing: -0.01em;
+  }
+}

@@ -58,6 +58,18 @@ class ClientTest extends TestCase
             ->assertJsonPath('data.0.name', 'Awa Diallo');
     }
 
+    public function test_search_finds_a_client_from_the_first_digits_of_their_phone(): void
+    {
+        Client::factory()->create(['name' => 'Khady Ndiaye', 'phone' => '+221775550001']);
+        Client::factory()->create(['name' => 'Autre', 'phone' => '+221781234567']);
+        Sanctum::actingAs(User::factory()->withRoles(Role::Agent)->create());
+
+        $this->getJson('/api/clients?search=77 555')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Khady Ndiaye');
+    }
+
     public function test_private_notes_are_only_visible_to_the_assigned_user_and_the_dirigeant(): void
     {
         $assigned = User::factory()->withRoles(Role::Agent)->create();

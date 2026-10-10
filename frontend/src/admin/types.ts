@@ -10,6 +10,7 @@ export type RoleValue = "dirigeant" | "agent" | "responsable_travaux" | "comptab
 export interface Paginated<T> {
   data: T[];
   meta: { current_page: number; last_page: number; total: number; per_page: number };
+  status_counts?: Record<string, number>;
 }
 
 export interface User {
@@ -107,6 +108,7 @@ export interface Property {
   is_featured: boolean;
   published_at: string | null;
   cover_url?: string | null;
+  checks_progress?: { cleared: number; total: number };
   owner?: { id: number; name: string; phone: string | null } | null;
   agent?: Ref | null;
   photos?: PropertyPhoto[];
@@ -229,3 +231,21 @@ export type MetaKey =
   | "task_priorities";
 
 export type Meta = Record<MetaKey, Option[]>;
+
+export interface Dashboard {
+  kpis: {
+    published: number;
+    drafts: number;
+    new_leads: number;
+    leads_this_week: number;
+    visits_today: number;
+    visits_week: number;
+    tasks_overdue: number;
+    tasks_today: number;
+    mandates_expiring: number;
+  };
+  visits_today: Visit[];
+  new_leads: Client[];
+  drafts: (Property & { checks_progress?: { cleared: number; total: number } })[];
+  tasks: Task[];
+}

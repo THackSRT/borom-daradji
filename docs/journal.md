@@ -6,7 +6,7 @@
 
 - **Lot en cours** : lot 1 (biens et prospects) — API et back-office faits ; site vitrine encore sur ses données en dur.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (API du lot 1 + `frontend/` avec le back-office), pas encore fusionnée, pas de pull request.
-- **Tests** : 86 tests backend verts ; front : `typecheck`, `lint` (1 avertissement sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, comptable sur téléphone).
+- **Tests** : 90 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 9 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
@@ -18,7 +18,7 @@
 3. Choisir l'hébergement et déployer une première version (questions ouvertes).
 4. Lot 2 (encaissements et location) : attendre les réponses aux trois premières questions ouvertes.
 
-Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, photos de démo externes non modifiables.
+Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
 ## Questions ouvertes pour le client
 
@@ -40,6 +40,14 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Durée de conservation des sauvegardes (30 jours proposés).
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Refonte UX/UI du back-office
+
+- Demande de l'utilisateur : une interface plus moderne, plus pertinente et plus simple.
+- API : `GET /api/dashboard` (chiffres clés, tâches du jour, visites du jour, nouveaux prospects, brouillons, mandats proches de l'expiration ; périmètre propre pour un agent, toute l'agence pour le dirigeant) ; liste des biens avec `status_counts` et `checks_progress` ; `per_page` sur biens et clients ; recherche client par début de numéro (« 77 555 »). 4 tests ajoutés.
+- Front : nouveau menu clair par sections, barre du haut avec recherche globale (Ctrl+K) et bouton « Créer » (client, bien, tâche depuis n'importe où), barre de navigation en bas sur téléphone ; accueil (tableau de bord) ; tâches groupées (en retard, aujourd'hui, demain, plus tard), ajout rapide et « Demain » pour reporter ; biens avec filtres par statut et compteurs, vue cartes ou tableau, progression de la vérification ; fiche bien avec galerie, carte « Prêt à publier » / « Étape suivante » et vérification en un clic ; clients en liste ou pipeline ; fiche client avec étapes cliquables, appel/WhatsApp, saisie rapide d'un échange et historique unifié échanges + visites, envoi d'un bien correspondant par WhatsApp ; page de connexion en deux panneaux ; squelettes de chargement et états vides utiles.
+- « accent » (doré dans la charte Lovable) redevient un gris neutre dans le back-office (classe `admin` posée sur `<body>`) ; l'or reste disponible via `gold`.
+- Données de démo enrichies (prospects à chaque étape, échanges, visites du jour, tâches en retard).
 
 ### 2026-10-10 (suite) — Back-office React
 

@@ -76,7 +76,7 @@ export function PlanVisitDialog({
             <Input id="scheduled_at" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} required />
           </Field>
           <DialogFooter>
-            <Button type="submit" variant="gold" disabled={!targetId || mutation.isPending}>Planifier</Button>
+            <Button type="submit" disabled={!targetId || mutation.isPending}>Planifier</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -146,7 +146,7 @@ export function VisitReportDialog({ visit, onClose }: { visit: Visit; onClose: (
             <Input id="v-next" placeholder="Organiser une 2e visite" value={form.next_action} onChange={(e) => setForm({ ...form, next_action: e.target.value })} />
           </Field>
           <FormError message={mutation.error?.status === 422 && !mutation.error.field("feedback") ? mutation.error.message : null} />
-          <DialogFooter><Button type="submit" variant="gold" disabled={mutation.isPending}>Enregistrer</Button></DialogFooter>
+          <DialogFooter><Button type="submit" disabled={mutation.isPending}>Enregistrer</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

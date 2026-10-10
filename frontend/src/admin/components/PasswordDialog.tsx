@@ -45,7 +45,7 @@ export function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               onChange={(e) => setForm({ ...form, password_confirmation: e.target.value })} required />
           </Field>
           <DialogFooter>
-            <Button type="submit" variant="gold" disabled={mutation.isPending}>Enregistrer</Button>
+            <Button type="submit" disabled={mutation.isPending}>Enregistrer</Button>
           </DialogFooter>
         </form>
       </DialogContent>

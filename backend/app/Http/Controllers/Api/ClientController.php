@@ -27,17 +27,20 @@ class ClientController extends Controller
             'assigned_user_id' => ['nullable', 'integer'],
             'mine' => ['nullable', 'boolean'],
             'tag' => ['nullable', 'string', 'max:40'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $clients = Client::query()
             ->with('assignedUser:id,name')
             ->when($filters['search'] ?? null, function ($query, string $search) {
-                // Un numéro tapé « 77 123 45 67 » doit retrouver « +221771234567 ».
+                // Un numéro tapé « 77 123 45 67 », ou seulement son début « 77 555 », doit retrouver « +221771234567 ».
                 $phone = PhoneNumber::normalize($search);
+                $digits = preg_replace('/\D+/', '', $search);
+                $looksLikePhone = strlen($digits) >= 3 && preg_match('/^[\d\s.+\-]+$/', $search);
                 $query->where(fn ($q) => $q
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', '%'.($phone ?? $search).'%'));
+                    ->orWhere('phone', 'like', '%'.($phone ?? ($looksLikePhone ? $digits : $search)).'%'));
             })
             ->when($filters['category'] ?? null, fn ($q, $v) => $q->whereJsonContains('categories', $v))
             ->when($filters['pipeline_status'] ?? null, fn ($q, $v) => $q->where('pipeline_status', $v))
@@ -46,7 +49,7 @@ class ClientController extends Controller
             ->when($filters['tag'] ?? null, fn ($q, $v) => $q->whereJsonContains('tags', $v))
             ->orderByDesc('last_contact_at')
             ->orderByDesc('id')
-            ->paginate(25)
+            ->paginate($request->integer('per_page', 25) ?: 25)
             ->withQueryString();
 
         return ClientResource::collection($clients);

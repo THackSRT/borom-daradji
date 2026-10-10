@@ -1,65 +1,109 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Building2,
   CalendarDays,
+  ChevronsUpDown,
   ClipboardList,
   History,
   KeyRound,
+  LayoutDashboard,
   LogOut,
   Menu,
+  Plus,
+  Search,
   Settings,
   UserCog,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../auth";
 import type { RoleValue } from "../types";
+import { GlobalSearch } from "./GlobalSearch";
 import { PasswordDialog } from "./PasswordDialog";
+import { QuickCreateProvider, useQuickCreate } from "./QuickCreate";
+import { Avatar } from "./ui";
 
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof Building2;
+  icon: LucideIcon;
   roles?: RoleValue[];
   dirigeantOnly?: boolean;
 }
 
-const navigation: NavItem[] = [
-  { to: "/admin", label: "Mes tâches", icon: ClipboardList },
-  { to: "/admin/biens", label: "Biens", icon: Building2 },
-  { to: "/admin/clients", label: "Clients", icon: Users },
-  { to: "/admin/visites", label: "Visites", icon: CalendarDays, roles: ["agent", "commercial"] },
-  { to: "/admin/comptes", label: "Comptes", icon: UserCog, dirigeantOnly: true },
-  { to: "/admin/parametres", label: "Paramètres", icon: Settings, dirigeantOnly: true },
-  { to: "/admin/journal", label: "Journal d'activité", icon: History, dirigeantOnly: true },
+const sections: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Au quotidien",
+    items: [
+      { to: "/admin", label: "Accueil", icon: LayoutDashboard },
+      { to: "/admin/taches", label: "Tâches", icon: ClipboardList },
+      { to: "/admin/visites", label: "Visites", icon: CalendarDays, roles: ["agent", "commercial"] },
+    ],
+  },
+  {
+    title: "Portefeuille",
+    items: [
+      { to: "/admin/biens", label: "Biens", icon: Building2 },
+      { to: "/admin/clients", label: "Clients", icon: Users },
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      { to: "/admin/comptes", label: "Comptes", icon: UserCog, dirigeantOnly: true },
+      { to: "/admin/parametres", label: "Paramètres", icon: Settings, dirigeantOnly: true },
+      { to: "/admin/journal", label: "Journal d'activité", icon: History, dirigeantOnly: true },
+    ],
+  },
 ];
 
-function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+function useVisibleSections() {
   const { hasRole, isDirigeant } = useAuth();
-  const items = navigation.filter((item) => (item.dirigeantOnly ? isDirigeant : !item.roles || hasRole(...item.roles)));
+  return sections
+    .map((s) => ({ ...s, items: s.items.filter((i) => (i.dirigeantOnly ? isDirigeant : !i.roles || hasRole(...i.roles))) }))
+    .filter((s) => s.items.length);
+}
 
+function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+  const visible = useVisibleSections();
   return (
-    <nav className="space-y-1">
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === "/admin"}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              isActive ? "bg-accent text-accent-foreground" : "text-primary-foreground/80 hover:bg-white/10 hover:text-primary-foreground",
-            )
-          }
-        >
-          <item.icon className="h-4 w-4" />
-          {item.label}
-        </NavLink>
+    <nav className="space-y-6">
+      {visible.map((section) => (
+        <div key={section.title}>
+          <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">{section.title}</p>
+          <div className="space-y-0.5">
+            {section.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/admin"}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
       ))}
     </nav>
   );
@@ -67,91 +111,158 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-3 px-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-        <span className="font-display text-lg font-bold text-accent-foreground">BD</span>
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy shadow-sm">
+        <span className="font-display text-base font-bold text-gold">BD</span>
       </div>
-      <div>
-        <p className="font-display font-bold leading-tight text-primary-foreground">Borom Daradji</p>
-        <p className="text-xs text-primary-foreground/60">Back-office</p>
+      <div className="leading-tight">
+        <p className="text-sm font-semibold text-foreground">Borom Daradji</p>
+        <p className="text-xs text-muted-foreground">Espace agence</p>
       </div>
     </div>
   );
 }
 
-export function AdminLayout() {
+function UserMenu({ onPassword }: { onPassword: () => void }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  if (!user) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-muted">
+        <Avatar name={user.name} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{user.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">{user.roles.map((r) => r.label).join(", ")}</span>
+        </span>
+        <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <span className="block text-sm font-medium">{user.name}</span>
+          <span className="block text-xs text-muted-foreground">{user.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onPassword}><KeyRound className="mr-2 h-4 w-4" /> Changer de mot de passe</DropdownMenuItem>
+        <DropdownMenuItem onClick={async () => { await logout(); navigate("/admin/connexion"); }}>
+          <LogOut className="mr-2 h-4 w-4" /> Se déconnecter
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function CreateMenu({ compact = false }: { compact?: boolean }) {
+  const { open } = useQuickCreate();
+  const { hasRole } = useAuth();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size={compact ? "icon" : "sm"} aria-label="Créer">
+          <Plus className="h-4 w-4" />
+          {!compact && "Créer"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => open("client")}><Users className="mr-2 h-4 w-4" /> Un client</DropdownMenuItem>
+        {hasRole("agent") && <DropdownMenuItem onClick={() => open("property")}><Building2 className="mr-2 h-4 w-4" /> Un bien</DropdownMenuItem>}
+        <DropdownMenuItem onClick={() => open("task")}><ClipboardList className="mr-2 h-4 w-4" /> Une tâche</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Barre de navigation en bas de l'écran sur téléphone : les 4 écrans les plus utilisés à une main. */
+function BottomNav({ onMore }: { onMore: () => void }) {
+  const items = [
+    { to: "/admin", label: "Accueil", icon: LayoutDashboard },
+    { to: "/admin/taches", label: "Tâches", icon: ClipboardList },
+    { to: "/admin/biens", label: "Biens", icon: Building2 },
+    { to: "/admin/clients", label: "Clients", icon: Users },
+  ];
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      {items.map((item) => (
+        <NavLink key={item.to} to={item.to} end={item.to === "/admin"}
+          className={({ isActive }) => cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
+          <item.icon className="h-5 w-5" />
+          {item.label}
+        </NavLink>
+      ))}
+      <button type="button" onClick={onMore} className="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground">
+        <Menu className="h-5 w-5" /> Plus
+      </button>
+    </nav>
+  );
+}
+
+function Shell() {
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const onLogout = async () => {
-    await logout();
-    navigate("/admin/connexion");
-  };
-
-  const footer = (
-    <div className="space-y-2 border-t border-white/10 pt-4">
-      <div className="px-3">
-        <p className="truncate text-sm font-medium text-primary-foreground">{user?.name}</p>
-        <p className="truncate text-xs text-primary-foreground/60">{user?.roles.map((r) => r.label).join(", ")}</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => setPasswordOpen(true)}
-        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-primary-foreground/80 hover:bg-white/10"
-      >
-        <KeyRound className="h-4 w-4" /> Mot de passe
-      </button>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-primary-foreground/80 hover:bg-white/10"
-      >
-        <LogOut className="h-4 w-4" /> Se déconnecter
-      </button>
-    </div>
+  const searchButton = (
+    <button
+      type="button"
+      onClick={() => setSearchOpen(true)}
+      className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground transition hover:bg-muted"
+    >
+      <Search className="h-4 w-4" />
+      <span className="flex-1 text-left">Rechercher un client, un bien…</span>
+      <kbd className="hidden rounded border bg-card px-1.5 text-[10px] font-medium sm:inline">Ctrl K</kbd>
+    </button>
   );
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="admin min-h-screen bg-slate-50">
       <Helmet>
-        <title>Back-office | Borom Daradji</title>
+        <title>Espace agence | Borom Daradji</title>
         <meta name="robots" content="noindex" />
       </Helmet>
 
       {/* Ordinateur : menu fixe à gauche. */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col justify-between bg-navy p-4 lg:flex">
-        <div className="space-y-8">
-          <Brand />
-          <Navigation />
-        </div>
-        {footer}
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-card lg:flex">
+        <div className="flex h-16 items-center border-b px-5"><Brand /></div>
+        <div className="flex-1 overflow-y-auto px-3 py-5"><Navigation /></div>
+        <div className="border-t p-3"><UserMenu onPassword={() => setPasswordOpen(true)} /></div>
       </aside>
 
-      {/* Téléphone : barre en haut et menu coulissant. */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-navy px-4 py-3 lg:hidden">
-        <Brand />
-        <Button variant="ghost" size="icon" className="text-primary-foreground" onClick={() => setMobileOpen(true)} aria-label="Ouvrir le menu">
-          <Menu className="h-6 w-6" />
-        </Button>
-      </header>
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="flex w-72 flex-col justify-between border-0 bg-navy p-4">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="space-y-8 pt-6">
-            <Brand />
-            <Navigation onNavigate={() => setMobileOpen(false)} />
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-card/90 px-4 backdrop-blur lg:px-8">
+          <div className="lg:hidden"><Brand /></div>
+          <div className="hidden flex-1 lg:block">{searchButton}</div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSearchOpen(true)} aria-label="Rechercher"><Search className="h-5 w-5" /></Button>
+            <CreateMenu compact={false} />
           </div>
-          {footer}
+        </header>
+
+        <main key={location.pathname} className="mx-auto max-w-7xl animate-fade-in px-4 py-6 pb-24 lg:px-8 lg:py-8 lg:pb-8">
+          <Outlet />
+        </main>
+      </div>
+
+      <BottomNav onMore={() => setMobileOpen(true)} />
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="flex w-72 flex-col p-0">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <div className="flex h-16 items-center border-b px-5"><Brand /></div>
+          <div className="flex-1 overflow-y-auto px-3 py-5"><Navigation onNavigate={() => setMobileOpen(false)} /></div>
+          <div className="border-t p-3"><UserMenu onPassword={() => { setMobileOpen(false); setPasswordOpen(true); }} /></div>
         </SheetContent>
       </Sheet>
 
-      <main className="px-4 py-6 lg:ml-64 lg:px-8 lg:py-8">
-        <Outlet />
-      </main>
-
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       <PasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </div>
+  );
+}
+
+export function AdminLayout() {
+  return (
+    <QuickCreateProvider>
+      <Shell />
+    </QuickCreateProvider>
   );
 }

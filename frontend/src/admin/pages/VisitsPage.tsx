@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { addWeeks, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import type { Visit } from "../types";
 import { VisitReportDialog } from "../components/VisitDialogs";
@@ -40,10 +39,10 @@ export default function VisitsPage() {
         }
       />
       <label className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <Checkbox checked={mine} onCheckedChange={(v) => setMine(v === true)} /> Mes visites seulement
+        <Switch checked={mine} onCheckedChange={setMine} /> Mes visites seulement
       </label>
 
-      {isLoading ? <LoadingBlock /> : !data?.length ? <EmptyState>Aucune visite cette semaine.</EmptyState> : (
+      {isLoading ? <LoadingBlock /> : !data?.length ? <EmptyState icon={CalendarDays} title="Aucune visite cette semaine">Planifiez une visite depuis la fiche d'un client.</EmptyState> : (
         <div className="space-y-6">
           {days.map((day) => {
             const visits = data.filter((v) => isSameDay(parseISO(v.scheduled_at), day));
@@ -53,8 +52,8 @@ export default function VisitsPage() {
                 <h2 className="mb-2 text-sm font-semibold text-muted-foreground first-letter:uppercase">{format(day, "EEEE d MMMM", { locale: fr })}</h2>
                 <div className="space-y-2">
                   {visits.map((v) => (
-                    <Card key={v.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                      <span className="w-14 font-mono text-lg font-semibold">{format(parseISO(v.scheduled_at), "HH:mm")}</span>
+                    <div key={v.id} className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:flex-row sm:items-center">
+                      <span className="flex h-12 w-16 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold tabular-nums text-primary">{format(parseISO(v.scheduled_at), "HH:mm")}</span>
                       <div className="flex-1 text-sm">
                         <p className="font-medium">
                           {v.client && <Link to={`/admin/clients/${v.client.id}`} className="hover:underline">{v.client.name}</Link>}
@@ -68,7 +67,7 @@ export default function VisitsPage() {
                         {v.status.value === "planifiee" && <WhatsAppLink url={v.client?.whatsapp_url} label="Confirmer" />}
                         <Button size="sm" variant="outline" onClick={() => setReporting(v)}>{v.status.value === "planifiee" ? "Compte-rendu" : "Modifier"}</Button>
                       </div>
-                    </Card>
+                    </div>
                   ))}
                 </div>
               </section>

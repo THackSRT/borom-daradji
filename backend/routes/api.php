@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InteractionController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MetaController;
@@ -37,6 +38,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::put('auth/password', [AuthController::class, 'updatePassword']);
 
     Route::get('meta', MetaController::class);
+    Route::get('dashboard', DashboardController::class);
     Route::get('settings/company', [CompanySettingsController::class, 'show']);
 
     // Biens (droits détaillés dans PropertyPolicy).
