@@ -99,6 +99,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('payments/{payment}/proof', [PaymentController::class, 'proof']);
 
     // Gestion locative : baux, appels de loyer, quittances, reversements.
+    Route::get('leases/defaults', [LeaseController::class, 'defaults']);
     Route::apiResource('leases', LeaseController::class)->except(['destroy']);
     Route::post('leases/{lease}/terminate', [LeaseController::class, 'terminate']);
     Route::post('leases/{lease}/rent-calls', [LeaseController::class, 'generate']);

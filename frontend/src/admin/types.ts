@@ -240,7 +240,8 @@ export type MetaKey =
   | "payment_states"
   | "activities"
   | "payment_methods"
-  | "cash_movement_types";
+  | "cash_movement_types"
+  | "lease_statuses";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -360,4 +361,86 @@ export interface PermissionModule {
   key: string;
   label: string;
   permissions: { name: string; label: string; description: string | null; roles: string[] }[];
+}
+
+export interface RentCallRow {
+  id: number;
+  period: string;
+  invoice: {
+    id: number;
+    number: string | null;
+    status: Option;
+    due_date: string | null;
+    total: number;
+    paid_total: number;
+    balance: number;
+    payment_state: Option | null;
+    is_overdue: boolean;
+  };
+  can_quittance: boolean;
+}
+
+export interface Lease {
+  id: number;
+  reference: string;
+  status: Option<"actif" | "resilie">;
+  property: { id: number; reference: string; title: string };
+  tenant: { id: number; name: string; phone: string | null };
+  owner: { id: number; name: string } | null;
+  agent?: { id: number; name: string } | null;
+  start_date: string;
+  end_date: string | null;
+  billing_start: string;
+  rent: number;
+  charges: number;
+  deposit: number;
+  advance_months: number;
+  due_day: number;
+  rent_vat_rate: number;
+  managed: boolean;
+  commission_rate: number;
+  terminated_on: string | null;
+  termination_reason: string | null;
+  notes: string | null;
+  entry_invoice?: { id: number; number: string | null; status: Option; total: number; balance: number } | null;
+  arrears?: number;
+  months_overdue?: number;
+  rent_calls?: RentCallRow[];
+  whatsapp_reminder_url?: string | null;
+  can: { update: boolean } | null;
+}
+
+export interface LeaseSummary {
+  active: number;
+  monthly_rent: number;
+  arrears: number;
+  leases_in_arrears: number;
+}
+
+export interface OwnerPayoutRow {
+  id: number;
+  number: string;
+  owner: Ref;
+  period: string;
+  collected: number;
+  commission: number;
+  commission_vat: number;
+  expenses: number;
+  net: number;
+  method: Option;
+  reference: string | null;
+  paid_on: string;
+  note: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+}
+
+export interface OwnerStatement {
+  owner: { id: number; name: string; phone: string | null };
+  period: string;
+  lines: { payment_id: number; receipt: string; paid_on: string; lease: string; property: string; tenant: string; month: string; amount: number; commission_rate: number; commission: number }[];
+  collected: number;
+  commission: number;
+  commission_vat: number;
+  net_before_expenses: number;
 }

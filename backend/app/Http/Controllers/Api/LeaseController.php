@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LeaseRequest;
 use App\Http\Resources\LeaseResource;
+use App\Models\CompanySetting;
+use App\Models\Invoice;
 use App\Models\Lease;
 use App\Models\RentCall;
 use App\Services\RentService;
@@ -14,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
@@ -40,7 +43,31 @@ class LeaseController extends Controller
             $query->whereHas('rentCalls.invoice', fn ($q) => $q->overdue());
         }
 
-        return LeaseResource::collection($query->orderByRaw("status = 'actif' desc")->latest('start_date')->paginate(min((int) $request->query('per_page', 25), 100)));
+        $overdue = Invoice::query()->overdue()->whereHas('rentCall');
+
+        return LeaseResource::collection($query->orderByRaw("status = 'actif' desc")->latest('start_date')->paginate(min((int) $request->query('per_page', 25), 100)))
+            ->additional(['summary' => [
+                'active' => Lease::query()->active()->count(),
+                'monthly_rent' => (int) Lease::query()->active()->sum(DB::raw('rent + charges')),
+                'arrears' => (int) (clone $overdue)->sum(DB::raw('total - credited_total - paid_total')),
+                'leases_in_arrears' => Lease::query()->whereHas('rentCalls.invoice', fn ($q) => $q->overdue())->count(),
+            ]]);
+    }
+
+    /**
+     * Valeurs proposées dans le formulaire de bail (paramétrables, voir config/borom.php).
+     */
+    public function defaults(): JsonResponse
+    {
+        Gate::authorize('viewAny', Lease::class);
+
+        return response()->json(['data' => [
+            'due_day' => (int) config('borom.rent_due_day'),
+            'rent_vat_rate' => (float) config('borom.rent_vat_rate'),
+            'commission_rate' => (float) config('borom.management_commission_rate'),
+            'management_fee_vat_rate' => (float) config('borom.management_fee_vat_rate'),
+            'agency_fee_vat_rate' => (float) CompanySetting::current()->vat_rate,
+        ]]);
     }
 
     public function store(LeaseRequest $request): JsonResponse

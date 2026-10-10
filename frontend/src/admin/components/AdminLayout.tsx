@@ -8,6 +8,7 @@ import {
   Globe,
   ChevronsUpDown,
   ClipboardList,
+  HandCoins,
   History,
   KeyRound,
   LayoutDashboard,
@@ -62,6 +63,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/biens", label: "Biens", icon: Building2, permissions: ["properties.view"] },
       { to: "/admin/clients", label: "Clients", icon: Users, permissions: ["clients.view"] },
+      { to: "/admin/baux", label: "Baux et loyers", icon: KeyRound, permissions: ["leases.view"] },
     ],
   },
   {
@@ -69,6 +71,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/factures", label: "Factures", icon: Receipt, permissions: ["invoices.view"] },
       { to: "/admin/caisse", label: "Caisse", icon: Banknote, permissions: ["payments.create", "payments.view_all", "cash.view_all"] },
+      { to: "/admin/reversements", label: "Reversements", icon: HandCoins, permissions: ["payouts.view", "payouts.manage"] },
     ],
   },
   {

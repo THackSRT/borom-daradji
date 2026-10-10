@@ -21,6 +21,10 @@ const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const InvoiceDetailPage = lazy(() => import("./pages/InvoiceDetailPage"));
 const InvoiceEditorPage = lazy(() => import("./pages/InvoiceEditorPage"));
 const CashPage = lazy(() => import("./pages/CashPage"));
+const LeasesPage = lazy(() => import("./pages/LeasesPage"));
+const LeaseFormPage = lazy(() => import("./pages/LeaseFormPage"));
+const LeaseDetailPage = lazy(() => import("./pages/LeaseDetailPage"));
+const PayoutsPage = lazy(() => import("./pages/PayoutsPage"));
 
 /**
  * Back-office, monté sous /admin. Chargé à la demande : le site vitrine ne télécharge pas ce code.
@@ -49,6 +53,10 @@ export default function AdminApp() {
             <Route path="factures/nouvelle" element={<RequireAuth permissions={["invoices.manage"]}><InvoiceEditorPage /></RequireAuth>} />
             <Route path="factures/:id" element={<RequireAuth permissions={["invoices.view"]}><InvoiceDetailPage /></RequireAuth>} />
             <Route path="factures/:id/modifier" element={<RequireAuth permissions={["invoices.manage"]}><InvoiceEditorPage /></RequireAuth>} />
+            <Route path="baux" element={<RequireAuth permissions={["leases.view"]}><LeasesPage /></RequireAuth>} />
+            <Route path="baux/nouveau" element={<RequireAuth permissions={["leases.manage"]}><LeaseFormPage /></RequireAuth>} />
+            <Route path="baux/:id" element={<RequireAuth permissions={["leases.view"]}><LeaseDetailPage /></RequireAuth>} />
+            <Route path="reversements" element={<RequireAuth permissions={["payouts.view", "payouts.manage"]}><PayoutsPage /></RequireAuth>} />
             <Route path="caisse" element={<RequireAuth permissions={["payments.create", "payments.view_all", "cash.view_all"]}><CashPage /></RequireAuth>} />
             <Route path="comptes" element={<RequireAuth permissions={["users.view", "users.manage"]}><UsersPage /></RequireAuth>} />
             <Route path="roles" element={<RequireAuth permissions={["roles.manage", "users.view", "users.manage"]}><RolesPage /></RequireAuth>} />

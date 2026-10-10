@@ -5,10 +5,10 @@
 ## État actuel
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
-- **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour et leurs écrans **faits** ; baux, loyers, quittances, états des lieux et reversements en attente des réponses du client.
+- **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances et reversements **faits** (valeurs par défaut à valider, D-035) ; reste les états des lieux et la restitution de la caution.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). Pas de pull request.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 147 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 166 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
@@ -18,7 +18,7 @@
 1. Faire relire et fusionner `lot-1-biens-prospects` dans `main`, puis `lot-2-encaissements-location` (pull requests à ouvrir sur demande de l'utilisateur).
 2. Choisir l'hébergement et déployer une première version (questions ouvertes).
 3. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
-4. Lot 2, suite : baux, appels de loyer automatiques, quittances, états des lieux, reversements — dès les réponses aux trois premières questions ouvertes.
+4. Lot 2, fin : états des lieux d'entrée et de sortie (pièces, état, photos) et restitution ou retenue de la caution. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -26,8 +26,8 @@ Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant 
 
 Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand elle arrive.
 
-- [ ] L'agence gère-t-elle des biens pour des propriétaires (encaissement et reversement des loyers) ? Combien de baux, quel taux de commission ?
-- [ ] Conditions habituelles de location : mois de caution, d'avance, commission d'agence.
+- [ ] L'agence gère-t-elle des biens pour des propriétaires (encaissement et reversement des loyers) ? Combien de baux, quel taux de commission ? *Mis en place avec des valeurs par défaut (D-035) : commission 10 % des loyers encaissés + TVA 18 %, calculée sur loyer et charges ; reversement mensuel à la demande. À confirmer : base de la commission (loyer seul ?), TVA, fréquence.*
+- [ ] Conditions habituelles de location : mois de caution, d'avance, frais d'agence, jour d'échéance (5 par défaut), loyers soumis ou non à la TVA (0 % par défaut). Premier mois au prorata ou non (aujourd'hui : mois entier).
 - [ ] Les baux sont-ils enregistrés aux impôts, et par qui ?
 - [ ] Liste des points de vérification foncière à exiger avant publication (6 points par défaut dans `PropertyCheckItem`) et ancienneté maximale de l'état des droits réels (90 jours par défaut).
 - [ ] Un bien « en négociation » doit-il rester visible sur le site (oui par défaut, D-020) ?
@@ -48,6 +48,13 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Lot 2 : gestion locative
+
+- API : baux (`leases`, référence `BAIL-AAAA-0001`), appels de loyer (`rent_calls`, une facture par mois), reversements (`owner_payouts`, `REV-AAAA-0001`) ; règles dans `App\Services\RentService` (détail dans `perimetre-et-lots.md`, lot 2) ; tâche planifiée `borom:generate-rent-calls` (06:00) ; quittance et relevé de gérance en PDF ; relance WhatsApp des arriérés ; permissions `leases.view|manage`, `payouts.view|manage` (ajoutées aux rôles par défaut et aux installations existantes par `newPermissionDefaults`). D-035, D-036. 19 tests (166).
+- Corrigé pendant la session : l'avance payée à l'entrée n'était pas reversée au propriétaire (elle figurait sur la facture d'entrée) ; les mois d'avance sont désormais des appels de loyer émis à la signature.
+- Écrans : Baux et loyers (chiffres, filtres « avec arriérés », liste), nouveau bail (prérempli depuis le bien : loyer, charges, caution, avance, propriétaire ; résumé « à la signature » et estimation du net propriétaire), fiche du bail (échéancier, encaisser, quittance, relance, appeler le loyer, modifier, résilier), Reversements (à reverser par propriétaire, relevé détaillé, frais, versement et PDF, historique et annulation), encart « Location » sur la fiche d'un bien. Démo : bail en gestion de l'appartement de Mermoz avec trois mois appelés.
+- Vérifié dans Chromium : agent (liste, fiche, quittance, nouveau bail depuis un bien), comptable (relevé, frais, versement, PDF, historique) ; 390 px sans débordement.
 
 ### 2026-10-10 (suite) — RBAC : rôles et droits paramétrables
 

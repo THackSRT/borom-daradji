@@ -6,7 +6,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **En cours** : facturation, encaissements et caisse faits ; baux et loyers en attente des réponses du client |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **En cours** : facturation, encaissements, caisse, baux, loyers, quittances et reversements faits (valeurs par défaut à valider) ; reste les états des lieux |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
@@ -112,7 +112,14 @@ Reprendre le code du dépôt `borom-daradji-properties` (Vite, React, TypeScript
 
 ## Lot 2 — Encaissements et location
 
-**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse. **Reste** : baux, appels de loyer, quittances, états des lieux, reversements (bloqués par les questions ouvertes).
+**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse ; baux, appels de loyer automatiques, arriérés et relances, quittances, relevés de gérance et reversements. **Reste** : états des lieux (entrée et sortie, photos) et restitution de la caution.
+
+Règles de la gestion locative (valeurs par défaut dans `config/borom.php`, modifiables bail par bail, **à valider** avec le client) :
+- Un seul bail en cours par bien ; le bien passe en « Loué » quand c'est permis par son statut. Seuls les biens « à louer » se louent. Un bail en gestion exige un propriétaire.
+- Un appel de loyer par mois = une facture (activité « location », loyer + charges, TVA du bail : 0 % par défaut), échéance le jour choisi (5 par défaut), émise automatiquement chaque matin (`borom:generate-rent-calls`, 06:00), sans doublon. Les mois payés d'avance et les mois déjà échus (bail saisi après coup) sont appelés à la signature. Plus d'appel après la fin prévue ou la résiliation.
+- Facture d'entrée en brouillon : caution (TVA 0) et frais d'agence (TVA de l'entreprise).
+- Arriérés = reste à payer des appels dont l'échéance est passée ; relance WhatsApp listant les mois dus. Quittance PDF seulement quand le mois est entièrement payé.
+- Reversement : loyers encaissés sur les baux gérés, pas encore reversés, jusqu'à la fin du mois choisi ; commission du bail (10 % par défaut) calculée sur le montant encaissé, TVA sur la commission (18 % par défaut), frais déduits saisis à la main ; un loyer reversé ne compte plus ; annuler un reversement remet ses loyers à reverser. Numéros `BAIL-AAAA-0001`, `REV-AAAA-0001`.
 
 Règles en place :
 - Brouillon modifiable et supprimable, sans numéro. À l'émission : numéro `FAC-AAAA-00001` (avoir `AV-AAAA-00001`) attribué dans la même transaction que le changement de statut, date d'émission, échéance (15 jours par défaut, `INVOICE_DUE_DAYS`). Une facture émise ne se modifie ni ne se supprime.
