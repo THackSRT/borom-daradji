@@ -27,8 +27,8 @@ class InvoiceController extends Controller
         $query = Invoice::query()->with('client');
 
         if ($search = trim((string) $request->query('search'))) {
-            $query->where(fn ($q) => $q->where('number', 'like', "%{$search}%")
-                ->orWhereHas('client', fn ($c) => $c->where('name', 'like', "%{$search}%")));
+            $query->where(fn ($q) => $q->whereLike('number', "%{$search}%")
+                ->orWhereHas('client', fn ($c) => $c->whereLike('name', "%{$search}%")));
         }
         foreach (['client_id', 'property_id', 'activity', 'type', 'status'] as $filter) {
             if ($request->filled($filter)) {

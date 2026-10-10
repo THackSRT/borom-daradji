@@ -38,7 +38,7 @@ class ActivityLogTest extends TestCase
         $this->putJson("/api/users/{$agent->id}", ['name' => 'Nouveau Nom', 'password' => 'MotDePasse2027'])->assertOk();
 
         $log = ActivityLog::where('action', 'updated')->where('subject_id', $agent->id)->latest('id')->firstOrFail();
-        // Clé par clé : MySQL réordonne les clés des colonnes JSON.
+        // Clé par clé : l'ordre des clés JSON dépend de la base (MySQL, jsonb).
         $this->assertSame('Ancien Nom', $log->changes['name']['old']);
         $this->assertSame('Nouveau Nom', $log->changes['name']['new']);
         $this->assertNull($log->changes['password']['old']);

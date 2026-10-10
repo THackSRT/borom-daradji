@@ -138,8 +138,39 @@ const referenceHints: Record<string, string> = {
   virement: "Référence du virement",
 };
 
+/** Modes de paiement saisis à la main (la « retenue sur caution » est automatique). */
+export function useManualMethods() {
+  return useOptions("payment_methods").filter((m) => m.value !== "caution");
+}
+
+/** Choix du mode de paiement en gros boutons, avec le champ de référence quand il en faut une. */
+export function MethodPicker({ value, onChange, error, label = "Mode de paiement" }: { value: string; onChange: (v: string) => void; error?: string | null; label?: string }) {
+  const methods = useManualMethods();
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {methods.map((m) => {
+          const Icon = methodIcons[m.value] ?? Banknote;
+          return (
+            <button key={m.value} type="button" onClick={() => onChange(m.value)}
+              className={cn("flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition",
+                value === m.value ? "border-primary bg-primary/5 text-primary ring-1 ring-primary" : "hover:bg-muted")}>
+              <Icon className="h-4 w-4" />{m.label}
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="mt-1 text-xs font-medium text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+export function referenceHint(method: string): string | undefined {
+  return referenceHints[method];
+}
+
 export function PaymentDialog({ invoice, open, onOpenChange }: { invoice: Invoice; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const methods = useOptions("payment_methods");
   const [method, setMethod] = useState("especes");
   const [amount, setAmount] = useState<number | "">(invoice.balance);
   const [reference, setReference] = useState("");
@@ -199,22 +230,7 @@ export function PaymentDialog({ invoice, open, onOpenChange }: { invoice: Invoic
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <FormError message={mutation.error?.field("invoice")} />
-            <div>
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Mode de paiement</p>
-              <div className="grid grid-cols-3 gap-2">
-                {methods.map((m) => {
-                  const Icon = methodIcons[m.value] ?? Banknote;
-                  return (
-                    <button key={m.value} type="button" onClick={() => setMethod(m.value)}
-                      className={cn("flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition",
-                        method === m.value ? "border-primary bg-primary/5 text-primary ring-1 ring-primary" : "hover:bg-muted")}>
-                      <Icon className="h-4 w-4" />{m.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {mutation.error?.field("method") && <p className="mt-1 text-xs font-medium text-destructive">{mutation.error.field("method")}</p>}
-            </div>
+            <MethodPicker value={method} onChange={setMethod} error={mutation.error?.field("method")} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Montant" htmlFor="pay-amount" error={mutation.error?.field("amount")}>
                 <MoneyInput id="pay-amount" value={amount} onChange={setAmount} autoFocus />

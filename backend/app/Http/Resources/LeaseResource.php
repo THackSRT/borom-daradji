@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\CompanySetting;
 use App\Models\Lease;
+use App\Models\LeaseInspection;
 use App\Models\RentCall;
 use App\Services\Billing;
 use App\Support\WhatsApp;
@@ -75,7 +76,27 @@ class LeaseResource extends JsonResource
                 $this->relationLoaded('rentCalls') && $this->relationLoaded('tenant') && $overdue->isNotEmpty(),
                 fn () => $this->reminder($overdue),
             ),
-            'can' => $user ? ['update' => $this->isActive() && $user->can('update', $this->resource)] : null,
+            'inspections' => $this->whenLoaded('inspections', fn () => $this->inspections->map(fn (LeaseInspection $i) => [
+                'id' => $i->id,
+                'type' => $i->type->toOption(),
+                'inspected_on' => $i->inspected_on->toDateString(),
+                'validated_at' => $i->validated_at?->toIso8601String(),
+                'items_count' => (int) $i->items_count,
+                'rated_count' => (int) $i->rated_count,
+                'photos_count' => (int) $i->photos_count,
+            ])),
+            'deposit_settlement' => $this->whenLoaded('depositSettlement', fn () => $this->depositSettlement ? [
+                'id' => $this->depositSettlement->id,
+                'number' => $this->depositSettlement->number,
+                'refund' => $this->depositSettlement->refund,
+                'balance_due' => $this->depositSettlement->balance_due,
+                'settled_on' => $this->depositSettlement->settled_on->toDateString(),
+            ] : null),
+            'can' => $user ? [
+                'update' => $this->isActive() && $user->can('update', $this->resource),
+                'inspect' => $user->can('update', $this->resource),
+                'settle_deposit' => ! $this->isActive() && $user->can('settleDeposit', $this->resource),
+            ] : null,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

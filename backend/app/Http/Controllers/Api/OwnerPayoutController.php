@@ -86,7 +86,7 @@ class OwnerPayoutController extends Controller
         Gate::authorize('create', OwnerPayout::class);
         $data = $request->validate([
             'period' => ['required', 'date_format:Y-m'],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Caution])],
             'reference' => ['nullable', 'string', 'max:100'],
             'paid_on' => ['required', 'date', 'before_or_equal:today'],
             'note' => ['nullable', 'string', 'max:1000'],

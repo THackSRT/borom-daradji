@@ -32,7 +32,7 @@ flowchart TB
     T --> AT
     D --> S
     V & BO & AT & S -->|HTTPS| API
-    API --> DB[(MySQL ou PostgreSQL)]
+    API --> DB[(PostgreSQL)]
     API --> F[(Fichiers S3<br/>photos, PDF)]
     DB & F -.->|copie chaque nuit| SV[(Sauvegardes hors serveur)]
     API --> X[WhatsApp wa.me, SMS,<br/>email, OpenStreetMap]
@@ -46,7 +46,7 @@ Un monolithe modulaire plutôt que des microservices : 2 développeurs et un ser
 | --- | --- | --- |
 | Serveur | Laravel 13, PHP 8.3+ | En place |
 | Authentification | Laravel Sanctum, jetons Bearer | En place |
-| Base de données | MySQL 8.4 avec Docker (dev et production) ; SQLite en mémoire pour les tests, SQLite fichier possible sans Docker | MySQL par défaut (D-037), à valider avec l'hébergement |
+| Base de données | PostgreSQL 17 avec Docker (dev et production) ; SQLite en mémoire pour les tests, SQLite fichier possible sans Docker | En place (D-039) |
 | Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` ; TanStack Query pour les appels | Back-office et site vitrine branchés sur l'API ; contenu du site paramétrable |
 | Terrain | PWA installable, file de synchronisation hors ligne | Lot 3 |
 | PDF | Génération côté serveur depuis des modèles HTML | Lot 2 |
@@ -54,7 +54,7 @@ Un monolithe modulaire plutôt que des microservices : 2 développeurs et un ser
 | Fichiers | Disques `public` et `local` (privé) ; en production, volumes Docker `storage` et `storage_public` (S3 possible plus tard) ; photos en WebP | Lot 1 |
 | Carte | Leaflet + OpenStreetMap | Lot 1 |
 | Envois | Files Laravel (`jobs`) ; liens `wa.me` ; SMS par fournisseur local | Lots 1-2 |
-| Environnement | Docker Compose : `compose.yaml` (dev), `compose.prod.yaml` (production, Caddy + PHP-FPM + MySQL) ; raccourcis dans le `Makefile` | En place (D-037) |
+| Environnement | Docker Compose : `compose.yaml` (dev), `compose.prod.yaml` (production, Caddy + PHP-FPM + PostgreSQL) ; raccourcis dans le `Makefile` | En place (D-037) |
 
 Pourquoi Laravel plutôt que Spring Boot ou Node : voir [`decisions.md`](decisions.md) (D-002).
 
@@ -65,8 +65,8 @@ borom-daradji/
 ├── CLAUDE.md                 point d'entrée pour une session Claude
 ├── README.md                 installation et avancement
 ├── docs/                     contexte, périmètre, architecture, décisions, journal
-├── compose.yaml              Docker, développement (API, planificateur, Vite, MySQL)
-├── compose.prod.yaml         Docker, production (Caddy, PHP-FPM, planificateur, MySQL)
+├── compose.yaml              Docker, développement (API, planificateur, Vite, PostgreSQL)
+├── compose.prod.yaml         Docker, production (Caddy, PHP-FPM, planificateur, PostgreSQL)
 ├── Makefile                  raccourcis : make up, make check, make prod-up…
 ├── docker/                   Dockerfiles, Caddyfile, réglages PHP, scripts de démarrage
 ├── frontend/                 site vitrine (src/pages, src/components) et back-office (src/admin)
@@ -160,6 +160,6 @@ Mode d'emploi dans le [`README.md`](../README.md). Ce qu'il faut savoir pour le 
 
 - **Images** : `docker/backend/Dockerfile` (cibles `dev`, `vendor`, `prod`) et `docker/frontend/Dockerfile` (cibles `dev`, `build`, `prod`). Contexte de construction : la racine du dépôt, filtré par `.dockerignore`.
 - **Développement** (`compose.yaml`) : `./backend` et `./frontend` montés dans les conteneurs ; `php artisan serve --no-reload` (sans `--no-reload`, le serveur PHP perd les variables du conteneur et retombe sur `backend/.env`, donc sur SQLite) ; Vite relaie `/api` et `/storage` vers le conteneur `backend`. Les conteneurs tournent avec l'UID de la machine (`make` le transmet) pour que les fichiers créés lui appartiennent. Premier démarrage : `composer install`, `npm ci`, migrations et données de démo.
-- **Tests** : `phpunit.xml` impose SQLite en mémoire par des lignes `<server>` (Laravel lit `$_SERVER` avant `$_ENV`) ; sans elles, les tests lancés dans le conteneur vidaient la base de développement MySQL. `make test-mysql` les fait tourner sur la base séparée `borom_test`. Attention : MySQL réordonne les clés des colonnes JSON, ne pas comparer l'ordre des clés dans les tests.
-- **Production** (`compose.prod.yaml`) : `web` (Caddy : fichiers React construits, `/api` et `/up` vers PHP-FPM, `/storage` lu dans le volume `storage_public`, HTTPS automatique selon `SITE_ADDRESS`), `app` (PHP-FPM sans droits root ; au démarrage : caches de configuration, migrations, `borom:sync-permissions`), `scheduler` (`schedule:work`), `db` (MySQL 8.4). Variables dans `.env.prod` (modèle `.env.prod.example`), journaux sur la sortie standard (`make prod-logs`).
+- **Tests** : `phpunit.xml` impose SQLite en mémoire par des lignes `<server>` (Laravel lit `$_SERVER` avant `$_ENV`) ; sans elles, les tests lancés dans le conteneur vidaient la base de développement. `make test-pgsql` les fait tourner sur PostgreSQL, dans la base séparée `borom_test` (créée par `docker/postgres/init-test-database.sql`). Recherches en `whereLike` (insensible à la casse sur PostgreSQL) ; ne pas comparer l'ordre des clés JSON dans les tests.
+- **Production** (`compose.prod.yaml`) : `web` (Caddy : fichiers React construits, `/api` et `/up` vers PHP-FPM, `/storage` lu dans le volume `storage_public`, HTTPS automatique selon `SITE_ADDRESS`), `app` (PHP-FPM sans droits root ; au démarrage : caches de configuration, migrations, `borom:sync-permissions`), `scheduler` (`schedule:work`), `db` (PostgreSQL 17). Variables dans `.env.prod` (modèle `.env.prod.example`), journaux sur la sortie standard (`make prod-logs`).
 - **Mise à jour en production** : `git pull` puis `make prod-up` (reconstruit les images ; migrations et permissions appliquées au démarrage de `app`). Sauvegarde avant : `make prod-backup`.

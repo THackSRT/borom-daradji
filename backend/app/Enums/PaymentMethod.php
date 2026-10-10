@@ -14,6 +14,8 @@ enum PaymentMethod: string
     case FreeMoney = 'free_money';
     case Cheque = 'cheque';
     case Virement = 'virement';
+    // Loyer impayé retenu sur la caution en fin de bail (App\Services\DepositService), jamais saisi à la main.
+    case Caution = 'caution';
 
     public function label(): string
     {
@@ -24,6 +26,7 @@ enum PaymentMethod: string
             self::FreeMoney => 'Free Money / Mixx',
             self::Cheque => 'Chèque',
             self::Virement => 'Virement',
+            self::Caution => 'Retenue sur caution',
         };
     }
 
@@ -33,6 +36,16 @@ enum PaymentMethod: string
      */
     public function requiresReference(): bool
     {
-        return $this !== self::Especes;
+        return ! in_array($this, [self::Especes, self::Caution], true);
+    }
+
+    /**
+     * Modes proposés pour encaisser ou rembourser (la retenue sur caution est automatique).
+     *
+     * @return list<self>
+     */
+    public static function manual(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $m) => $m !== self::Caution));
     }
 }

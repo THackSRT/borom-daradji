@@ -15,6 +15,7 @@ enum CashMovementType: string
     case DepotBanque = 'depot_banque';
     case Depense = 'depense';
     case Retrait = 'retrait';
+    case RestitutionCaution = 'restitution_caution';
 
     public function label(): string
     {
@@ -23,6 +24,7 @@ enum CashMovementType: string
             self::DepotBanque => 'Dépôt en banque',
             self::Depense => 'Dépense payée en espèces',
             self::Retrait => 'Remise au dirigeant',
+            self::RestitutionCaution => 'Restitution de caution',
         };
     }
 

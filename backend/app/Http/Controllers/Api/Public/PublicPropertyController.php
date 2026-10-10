@@ -44,9 +44,9 @@ class PublicPropertyController extends Controller
             ->when($filters['priceMax'] ?? null, fn ($q, $v) => $q->where('price', '<=', $v))
             ->when($filters['surfaceMin'] ?? null, fn ($q, $v) => $q->where('surface', '>=', $v))
             ->when($filters['search'] ?? null, fn ($q, $v) => $q->where(fn ($q) => $q
-                ->where('title', 'like', "%{$v}%")
-                ->orWhere('neighborhood', 'like', "%{$v}%")
-                ->orWhere('reference', 'like', "%{$v}%")))
+                ->whereLike('title', "%{$v}%")
+                ->orWhereLike('neighborhood', "%{$v}%")
+                ->orWhereLike('reference', "%{$v}%")))
             ->when($request->boolean('featured'), fn ($q) => $q->where('is_featured', true))
             ->when($filters['sort'] ?? 'recent', fn ($q, $sort) => match ($sort) {
                 'price_asc' => $q->orderBy('price'),

@@ -40,9 +40,9 @@ class ClientController extends Controller
                 $digits = preg_replace('/\D+/', '', $search);
                 $looksLikePhone = strlen($digits) >= 3 && preg_match('/^[\d\s.+\-]+$/', $search);
                 $query->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', '%'.($phone ?? ($looksLikePhone ? $digits : $search)).'%'));
+                    ->whereLike('name', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
+                    ->orWhereLike('phone', '%'.($phone ?? ($looksLikePhone ? $digits : $search)).'%'));
             })
             ->when($filters['category'] ?? null, fn ($q, $v) => $q->whereJsonContains('categories', $v))
             ->when($filters['pipeline_status'] ?? null, fn ($q, $v) => $q->where('pipeline_status', $v))

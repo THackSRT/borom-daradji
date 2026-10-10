@@ -48,7 +48,7 @@ class SiteSettingsTest extends TestCase
             ->assertJsonPath('data.content.home.hero_highlight', 'ici')
             ->assertJsonPath('data.customized', ['home']);
 
-        // Tri des clés : MySQL réordonne les clés des colonnes JSON.
+        // Tri des clés : l'ordre des clés JSON dépend de la base (MySQL, jsonb).
         $stored = CompanySetting::current()->site;
         ksort($stored['home']);
         $this->assertSame(

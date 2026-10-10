@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use App\Models\CompanySetting;
+use App\Models\DepositSettlement;
 use App\Models\Invoice;
+use App\Models\LeaseInspection;
 use App\Models\OwnerPayout;
 use App\Models\Payment;
 use App\Models\RentCall;
@@ -67,6 +69,41 @@ final class InvoicePdf
             'month' => $payout->period->locale('fr')->translatedFormat('F Y'),
             ...self::common(),
         ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)->download("{$payout->number}.pdf");
+    }
+
+    /**
+     * État des lieux à imprimer et à faire signer (les photos restent consultables dans le logiciel).
+     *
+     * @param  array<int, array{entry_condition: mixed, entry_comment: ?string, degraded: bool}>  $comparison
+     */
+    public static function inspection(LeaseInspection $inspection, array $comparison): Response
+    {
+        $inspection->loadMissing(['lease.property', 'lease.tenant', 'lease.owner', 'inspector', 'items', 'photos']);
+
+        return Pdf::loadView('pdf.inspection', [
+            'inspection' => $inspection,
+            'comparison' => $comparison,
+            'rooms' => $inspection->items->groupBy('room'),
+            'photoCounts' => $inspection->photos->countBy('lease_inspection_item_id'),
+            ...self::common(),
+        ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)
+            ->download("etat-des-lieux-{$inspection->type->value}-{$inspection->lease->reference}.pdf");
+    }
+
+    /**
+     * Décompte de restitution de la caution remis au locataire.
+     */
+    public static function depositSettlement(DepositSettlement $settlement): Response
+    {
+        $settlement->loadMissing(['lease.property', 'lease.tenant', 'lease.owner', 'exitInspection', 'balanceInvoice']);
+        $retained = $settlement->retainedPayments()->valid()->with('invoice.rentCall')->get();
+
+        return Pdf::loadView('pdf.deposit-settlement', [
+            'settlement' => $settlement,
+            'retained' => $retained,
+            ...self::common(),
+            'inWords' => self::inWords($settlement->refund),
+        ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)->download("{$settlement->number}.pdf");
     }
 
     /**

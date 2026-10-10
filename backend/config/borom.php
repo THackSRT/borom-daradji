@@ -44,4 +44,18 @@ return [
     'management_fee_vat_rate' => (float) env('MANAGEMENT_FEE_VAT_RATE', 18),
     // Appels de loyer émis automatiquement (sinon laissés en brouillon pour le comptable).
     'rent_calls_auto_issue' => (bool) env('RENT_CALLS_AUTO_ISSUE', true),
+
+    /*
+    | États des lieux : pièces et éléments proposés pour un nouvel état des lieux d'entrée (la sortie
+    | reprend les lignes de l'entrée). « {n} » : une pièce par chambre ou salle de bain du bien.
+    | Lignes modifiables état des lieux par état des lieux. À valider avec l'agence.
+    */
+    'inspection_template' => [
+        ['room' => 'Entrée et séjour', 'elements' => ['Porte d\'entrée et serrure', 'Murs et peinture', 'Sol', 'Plafond', 'Fenêtres et vitres', 'Prises et interrupteurs', 'Éclairage']],
+        ['room' => 'Cuisine', 'elements' => ['Murs et carrelage', 'Sol', 'Évier et robinetterie', 'Plan de travail et placards', 'Prises et interrupteurs', 'Fenêtre']],
+        ['room' => 'Chambre {n}', 'per' => 'bedrooms', 'elements' => ['Porte et serrure', 'Murs et peinture', 'Sol', 'Fenêtres et vitres', 'Placard', 'Prises et interrupteurs', 'Climatiseur']],
+        ['room' => 'Salle de bain {n}', 'per' => 'bathrooms', 'elements' => ['Murs et carrelage', 'Sol', 'Lavabo et robinetterie', 'Douche ou baignoire', 'WC', 'Chauffe-eau']],
+        ['room' => 'Extérieur', 'elements' => ['Cour ou terrasse', 'Portail', 'Citerne et surpresseur']],
+    ],
+    'inspection_max_photos' => (int) env('INSPECTION_MAX_PHOTOS', 150),
 ];

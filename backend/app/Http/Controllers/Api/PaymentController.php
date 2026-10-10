@@ -44,9 +44,9 @@ class PaymentController extends Controller
             $query->where('method', $request->query('method'));
         }
         if ($search = trim((string) $request->query('search'))) {
-            $query->where(fn ($q) => $q->where('number', 'like', "%{$search}%")
-                ->orWhere('reference', 'like', "%{$search}%")
-                ->orWhereHas('client', fn ($c) => $c->where('name', 'like', "%{$search}%")));
+            $query->where(fn ($q) => $q->whereLike('number', "%{$search}%")
+                ->orWhereLike('reference', "%{$search}%")
+                ->orWhereHas('client', fn ($c) => $c->whereLike('name', "%{$search}%")));
         }
 
         $totals = (clone $query)->valid()->selectRaw('method, sum(amount) as total, count(*) as count')->groupBy('method')->get();

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 /**
@@ -105,6 +106,22 @@ class Lease extends Model
         return $this->hasMany(RentCall::class)->orderByDesc('period');
     }
 
+    /**
+     * @return HasMany<LeaseInspection, $this>
+     */
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(LeaseInspection::class)->orderBy('type');
+    }
+
+    /**
+     * @return HasOne<DepositSettlement, $this>
+     */
+    public function depositSettlement(): HasOne
+    {
+        return $this->hasOne(DepositSettlement::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === LeaseStatus::Actif;
@@ -136,6 +153,37 @@ class Lease extends Model
         $calls = $this->relationLoaded('rentCalls') ? $this->rentCalls : $this->rentCalls()->with('invoice')->get();
 
         return $calls->filter(fn (RentCall $call) => $call->invoice->isOverdue())->values();
+    }
+
+    /**
+     * Caution réellement encaissée. Facture d'entrée : ses encaissements couvrent d'abord la caution
+     * (première ligne). Sans facture d'entrée (bail saisi après coup), la caution prévue au bail est
+     * réputée reçue. Proposée par défaut à la restitution, modifiable.
+     */
+    public function depositCollected(): int
+    {
+        if (! $this->entry_invoice_id) {
+            return $this->deposit;
+        }
+        $invoice = $this->entryInvoice;
+        if (! $invoice || $invoice->isDraft()) {
+            return 0;
+        }
+
+        return max(0, min($this->deposit, $invoice->paid_total));
+    }
+
+    /**
+     * Appels de loyer émis et pas entièrement payés (échus ou non), du plus ancien au plus récent.
+     *
+     * @return Collection<int, RentCall>
+     */
+    public function unpaidCalls(): Collection
+    {
+        return $this->rentCalls()->with('invoice')->get()
+            ->filter(fn (RentCall $call) => ! $call->invoice->isDraft() && $call->invoice->balance() > 0)
+            ->sortBy(fn (RentCall $call) => $call->period)
+            ->values();
     }
 
     /**

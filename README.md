@@ -27,7 +27,7 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | --- | --- | --- |
 | 0. Socle | Comptes, rôles et droits (RBAC), paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
-| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | En cours (reste les états des lieux et la caution) |
+| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | Fait (états des lieux et restitution de la caution compris), à fusionner |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
 | 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | À faire |
@@ -50,17 +50,18 @@ Comptes de démo : `dirigeant@boromdaradji.test`, `agent@boromdaradji.test`,
 
 | Commande | Effet |
 | --- | --- |
-| `make up` / `make down` | Démarrer / arrêter (les données restent dans le volume MySQL) |
+| `make up` / `make down` | Démarrer / arrêter (les données restent dans le volume PostgreSQL) |
 | `make logs` | Journaux des conteneurs |
 | `make artisan c="route:list"` | Commande artisan dans le conteneur de l'API |
 | `make fresh` | Recréer la base avec les données de démo |
 | `make check` | **Avant chaque commit** : tests et formatage de l'API, typecheck, lint et build du front |
-| `make test-mysql` | Tests de l'API sur MySQL (base `borom_test`, séparée des données de dev) |
+| `make test-pgsql` | Tests de l'API sur PostgreSQL (base `borom_test`, séparée des données de dev) |
+| `make psql` | Console PostgreSQL de la base de dev |
 | `make help` | Toutes les commandes |
 
 Sans `make` : chaque cible du `Makefile` est une commande `docker compose` à recopier. Sous Linux, mettre `UID` et `GID` dans un fichier `.env` à la racine (`echo "UID=$(id -u)" > .env && echo "GID=$(id -g)" >> .env`) pour que les fichiers créés par les conteneurs vous appartiennent ; `make` s'en charge.
 
-Services : `backend` (API, `php artisan serve`), `scheduler` (tâches planifiées), `frontend` (Vite), `db` (MySQL 8.4).
+Services : `backend` (API, `php artisan serve`), `scheduler` (tâches planifiées), `frontend` (Vite), `db` (PostgreSQL 17).
 
 ## Mettre en production avec Docker
 
@@ -69,14 +70,14 @@ Sur un serveur Linux avec Docker, un nom de domaine qui pointe vers lui et les p
 ```sh
 cp .env.prod.example .env.prod
 make prod-key              # copier la ligne APP_KEY=… dans .env.prod
-# remplir SITE_ADDRESS, APP_URL, DB_PASSWORD, DB_ROOT_PASSWORD dans .env.prod
+# remplir SITE_ADDRESS, APP_URL et DB_PASSWORD dans .env.prod
 make prod-up               # construit les images et démarre ; HTTPS obtenu automatiquement
 make prod-director         # crée le premier compte dirigeant (pas de données de démo)
 ```
 
-- Services : `web` (Caddy : site, back-office, relais de l'API, photos, HTTPS), `app` (API, PHP-FPM), `scheduler` (tâches planifiées), `db` (MySQL). Au démarrage, `app` applique les migrations et `borom:sync-permissions`.
+- Services : `web` (Caddy : site, back-office, relais de l'API, photos, HTTPS), `app` (API, PHP-FPM), `scheduler` (tâches planifiées), `db` (PostgreSQL 17). Au démarrage, `app` applique les migrations et `borom:sync-permissions`.
 - Mise à jour : `git pull` puis `make prod-up`.
-- Sauvegarde : `make prod-backup` (base et fichiers dans `backups/`, à copier hors du serveur ; à planifier dans le cron du serveur, par exemple chaque nuit). Restauration de la base : `gunzip < backups/base-….sql.gz | docker compose -f compose.prod.yaml --env-file .env.prod exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'`.
+- Sauvegarde : `make prod-backup` (base et fichiers dans `backups/`, à copier hors du serveur ; à planifier dans le cron du serveur, par exemple chaque nuit). Restauration de la base : `gunzip < backups/base-….sql.gz | docker compose -f compose.prod.yaml --env-file .env.prod exec -T db sh -c 'psql -q -U "$POSTGRES_USER" "$POSTGRES_DB"'`.
 - Journaux : `make prod-logs`. Essai sur sa machine : `SITE_ADDRESS=http://localhost` et `APP_URL=http://localhost` dans `.env.prod`.
 
 ## Sans Docker

@@ -11,9 +11,9 @@ import { api, downloadFile } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../auth";
-import { useApiMutation, useOptions } from "../hooks";
+import { useApiMutation } from "../hooks";
 import type { OwnerPayoutRow, OwnerStatement } from "../types";
-import { AmountRow, cfa, MoneyInput } from "../components/billing";
+import { AmountRow, cfa, MoneyInput, useManualMethods } from "../components/billing";
 import { EmptyState, Field, FormError, LoadingBlock, PageHeader } from "../components/ui";
 
 interface OwnerRow {
@@ -97,7 +97,7 @@ export default function PayoutsPage() {
 
 function StatementSheet({ owner, period, onClose }: { owner: OwnerRow; period: string; onClose: () => void }) {
   const { can } = useAuth();
-  const methods = useOptions("payment_methods");
+  const methods = useManualMethods();
   const { data: statement, isLoading } = useQuery({
     queryKey: ["owner-statement", owner.id, period],
     queryFn: () => api<{ data: OwnerStatement }>(`/owners/${owner.id}/statement`, { query: { period } }).then((r) => r.data),

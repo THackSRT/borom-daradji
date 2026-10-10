@@ -5,20 +5,21 @@
 ## État actuel
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
-- **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances et reversements **faits** (valeurs par défaut à valider, D-035) ; reste les états des lieux et la restitution de la caution.
+- **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution (valeurs par défaut à valider, D-035, D-040, D-041). Reste la fusion et le déploiement.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). L'environnement Docker est sur `lot-2-encaissements-location`. Pas de pull request.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 167 tests backend verts, sur SQLite et sur MySQL ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
-- **Docker** (D-037) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, MySQL) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, MySQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
-- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), 4 clients, une visite, une tâche.
+- **Tests** : 186 tests backend verts, sur SQLite et sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
+- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
 - **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
 
 ## Prochaines actions, dans l'ordre
 
 1. Faire relire et fusionner `lot-1-biens-prospects` dans `main`, puis `lot-2-encaissements-location` (pull requests à ouvrir sur demande de l'utilisateur).
-2. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
+2. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl, pdo_pgsql…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
 3. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
-4. Lot 2, fin : états des lieux d'entrée et de sortie (pièces, état, photos) et restitution ou retenue de la caution. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client.
+4. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
+5. Lot 3 (travaux) : devis, chantiers, tâcherons, caisse de chantier, suivi client, saisie hors ligne.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -39,7 +40,9 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Logiciel du cabinet comptable (Sage, Ciel, autre) pour le format des exports.
 - [ ] Nombre d'utilisateurs et rôles cumulés.
 - [ ] Données existantes à reprendre (Excel, cahiers).
-- [ ] Hébergement et nom de domaine : qui paie, qui administre. *MySQL 8.4 retenu par défaut dans l'environnement Docker (D-037) ; PostgreSQL reste possible si l'hébergeur l'impose.*
+- [ ] Hébergement et nom de domaine : qui paie, qui administre. *Base : PostgreSQL 17, choisi par l'utilisateur le 2026-10-10 (D-039).*
+- [ ] Caution : qui la garde (l'agence par défaut, sur sa facture d'entrée), et pour un bail géré, les retenues pour réparations reviennent-elles au propriétaire ? Faut-il un délai de restitution (souvent un ou deux mois après la sortie) ?
+- [ ] Modèle de pièces et d'éléments des états des lieux (`config/borom.php`, `inspection_template`), et faut-il facturer l'état des lieux au locataire ou au propriétaire ?
 - [ ] Taux horaire ou budget, date de démarrage.
 - [ ] Durée de conservation des sauvegardes (30 jours proposés).
 - [ ] Vraies coordonnées de l'agence (téléphone, WhatsApp, email, adresse) à saisir dans Paramètres : le site les affiche partout ; les valeurs de démo sont fictives.
@@ -48,6 +51,15 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — PostgreSQL, fin du lot 2 (états des lieux, caution)
+
+- Demande de l'utilisateur : passer à l'implémentation, terminer le lot 2, utiliser PostgreSQL. D-039, D-040, D-041.
+- PostgreSQL : Docker (dev et production), `make test-pgsql`, `make psql`, sauvegarde `pg_dump`. Corrigé : rapprochement biens-prospects qui comparait des colonnes entières à des bornes décimales (erreur sur PostgreSQL à la publication d'un bien) ; recherches sensibles à la casse sur PostgreSQL (`whereLike` partout, test ajouté).
+- API : états des lieux (`lease_inspections`, lignes, photos privées en WebP), modèle de pièces paramétrable, comparaison entrée/sortie et dégradations, validation qui fige, PDF à signer ; restitution de la caution (`deposit_settlements`, `CAU-AAAA-0001`) : loyers impayés soldés par des encaissements « retenue sur caution » (nouveau mode, jamais saisi à la main), retenues, remboursement (sortie de caisse en espèces, nouveau type de mouvement), reste dû facturé, décompte PDF ; permission `deposits.settle` (comptable). 18 tests (186).
+- Écrans : encarts « États des lieux » et « Caution » sur la fiche du bail ; page d'état des lieux pensée pour le téléphone (pièces, état en un geste, observation, photo prise avec l'appareil, relevés, comparaison à l'entrée, validation, PDF) ; fenêtre de restitution (caution encaissée, impayés retenus, retenues proposées depuis les dégradations, récapitulatif en direct, mode de remboursement). La retenue sur caution n'est pas proposée dans les fenêtres d'encaissement et de reversement, ni la restitution dans les mouvements de caisse.
+- Données de démo : `DemoInspectionSeeder`.
+- Vérifié dans Chromium : agent (fiche du bail, état des lieux de sortie validé, nouvelle sortie avec état, observation et photo, téléphone 390 px sans débordement), comptable (restitution du studio : septembre soldé par la caution, deux retenues, 130 000 FCFA rendus par Wave) ; PDF de l'état des lieux et du décompte relus. PostgreSQL du `compose.yaml` : base de test créée au démarrage, migrations, démo et 186 tests ; sauvegarde et restauration `pg_dump`/`psql`. **Non vérifié ici** : l'image PHP réelle avec `pdo_pgsql` (dépôts de paquets bloqués dans le bac à sable), à construire une fois sur une vraie machine.
 
 ### 2026-10-10 (suite) — Environnement Docker, fin de GitHub Actions
 

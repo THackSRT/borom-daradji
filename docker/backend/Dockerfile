@@ -6,9 +6,9 @@
 FROM php:8.3-fpm-alpine AS base
 
 # gd (photos converties en WebP, D-019), intl (montant en lettres des factures),
-# zip, pdo_mysql, opcache, pcntl (arrêt propre du planificateur), bcmath.
+# zip, pdo_pgsql, opcache, pcntl (arrêt propre du planificateur), bcmath.
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions gd intl zip pdo_mysql opcache pcntl bcmath
+RUN install-php-extensions gd intl zip pdo_pgsql opcache pcntl bcmath
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 COPY docker/backend/php.ini $PHP_INI_DIR/conf.d/zz-borom.ini
@@ -32,7 +32,7 @@ ENV HOME=/home/app \
     PHP_CLI_SERVER_WORKERS=4
 ENTRYPOINT ["borom-dev-entrypoint"]
 # --no-reload obligatoire : sans lui, artisan serve retire au serveur PHP les
-# variables du conteneur (DB_CONNECTION=mysql…) et l'API retombe sur backend/.env.
+# variables du conteneur (DB_CONNECTION=pgsql…) et l'API retombe sur backend/.env.
 # Il permet aussi plusieurs requêtes à la fois (PHP_CLI_SERVER_WORKERS). Après une
 # modification de backend/.env : docker compose restart backend.
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]

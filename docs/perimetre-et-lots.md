@@ -6,7 +6,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **En cours** : facturation, encaissements, caisse, baux, loyers, quittances et reversements faits (valeurs par défaut à valider) ; reste les états des lieux |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait** (valeurs par défaut à valider), à fusionner |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
@@ -112,7 +112,22 @@ Reprendre le code du dépôt `borom-daradji-properties` (Vite, React, TypeScript
 
 ## Lot 2 — Encaissements et location
 
-**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse ; baux, appels de loyer automatiques, arriérés et relances, quittances, relevés de gérance et reversements. **Reste** : états des lieux (entrée et sortie, photos) et restitution de la caution.
+**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse ; baux, appels de loyer automatiques, arriérés et relances, quittances, relevés de gérance et reversements ; états des lieux d'entrée et de sortie avec photos ; restitution de la caution.
+
+États des lieux (D-040, **à valider**) :
+- Un état des lieux d'entrée et un de sortie au plus par bail (`leases.manage` pour les faire, `leases.view` pour les consulter). L'entrée propose les pièces de `config/borom.php` (`inspection_template`), une chambre et une salle de bain par chambre et salle de bain du bien ; la sortie reprend les lignes de l'entrée. Lignes, pièces et éléments modifiables.
+- Chaque élément : état parmi neuf, bon, usure normale, dégradé, hors service ou manquant ; commentaire ; photos. Relevés des compteurs d'électricité et d'eau, nombre de clés, présence du locataire, observations.
+- Dégradation = à la sortie, pire qu'à l'entrée **et** au-delà de l'usure normale (l'usure due à l'usage normal ne se retient pas). Les dégradations sont proposées comme retenues à la restitution de la caution.
+- Validation : chaque élément doit avoir un état ; ensuite plus aucune modification ni photo (pièce opposable). PDF à signer par l'agence et le locataire (les photos restent dans le logiciel, comptées sur le PDF).
+- Photos converties en WebP sur le disque privé, servies par une route contrôlée ; 150 par état des lieux (`INSPECTION_MAX_PHOTOS`).
+
+Restitution de la caution (D-041, **à valider**) :
+- Après la résiliation, une seule fois par bail, avec la permission `deposits.settle` (comptable par défaut). Numéro `CAU-AAAA-0001`.
+- Caution encaissée proposée : avec facture d'entrée, ses encaissements couvrent d'abord la caution ; sans facture d'entrée (bail saisi après coup), la caution du bail est réputée reçue. Montant modifiable.
+- Ordre d'imputation : 1. loyers impayés, du plus ancien au plus récent (option désactivable), par des encaissements « retenue sur caution » sur les appels de loyer (le mois est payé, quittance possible, et pour un bail géré le loyer revient au propriétaire) ; 2. réparations et autres retenues saisies (libellé, montant) ; 3. le reste est rendu au locataire.
+- Remboursement : mode et référence comme un encaissement ; en espèces, sortie de la caisse du jour de la personne qui rend (mouvement « restitution de caution »), refusé si la caisse n'a pas assez d'espèces.
+- Retenues supérieures à la caution : le reste dû est facturé au locataire (brouillon pour le comptable).
+- Décompte PDF remis au locataire. Pas d'annulation dans cette version (vérifier le récapitulatif avant d'enregistrer) ; un encaissement « retenue sur caution » peut être annulé comme tout encaissement.
 
 Règles de la gestion locative (valeurs par défaut dans `config/borom.php`, modifiables bail par bail, **à valider** avec le client) :
 - Un seul bail en cours par bien ; le bien passe en « Loué » quand c'est permis par son statut. Seuls les biens « à louer » se louent. Un bail en gestion exige un propriétaire.
@@ -134,7 +149,7 @@ Règles en place :
 - **Encaissements** : modes `especes`, `wave`, `orange_money`, `free_money`, `cheque`, `virement` ; référence de transaction ; capture d'écran ; paiement partiel ; reste dû recalculé ; caisse journalière par utilisateur avec clôture.
 - **Baux** : bien, locataire, propriétaire, loyer, charges, caution et avance en mois, jour d'échéance, durée, commission de gestion (% du loyer), statut.
 - **Appels de loyer** générés automatiquement chaque mois (tâche planifiée) ; quittance PDF à l'encaissement complet ; arriérés par locataire ; rappels par lien WhatsApp ou SMS.
-- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution.
+- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution (fait, voir plus haut).
 - **Reversements** : relevé mensuel par propriétaire (loyers encaissés − commission − frais) et enregistrement du versement.
 - Questions bloquantes avant de commencer : voir « Questions ouvertes » dans [`journal.md`](journal.md).
 

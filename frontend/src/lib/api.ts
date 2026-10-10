@@ -105,6 +105,16 @@ function defaultMessage(status: number): string {
   return "Une erreur est survenue.";
 }
 
+/** Récupère un fichier protégé (photo privée) et renvoie une adresse locale affichable. */
+export async function fetchBlobUrl(path: string): Promise<string> {
+  const token = getToken();
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new ApiError(response.status, defaultMessage(response.status));
+  return URL.createObjectURL(await response.blob());
+}
+
 /** Télécharge un fichier protégé (pièces) en gardant le jeton, puis l'ouvre. */
 export async function downloadFile(path: string, filename: string): Promise<void> {
   const token = getToken();

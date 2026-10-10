@@ -69,7 +69,8 @@ final class PermissionCatalog
             ]],
             'leases' => ['label' => 'Gestion locative', 'permissions' => [
                 'leases.view' => ['Consulter les baux et les loyers', 'Baux, échéancier, arriérés, quittances.'],
-                'leases.manage' => ['Gérer les baux', 'Créer et résilier des baux, lancer les appels de loyer.'],
+                'leases.manage' => ['Gérer les baux', 'Créer et résilier des baux, lancer les appels de loyer, faire les états des lieux.'],
+                'deposits.settle' => ['Restituer les cautions', 'En fin de bail : retenir les loyers impayés et les réparations, rendre le reste au locataire.'],
                 'payouts.view' => ['Consulter les relevés des propriétaires', 'Loyers encaissés, commission, net à reverser.'],
                 'payouts.manage' => ['Enregistrer les reversements', 'Verser au propriétaire ce qui lui revient, ou annuler un versement.'],
             ]],
@@ -149,7 +150,7 @@ final class PermissionCatalog
                     'properties.view', 'properties.mandates', 'clients.view', 'clients.create', 'clients.update',
                     'invoices.view', 'invoices.manage', 'invoices.issue', 'invoices.credit',
                     'payments.create', 'payments.cancel', 'payments.view_all', 'cash.view_all',
-                    'leases.view', 'payouts.view', 'payouts.manage',
+                    'leases.view', 'payouts.view', 'payouts.manage', 'deposits.settle',
                 ],
             ],
         ];
@@ -169,6 +170,7 @@ final class PermissionCatalog
             'leases.manage' => ['agent'],
             'payouts.view' => ['comptable'],
             'payouts.manage' => ['comptable'],
+            'deposits.settle' => ['comptable'],
         ];
     }
 

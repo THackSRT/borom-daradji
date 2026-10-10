@@ -9,7 +9,7 @@ PROD = docker compose -f compose.prod.yaml --env-file .env.prod
 STAMP := $(shell date +%Y%m%d-%H%M%S)
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs sh artisan fresh test test-mysql check \
+.PHONY: help up down logs sh artisan fresh test test-pgsql psql check \
 	prod-key prod-up prod-down prod-logs prod-director prod-artisan prod-backup
 
 help: ## Liste des commandes
@@ -40,8 +40,11 @@ test: ## Tests et formatage de l'API (SQLite en mémoire)
 	$(DEV) exec backend php artisan test
 	$(DEV) exec backend vendor/bin/pint --test
 
-test-mysql: ## Tests de l'API sur MySQL (base borom_test, séparée)
-	$(DEV) exec backend sh -c 'sed -e "s/value=\"sqlite\"/value=\"mysql\"/g" -e "s/value=\":memory:\"/value=\"borom_test\"/g" phpunit.xml > phpunit.mysql.xml && php artisan test --configuration=phpunit.mysql.xml; status=$$?; rm -f phpunit.mysql.xml; exit $$status'
+test-pgsql: ## Tests de l'API sur PostgreSQL (base borom_test, séparée)
+	$(DEV) exec backend sh -c 'sed -e "s/value=\"sqlite\"/value=\"pgsql\"/g" -e "s/value=\":memory:\"/value=\"borom_test\"/g" phpunit.xml > phpunit.pgsql.xml && php artisan test --configuration=phpunit.pgsql.xml; status=$$?; rm -f phpunit.pgsql.xml; exit $$status'
+
+psql: ## Console PostgreSQL de la base de dev
+	$(DEV) exec db psql -U borom borom
 
 check: test ## Toutes les vérifications avant un commit (API et front)
 	$(DEV) exec frontend npm run typecheck
@@ -70,6 +73,6 @@ prod-artisan: ## Lance une commande artisan en production : make prod-artisan c=
 
 prod-backup: ## Sauvegarde la base et les fichiers dans ./backups
 	mkdir -p backups
-	$(PROD) exec -T db sh -c 'exec mysqldump --single-transaction --routines -uroot -p"$$MYSQL_ROOT_PASSWORD" "$$MYSQL_DATABASE"' | gzip > backups/base-$(STAMP).sql.gz
+	$(PROD) exec -T db sh -c 'exec pg_dump --clean --if-exists --no-owner -U "$$POSTGRES_USER" "$$POSTGRES_DB"' | gzip > backups/base-$(STAMP).sql.gz
 	$(PROD) exec -T app tar -czf - -C /var/www/html storage/app > backups/fichiers-$(STAMP).tar.gz
 	@echo "Sauvegarde : backups/base-$(STAMP).sql.gz et backups/fichiers-$(STAMP).tar.gz"

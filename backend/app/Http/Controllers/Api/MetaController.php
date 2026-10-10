@@ -9,9 +9,11 @@ use App\Enums\ClientCategory;
 use App\Enums\ClientDocumentType;
 use App\Enums\ClientKind;
 use App\Enums\CommissionType;
+use App\Enums\InspectionType;
 use App\Enums\InteractionChannel;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
+use App\Enums\ItemCondition;
 use App\Enums\LandStatus;
 use App\Enums\LeadSource;
 use App\Enums\LeaseStatus;
@@ -66,6 +68,8 @@ class MetaController extends Controller
             'payment_methods' => PaymentMethod::class,
             'cash_movement_types' => CashMovementType::class,
             'lease_statuses' => LeaseStatus::class,
+            'inspection_types' => InspectionType::class,
+            'item_conditions' => ItemCondition::class,
         ];
 
         $data = array_map(

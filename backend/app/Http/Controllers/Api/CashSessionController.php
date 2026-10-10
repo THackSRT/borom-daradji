@@ -71,7 +71,7 @@ class CashSessionController extends Controller
     {
         Gate::authorize('useCash', Invoice::class);
         $data = $request->validate([
-            'type' => ['required', Rule::enum(CashMovementType::class)],
+            'type' => ['required', Rule::enum(CashMovementType::class)->except([CashMovementType::RestitutionCaution])],
             'amount' => ['required', 'integer', 'min:1'],
             'label' => ['required', 'string', 'max:255'],
         ], [], ['type' => 'type de mouvement', 'amount' => 'montant', 'label' => 'libellé']);

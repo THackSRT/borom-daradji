@@ -33,9 +33,9 @@ class UserController extends Controller
             ->with(['roles.permissions', 'permissions'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%"));
+                    ->whereLike('name', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
+                    ->orWhereLike('phone', "%{$search}%"));
             })
             ->when($filters['role'] ?? null, fn ($query, string $role) => $query->withRole($role))
             ->when(isset($filters['active']), fn ($query) => $query->where('is_active', $request->boolean('active')))

@@ -30,9 +30,9 @@ class LeaseController extends Controller
 
         $query = Lease::query()->with(['property', 'tenant', 'owner', 'rentCalls.invoice']);
         if ($search = trim((string) $request->query('search'))) {
-            $query->where(fn ($q) => $q->where('reference', 'like', "%{$search}%")
-                ->orWhereHas('tenant', fn ($c) => $c->where('name', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%"))
-                ->orWhereHas('property', fn ($p) => $p->where('title', 'like', "%{$search}%")->orWhere('reference', 'like', "%{$search}%")));
+            $query->where(fn ($q) => $q->whereLike('reference', "%{$search}%")
+                ->orWhereHas('tenant', fn ($c) => $c->whereLike('name', "%{$search}%")->orWhereLike('phone', "%{$search}%"))
+                ->orWhereHas('property', fn ($p) => $p->whereLike('title', "%{$search}%")->orWhereLike('reference', "%{$search}%")));
         }
         foreach (['status', 'property_id', 'tenant_id', 'owner_id'] as $filter) {
             if ($request->filled($filter)) {
@@ -143,6 +143,9 @@ class LeaseController extends Controller
 
     private function loaded(Lease $lease): Lease
     {
-        return $lease->fresh(['property', 'tenant', 'owner', 'agent', 'entryInvoice', 'rentCalls.invoice']);
+        return $lease->fresh([
+            'property', 'tenant', 'owner', 'agent', 'entryInvoice', 'rentCalls.invoice', 'depositSettlement',
+            'inspections' => fn ($q) => $q->withCount(['items', 'photos', 'items as rated_count' => fn ($i) => $i->whereNotNull('condition')]),
+        ]);
     }
 }

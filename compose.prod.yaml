@@ -12,9 +12,9 @@ x-app: &app
   restart: unless-stopped
   env_file: .env.prod
   environment:
-    DB_CONNECTION: mysql
+    DB_CONNECTION: pgsql
     DB_HOST: db
-    DB_PORT: 3306
+    DB_PORT: 5432
   volumes:
     - storage:/var/www/html/storage
     - storage_public:/var/www/html/storage/app/public
@@ -55,17 +55,16 @@ services:
       - app
 
   db:
-    image: mysql:8.4
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE manquant dans .env.prod}
-      MYSQL_USER: ${DB_USERNAME:?DB_USERNAME manquant dans .env.prod}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans .env.prod}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD manquant dans .env.prod}
+      POSTGRES_DB: ${DB_DATABASE:?DB_DATABASE manquant dans .env.prod}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME manquant dans .env.prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans .env.prod}
     volumes:
-      - db:/var/lib/mysql
+      - db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 20

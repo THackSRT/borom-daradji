@@ -7,9 +7,12 @@ use App\Models\CashSession;
 use App\Models\Client;
 use App\Models\ClientDocument;
 use App\Models\CompanySetting;
+use App\Models\DepositSettlement;
 use App\Models\Interaction;
 use App\Models\Invoice;
 use App\Models\Lease;
+use App\Models\LeaseInspection;
+use App\Models\LeaseInspectionPhoto;
 use App\Models\Mandate;
 use App\Models\OwnerPayout;
 use App\Models\Payment;
@@ -63,6 +66,9 @@ class AppServiceProvider extends ServiceProvider
             'role' => Role::class,
             'lease' => Lease::class,
             'owner_payout' => OwnerPayout::class,
+            'lease_inspection' => LeaseInspection::class,
+            'lease_inspection_photo' => LeaseInspectionPhoto::class,
+            'deposit_settlement' => DepositSettlement::class,
             'permission' => Permission::class,
         ]);
 

@@ -21,7 +21,7 @@ class PaymentRequest extends FormRequest
         $method = PaymentMethod::tryFrom((string) $this->input('method'));
 
         return [
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Caution])],
             'amount' => ['required', 'integer', 'min:1'],
             'paid_on' => ['nullable', 'date', 'before_or_equal:today'],
             'reference' => [$method?->requiresReference() ? 'required' : 'nullable', 'string', 'max:100'],

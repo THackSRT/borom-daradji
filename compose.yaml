@@ -1,6 +1,7 @@
 # Environnement de développement : docker compose up
 #   site et back-office : http://localhost:8080 (Vite, /api relayé vers l'API)
 #   API Laravel         : http://localhost:8000
+#   PostgreSQL          : conteneur db (make psql)
 # Les dossiers ./backend et ./frontend sont montés : les modifications sont
 # prises en compte sans reconstruire. Détail dans README.md.
 name: borom-dev
@@ -20,9 +21,9 @@ services:
     volumes:
       - ./backend:/var/www/html
     environment: &backend-env
-      DB_CONNECTION: mysql
+      DB_CONNECTION: pgsql
       DB_HOST: db
-      DB_PORT: 3306
+      DB_PORT: 5432
       DB_DATABASE: borom
       DB_USERNAME: borom
       DB_PASSWORD: borom
@@ -72,17 +73,16 @@ services:
       - backend
 
   db:
-    image: mysql:8.4
+    image: postgres:17-alpine
     environment:
-      MYSQL_DATABASE: borom
-      MYSQL_USER: borom
-      MYSQL_PASSWORD: borom
-      MYSQL_ROOT_PASSWORD: root
+      POSTGRES_DB: borom
+      POSTGRES_USER: borom
+      POSTGRES_PASSWORD: borom
     volumes:
-      - db:/var/lib/mysql
-      - ./docker/mysql/init-test-database.sql:/docker-entrypoint-initdb.d/init-test-database.sql:ro
+      - db:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-database.sql:/docker-entrypoint-initdb.d/init-test-database.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot", "--silent"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "borom", "-d", "borom"]
       interval: 5s
       timeout: 5s
       retries: 20

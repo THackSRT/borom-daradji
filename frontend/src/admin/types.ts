@@ -241,7 +241,9 @@ export type MetaKey =
   | "activities"
   | "payment_methods"
   | "cash_movement_types"
-  | "lease_statuses";
+  | "lease_statuses"
+  | "inspection_types"
+  | "item_conditions";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -407,7 +409,76 @@ export interface Lease {
   months_overdue?: number;
   rent_calls?: RentCallRow[];
   whatsapp_reminder_url?: string | null;
+  inspections?: LeaseInspectionSummary[];
+  deposit_settlement?: { id: number; number: string; refund: number; balance_due: number; settled_on: string } | null;
+  can: { update: boolean; inspect: boolean; settle_deposit: boolean } | null;
+}
+
+export interface LeaseInspectionSummary {
+  id: number;
+  type: Option<"entree" | "sortie">;
+  inspected_on: string;
+  validated_at: string | null;
+  items_count: number;
+  rated_count: number;
+  photos_count: number;
+}
+
+export interface InspectionItem {
+  id?: number;
+  room: string;
+  element: string;
+  condition: Option | null;
+  comment: string | null;
+  entry_condition?: Option | null;
+  entry_comment?: string | null;
+  degraded?: boolean;
+}
+
+export interface LeaseInspection {
+  id: number;
+  type: Option<"entree" | "sortie">;
+  inspected_on: string;
+  inspector: Ref | null;
+  tenant_present: boolean;
+  electricity_meter: string | null;
+  water_meter: string | null;
+  keys_count: number | null;
+  general_comment: string | null;
+  validated_at: string | null;
+  validator: Ref | null;
+  lease: { id: number; reference: string; status: Option; property: { id: number; reference: string; title: string }; tenant: Ref };
+  items: InspectionItem[];
+  photos: { id: number; item_id: number | null; url: string }[];
   can: { update: boolean } | null;
+}
+
+export interface DepositSettlement {
+  id: number;
+  number: string;
+  deposit_held: number;
+  arrears_retained: number;
+  deductions: { label: string; amount: number }[];
+  deductions_total: number;
+  refund: number;
+  balance_due: number;
+  balance_invoice: { id: number; number: string | null; status: Option } | null;
+  refund_method: Option | null;
+  refund_reference: string | null;
+  settled_on: string;
+  exit_inspection_id: number | null;
+  note: string | null;
+  creator?: Ref;
+}
+
+export interface DepositInfo {
+  deposit: number;
+  deposit_collected: number;
+  unpaid_calls: { id: number; period: string; label: string; invoice_number: string | null; balance: number }[];
+  arrears_total: number;
+  exit_inspection: { id: number; inspected_on: string; validated: boolean; degradations: { room: string; element: string; condition: string; comment: string | null }[] } | null;
+  settlement: DepositSettlement | null;
+  can_settle: boolean;
 }
 
 export interface LeaseSummary {

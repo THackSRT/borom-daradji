@@ -38,8 +38,8 @@ class PropertyController extends Controller
         $base = Property::query()
             ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
             ->when($filters['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('reference', 'like', "%{$search}%")))
+                ->whereLike('title', "%{$search}%")
+                ->orWhereLike('reference', "%{$search}%")))
             ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['transaction'] ?? null, fn ($q, $v) => $q->where('transaction', $v))
             ->when($filters['city'] ?? null, fn ($q, $v) => $q->where('city', $v))

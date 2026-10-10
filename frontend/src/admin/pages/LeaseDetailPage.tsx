@@ -15,6 +15,7 @@ import { useApiMutation } from "../hooks";
 import type { Invoice, Lease } from "../types";
 import { AmountRow, cfa, InvoiceStateBadge, MoneyInput } from "../components/billing";
 import { EmptyState, Field, FormError, LoadingBlock, Panel, StatusBadge, WhatsAppLink } from "../components/ui";
+import { DepositPanel, InspectionsPanel } from "../components/rental";
 
 export default function LeaseDetailPage() {
   const { id } = useParams();
@@ -131,6 +132,8 @@ export default function LeaseDetailPage() {
               {lease.agent && <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Agent</dt><dd>{lease.agent.name}</dd></div>}
             </dl>
           </Panel>
+          <InspectionsPanel lease={lease} />
+          <DepositPanel lease={lease} />
           {lease.entry_invoice && (
             <Panel title="Facture d'entrée">
               <Link to={`/admin/factures/${lease.entry_invoice.id}`} className="flex items-center justify-between gap-2 text-sm hover:underline">
@@ -142,7 +145,7 @@ export default function LeaseDetailPage() {
           )}
           {lease.notes && <Panel title="Notes"><p className="whitespace-pre-line text-sm">{lease.notes}</p></Panel>}
           <Panel title="Documents">
-            <p className="flex items-start gap-2 text-sm text-muted-foreground"><Receipt className="mt-0.5 h-4 w-4 shrink-0" /> Quittance de chaque mois payé dans l'échéancier ; reçu de chaque encaissement depuis sa facture.</p>
+            <p className="flex items-start gap-2 text-sm text-muted-foreground"><Receipt className="mt-0.5 h-4 w-4 shrink-0" /> Quittance de chaque mois payé dans l'échéancier ; reçu de chaque encaissement depuis sa facture ; états des lieux et décompte de caution à imprimer depuis leurs encarts.</p>
           </Panel>
         </aside>
       </div>

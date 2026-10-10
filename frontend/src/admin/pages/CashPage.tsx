@@ -210,7 +210,8 @@ function CloseDialog({ session, open, onOpenChange }: { session: CashSession; op
 }
 
 function MovementDialog({ open, onOpenChange, available }: { open: boolean; onOpenChange: (open: boolean) => void; available: number }) {
-  const types = useOptions("cash_movement_types");
+  // La restitution de caution sort de la caisse depuis la fiche du bail.
+  const types = useOptions("cash_movement_types").filter((t) => t.value !== "restitution_caution");
   const [type, setType] = useState("depot_banque");
   const [amount, setAmount] = useState<number | "">("");
   const [label, setLabel] = useState("");
