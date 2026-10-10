@@ -4,9 +4,9 @@
 
 ## État actuel
 
-- **Lot en cours** : lot 1 (biens et prospects) — API, back-office et site vitrine branché : **fonctionnellement terminé**, reste la fusion dans `main` et le déploiement.
+- **Lot en cours** : lot 1 (biens et prospects) — API, back-office et site vitrine branché, **contenu du site paramétrable** (back-office > Site internet) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (API du lot 1 + `frontend/` avec le back-office), pas encore fusionnée, pas de pull request.
-- **Tests** : 96 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 9 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 108 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 14 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
@@ -38,10 +38,19 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Taux horaire ou budget, date de démarrage.
 - [ ] Durée de conservation des sauvegardes (30 jours proposés).
 - [ ] Vraies coordonnées de l'agence (téléphone, WhatsApp, email, adresse) à saisir dans Paramètres : le site les affiche partout ; les valeurs de démo sont fictives.
-- [ ] Horaires d'ouverture (affichés en dur sur la page Contact : lun-ven 8h30-18h, sam 9h-13h) et liens des réseaux sociaux du pied de page.
-- [ ] La mention « Garantie décennale sur tous les travaux » (page Travaux, reprise du site Lovable) est-elle exacte ?
+- [ ] Logo, couleurs, horaires d'ouverture, liens des réseaux sociaux : à saisir par le dirigeant dans Site internet (horaires par défaut : lun-ven 8h30-18h, sam 9h-13h ; aucun réseau affiché tant qu'aucun lien n'est saisi).
+- [ ] Textes repris du site Lovable à confirmer, modifiables dans Site internet : « Garantie décennale sur tous les travaux » (Travaux > Engagements), « Leader de l'immobilier au Sénégal » (pastille de l'accueil), chiffres clés « 500+ biens vendus, 1200+ clients, 15 ans, 98 % » (Accueil > Pourquoi nous choisir).
+- [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Site vitrine entièrement paramétrable
+
+- Demande de l'utilisateur : « tout paramétrable, même le logo ».
+- API : contenu par défaut dans `backend/config/site.php` (identique au site d'origine), modifications du dirigeant seules dans `company_settings.site` (JSON), fusion par `App\Support\SiteContent`. Routes : `GET /api/public/site` (coordonnées + contenu, un seul appel pour le site), `GET /api/settings/site`, `PUT|DELETE /api/settings/site/{section}` (enregistrer / revenir au contenu d'origine), `POST /api/settings/site/images` (WebP dans `site/`, supprimées du disque quand elles ne servent plus), `DELETE /api/settings/company/logo`. Validation par section (`UpdateSiteSectionRequest`, règle `SiteImage`). 12 tests (108). D-029.
+- Paramétrable : logo (en-tête, pied de page, icône d'onglet, partages, back-office, connexion), nom affiché ou non à côté du logo, slogan, deux couleurs dont toutes les nuances sont dérivées (`themeVariables` dans `src/lib/site.ts`), chaque bloc de l'accueil (textes, photo de fond, services avec icônes, points forts, chiffres clés, appels à l'action, chaque bloc masquable), page Travaux (métiers, réalisations avant/après avec photos, engagements ; les métiers alimentent le formulaire de devis), page Contact (textes, horaires, sujets du formulaire), réseaux sociaux (affichés seulement s'ils sont renseignés), pied de page, nouvelles pages Mentions légales et Politique de confidentialité, référencement (titre, description, aperçu Google).
+- Front : `SiteProvider` charge le contenu une fois pour tout le site public ; `src/data/services.ts` supprimé. Back-office : écran « Site internet » (dirigeant) à onglets, brouillon par onglet, pastilles « personnalisé » / « à publier », barre « Publier », aperçu des couleurs, listes réordonnables, choix d'icône, envoi d'images.
+- Vérifié dans Chromium : logo, couleurs vert et ambre, titre, photo de fond, bloc masqué, réseaux, référencement, puis site public mis à jour (couleurs, icône d'onglet, titre) ; erreur de couleur affichée sous le champ ; 390 px sans débordement. Contenu de démo remis aux valeurs d'origine ensuite.
 
 ### 2026-10-10 (suite) — Site vitrine branché sur l'API
 

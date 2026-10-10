@@ -11,6 +11,7 @@ import PropertiesPage from "./pages/PropertiesPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import TravauxPage from "./pages/TravauxPage";
 import ContactPage from "./pages/ContactPage";
+import LegalPage from "./pages/LegalPage";
 import NotFound from "./pages/NotFound";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
@@ -35,6 +36,8 @@ const App = () => (
               <Route path="/biens/:slug" element={<PropertyDetailPage />} />
               <Route path="/travaux" element={<TravauxPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/mentions-legales" element={<LegalPage kind="notice" />} />
+              <Route path="/confidentialite" element={<LegalPage kind="privacy" />} />
             </Route>
             <Route
               path="/admin/*"

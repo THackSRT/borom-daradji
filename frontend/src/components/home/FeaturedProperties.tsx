@@ -3,8 +3,10 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyCard, PropertyCardSkeleton } from "@/components/properties/PropertyCard";
 import { useCatalog } from "@/lib/public";
+import { useSiteData } from "@/components/site/SiteProvider";
 
 export function FeaturedProperties() {
+  const { home } = useSiteData().content;
   const featured = useCatalog({ featured: true, per_page: 6 });
   // Sans bien mis en avant par l'agence, on montre les plus récents.
   const recent = useCatalog({ per_page: 6 });
@@ -19,8 +21,8 @@ export function FeaturedProperties() {
       <div className="container">
         <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Nos biens en vedette</p>
-            <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">Découvrez nos meilleures offres</h2>
+            {home.featured_kicker && <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">{home.featured_kicker}</p>}
+            <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">{home.featured_title}</h2>
           </div>
           <Link to="/biens">
             <Button variant="gold-outline" size="lg">Voir tous les biens <ArrowRight className="h-5 w-5" /></Button>

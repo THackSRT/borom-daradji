@@ -3,6 +3,7 @@
  */
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
+import { fetchSite, siteQueryKey } from "./site";
 
 export interface Option {
   value: string;
@@ -110,13 +111,9 @@ export function usePlaces() {
   });
 }
 
-/** Coordonnées de l'agence, saisies par le dirigeant dans les paramètres. */
+/** Coordonnées de l'agence, saisies par le dirigeant dans les paramètres (même appel que le contenu du site). */
 export function useCompany() {
-  return useQuery({
-    queryKey: ["public-company"],
-    queryFn: () => api<{ data: Company }>("/public/company").then((r) => r.data),
-    staleTime: 30 * 60_000,
-  });
+  return useQuery({ queryKey: siteQueryKey, queryFn: fetchSite, staleTime: 30 * 60_000, select: (site) => site.company });
 }
 
 export interface LeadPayload {

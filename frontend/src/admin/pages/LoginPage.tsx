@@ -5,6 +5,7 @@ import { Building2, CalendarDays, Eye, EyeOff, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
+import { initials, useSite } from "@/lib/site";
 import { useAuth } from "../auth";
 import { Field, FormError } from "../components/ui";
 
@@ -16,6 +17,12 @@ const highlights = [
 
 export default function LoginPage() {
   const { user, login } = useAuth();
+  const { data: site } = useSite();
+  const name = site?.company.trade_name ?? "Borom Daradji";
+  const logo = site?.company.logo_url;
+  const mark = (className: string, text: string) => logo
+    ? <img src={logo} alt={name} className="h-11 w-auto max-w-[8rem] rounded-xl bg-white object-contain p-1" />
+    : <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${className}`}><span className={`font-display text-lg font-bold ${text}`}>{initials(name)}</span></div>;
   const navigate = useNavigate();
   const location = useLocation();
   const [identifier, setIdentifier] = useState("");
@@ -43,14 +50,14 @@ export default function LoginPage() {
 
   return (
     <div className="admin grid min-h-screen lg:grid-cols-2">
-      <Helmet><title>Connexion | Borom Daradji</title><meta name="robots" content="noindex" /></Helmet>
+      <Helmet><title>{`Connexion | ${name}`}</title><meta name="robots" content="noindex" /></Helmet>
 
       <div className="relative hidden overflow-hidden bg-navy p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
         <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gold/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-primary/40 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold"><span className="font-display text-lg font-bold text-gold-foreground">BD</span></div>
-          <div><p className="font-semibold">Borom Daradji</p><p className="text-sm text-primary-foreground/60">Immobilier · Travaux · Matériaux</p></div>
+          {mark("bg-gold", "text-gold-foreground")}
+          <div><p className="font-semibold">{name}</p><p className="text-sm text-primary-foreground/60">Immobilier · Travaux · Matériaux</p></div>
         </div>
         <div className="relative max-w-md">
           <h1 className="text-3xl font-semibold leading-tight">L'espace de travail de l'agence.</h1>
@@ -62,13 +69,13 @@ export default function LoginPage() {
             ))}
           </ul>
         </div>
-        <p className="relative text-xs text-primary-foreground/50">Dakar, Sénégal</p>
+        <p className="relative text-xs text-primary-foreground/50">{site?.company.city ?? "Dakar"}, Sénégal</p>
       </div>
 
       <div className="flex items-center justify-center bg-slate-50 px-6 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-navy"><span className="font-display text-lg font-bold text-gold">BD</span></div>
+            {mark("bg-navy", "text-gold")}
           </div>
           <h2 className="text-2xl font-semibold tracking-tight">Connexion</h2>
           <p className="mt-1 text-sm text-muted-foreground">Avec votre email ou votre numéro de téléphone.</p>

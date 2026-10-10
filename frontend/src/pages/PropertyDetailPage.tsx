@@ -67,7 +67,7 @@ export default function PropertyDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{property.title} | Borom Daradji</title>
+        <title>{property.title}</title>
         <meta name="description" content={(property.description ?? property.title).substring(0, 160)} />
         <meta property="og:title" content={property.title} />
         {property.cover_url && <meta property="og:image" content={property.cover_url} />}

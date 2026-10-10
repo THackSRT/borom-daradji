@@ -1,23 +1,20 @@
-import { Helmet } from 'react-helmet-async';
 import { HeroSection } from '@/components/home/HeroSection';
 import { FeaturedProperties } from '@/components/home/FeaturedProperties';
 import { ServicesSection } from '@/components/home/ServicesSection';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { CTASection } from '@/components/home/CTASection';
+import { useSiteData } from '@/components/site/SiteProvider';
 
+// Titre et description : ceux du référencement (SiteProvider). Chaque bloc peut être masqué dans le back-office.
 const Index = () => {
+  const { home } = useSiteData().content;
   return (
     <>
-      <Helmet>
-        <title>Borom Daradji - Agence Immobilière à Dakar | Achat, Vente, Location</title>
-        <meta name="description" content="Agence immobilière de référence au Sénégal. Vente et location de villas, appartements, terrains à Dakar. Travaux de construction et rénovation. Contactez-nous !" />
-      </Helmet>
-      
       <HeroSection />
-      <FeaturedProperties />
-      <ServicesSection />
-      <WhyChooseUs />
-      <CTASection />
+      {home.show_featured && <FeaturedProperties />}
+      {home.show_services && home.services.length > 0 && <ServicesSection />}
+      {home.show_why && <WhyChooseUs />}
+      {home.show_cta && <CTASection />}
     </>
   );
 };

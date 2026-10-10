@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import {
   Building2,
   CalendarDays,
+  Globe,
   ChevronsUpDown,
   ClipboardList,
   History,
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { initials, useSite } from "@/lib/site";
 import { useAuth } from "../auth";
 import type { RoleValue } from "../types";
 import { GlobalSearch } from "./GlobalSearch";
@@ -64,6 +66,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     title: "Administration",
     items: [
       { to: "/admin/comptes", label: "Comptes", icon: UserCog, dirigeantOnly: true },
+      { to: "/admin/site", label: "Site internet", icon: Globe, dirigeantOnly: true },
       { to: "/admin/parametres", label: "Paramètres", icon: Settings, dirigeantOnly: true },
       { to: "/admin/journal", label: "Journal d'activité", icon: History, dirigeantOnly: true },
     ],
@@ -110,13 +113,20 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function Brand() {
+  const { data: site } = useSite();
+  const name = site?.company.trade_name ?? "Borom Daradji";
+  const logo = site?.company.logo_url;
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy shadow-sm">
-        <span className="font-display text-base font-bold text-gold">BD</span>
-      </div>
-      <div className="leading-tight">
-        <p className="text-sm font-semibold text-foreground">Borom Daradji</p>
+    <div className="flex min-w-0 items-center gap-2.5">
+      {logo ? (
+        <img src={logo} alt="" className="h-9 w-auto max-w-[4.5rem] flex-shrink-0 object-contain" />
+      ) : (
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-navy shadow-sm">
+          <span className="font-display text-base font-bold text-gold">{initials(name)}</span>
+        </div>
+      )}
+      <div className="min-w-0 leading-tight">
+        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
         <p className="text-xs text-muted-foreground">Espace agence</p>
       </div>
     </div>
@@ -198,6 +208,7 @@ function BottomNav({ onMore }: { onMore: () => void }) {
 
 function Shell() {
   const location = useLocation();
+  const siteName = useSite().data?.company.trade_name ?? "Borom Daradji";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -217,7 +228,7 @@ function Shell() {
   return (
     <div className="admin min-h-screen bg-slate-50">
       <Helmet>
-        <title>Espace agence | Borom Daradji</title>
+        <title>{`Espace agence | ${siteName}`}</title>
         <meta name="robots" content="noindex" />
       </Helmet>
 

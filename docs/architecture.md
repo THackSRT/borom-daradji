@@ -47,7 +47,7 @@ Un monolithe modulaire plutôt que des microservices : 2 développeurs et un ser
 | Serveur | Laravel 13, PHP 8.3+ | En place |
 | Authentification | Laravel Sanctum, jetons Bearer | En place |
 | Base de données | SQLite en local et en test ; MySQL ou PostgreSQL en production | À choisir avec l'hébergement |
-| Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` ; TanStack Query pour les appels | Back-office en place ; site vitrine pas encore branché sur l'API |
+| Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` ; TanStack Query pour les appels | Back-office et site vitrine branchés sur l'API ; contenu du site paramétrable |
 | Terrain | PWA installable, file de synchronisation hors ligne | Lot 3 |
 | PDF | Génération côté serveur depuis des modèles HTML | Lot 2 |
 | Exports | Laravel Excel | Lot 5 |
@@ -121,6 +121,12 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
+
+### Contenu du site vitrine
+- Valeurs par défaut : `config/site.php`, par section (`identity`, `seo`, `contact`, `social`, `footer`, `legal`, `home`, `works`). Les modifications du dirigeant sont dans `company_settings.site` ; `SiteContent::for()` fusionne (un champ modifié remplace le défaut ; une liste modifiée remplace la liste entière).
+- Ajouter un champ : l'ajouter dans `config/site.php`, sa règle dans `UpdateSiteSectionRequest`, son type dans `frontend/src/lib/site.ts`, son champ dans `src/admin/pages/SitePage.tsx`, puis l'utiliser via `useSiteData()` dans le composant public.
+- Images : clé terminée par `_image`, valeur = URL https ou chemin `site/…webp` du disque public (règle `SiteImage`) ; transformées en URL pour le site public, supprimées du disque quand plus aucune section ne les utilise.
+- Front public : `SiteProvider` (dans `Layout`) charge `GET /api/public/site` une fois, applique les couleurs (variables CSS), le logo en icône d'onglet et le référencement.
 
 ## Conventions
 

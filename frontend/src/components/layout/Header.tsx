@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { formatPhone, useCompany } from '@/lib/public';
+import { formatPhone } from '@/lib/public';
+import { Brand } from '@/components/site/Brand';
+import { useSiteData } from '@/components/site/SiteProvider';
 import { useState } from 'react';
 import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +17,7 @@ const navigation = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { data: company } = useCompany();
+  const { company } = useSiteData();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -23,13 +25,13 @@ export function Header() {
       <div className="bg-navy text-primary-foreground py-2 hidden md:block">
         <div className="container flex justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            {company?.phone && (
+            {company.phone && (
               <a href={`tel:${company.phone}`} className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Phone className="h-4 w-4" />
                 {formatPhone(company.phone)}
               </a>
             )}
-            {company?.email && (
+            {company.email && (
               <a href={`mailto:${company.email}`} className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Mail className="h-4 w-4" />
                 {company.email}
@@ -38,7 +40,7 @@ export function Header() {
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            <span>Dakar, Sénégal</span>
+            <span>{company.city ?? 'Dakar'}, Sénégal</span>
           </div>
         </div>
       </div>
@@ -47,14 +49,8 @@ export function Header() {
       <nav className="bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm">
         <div className="container flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg gradient-hero flex items-center justify-center">
-              <span className="text-primary-foreground font-display font-bold text-xl">BD</span>
-            </div>
-            <div className="hidden sm:block">
-              <p className="font-display font-bold text-lg text-navy leading-tight">Borom Daradji</p>
-              <p className="text-xs text-muted-foreground">Agence Immobilière</p>
-            </div>
+          <Link to="/" className="min-w-0" aria-label="Accueil">
+            <Brand />
           </Link>
 
           {/* Desktop navigation */}

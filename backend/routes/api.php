@@ -17,14 +17,17 @@ use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
 use App\Http\Controllers\Api\SearchCriterionController;
+use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VisitController;
+use App\Support\SiteContent;
 use Illuminate\Support\Facades\Route;
 
 // Public : site vitrine et connexion.
 Route::prefix('public')->group(function () {
     Route::get('company', [CompanySettingsController::class, 'showPublic']);
+    Route::get('site', [SiteSettingsController::class, 'showPublic']);
     Route::get('properties', [PublicPropertyController::class, 'index']);
     Route::get('properties/{slug}', [PublicPropertyController::class, 'show']);
     Route::get('places', [PublicPropertyController::class, 'places']);
@@ -83,6 +86,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('users', UserController::class);
         Route::put('settings/company', [CompanySettingsController::class, 'update']);
         Route::post('settings/company/logo', [CompanySettingsController::class, 'updateLogo']);
+        Route::delete('settings/company/logo', [CompanySettingsController::class, 'destroyLogo']);
+        Route::get('settings/site', [SiteSettingsController::class, 'show']);
+        Route::post('settings/site/images', [SiteSettingsController::class, 'storeImage']);
+        Route::put('settings/site/{section}', [SiteSettingsController::class, 'update'])->whereIn('section', SiteContent::SECTIONS);
+        Route::delete('settings/site/{section}', [SiteSettingsController::class, 'reset'])->whereIn('section', SiteContent::SECTIONS);
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });
 });

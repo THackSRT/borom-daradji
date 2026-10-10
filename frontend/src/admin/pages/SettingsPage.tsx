@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Globe, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,7 +50,7 @@ export default function SettingsPage() {
       payload.vat_rate = Number(body.vat_rate);
       return api("/settings/company", { method: "PUT", body: payload });
     },
-    { success: "Paramètres enregistrés.", invalidate: [["settings"]] },
+    { success: "Paramètres enregistrés.", invalidate: [["settings"], ["public-site"]] },
   );
 
   const logo = useApiMutation(
@@ -58,7 +59,7 @@ export default function SettingsPage() {
       body.append("logo", file);
       return api("/settings/company/logo", { method: "POST", body });
     },
-    { success: "Logo mis à jour.", invalidate: [["settings"]] },
+    { success: "Logo mis à jour.", invalidate: [["settings"], ["public-site"]] },
   );
 
   if (isLoading || !form || !data) return <LoadingBlock />;
@@ -70,7 +71,11 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Paramètres de l'entreprise" description="Repris sur les factures, quittances, devis et le site vitrine." />
+      <PageHeader
+        title="Paramètres de l'entreprise"
+        description="Repris sur les factures, quittances, devis et le site vitrine."
+        actions={<Button asChild variant="outline"><Link to="/admin/site"><Globe className="h-4 w-4" /> Textes, couleurs et images du site</Link></Button>}
+      />
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel className="lg:col-span-2" title="Coordonnées et mentions légales" description="Reprises sur les factures, quittances, devis et le site.">
             <form onSubmit={submit} className="space-y-4">

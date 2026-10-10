@@ -88,7 +88,7 @@ export default function PropertiesPage() {
   return (
     <>
       <Helmet>
-        <title>Nos biens immobiliers | Borom Daradji - Dakar, Sénégal</title>
+        <title>Nos biens immobiliers</title>
         <meta name="description" content="Villas, appartements, terrains et maisons à vendre ou à louer à Dakar et au Sénégal. Biens vérifiés par l'agence Borom Daradji." />
       </Helmet>
 

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Phone, Hammer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSiteData } from '@/components/site/SiteProvider';
 
 export function CTASection() {
+  const { home } = useSiteData().content;
   return (
     <section className="py-20">
       <div className="container">
@@ -17,15 +19,14 @@ export function CTASection() {
                 <Phone className="h-8 w-8 text-accent" />
               </div>
               <h3 className="font-display text-2xl lg:text-3xl font-bold text-primary-foreground mb-4">
-                Vous vendez ou cherchez un bien ?
+                {home.cta_property_title}
               </h3>
               <p className="text-primary-foreground/80 mb-8 leading-relaxed">
-                Bénéficiez d'une estimation gratuite et d'un accompagnement 
-                personnalisé pour votre projet immobilier.
+                {home.cta_property_text}
               </p>
               <Link to="/contact">
                 <Button variant="gold" size="lg">
-                  Estimation gratuite
+                  {home.cta_property_button}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
@@ -42,15 +43,14 @@ export function CTASection() {
                 <Hammer className="h-8 w-8 text-navy" />
               </div>
               <h3 className="font-display text-2xl lg:text-3xl font-bold text-accent-foreground mb-4">
-                Un projet de travaux ?
+                {home.cta_works_title}
               </h3>
               <p className="text-accent-foreground/80 mb-8 leading-relaxed">
-                Construction, rénovation, aménagement... Nos équipes qualifiées 
-                réalisent vos travaux avec professionnalisme.
+                {home.cta_works_text}
               </p>
               <Link to="/travaux">
                 <Button variant="navy" size="lg">
-                  Demander un devis
+                  {home.cta_works_button}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>

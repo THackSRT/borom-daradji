@@ -14,6 +14,7 @@ const ClientDetailPage = lazy(() => import("./pages/ClientDetailPage"));
 const VisitsPage = lazy(() => import("./pages/VisitsPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SitePage = lazy(() => import("./pages/SitePage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 
 /**
@@ -41,6 +42,7 @@ export default function AdminApp() {
             <Route path="visites" element={<RequireAuth roles={["agent", "commercial"]}><VisitsPage /></RequireAuth>} />
             <Route path="comptes" element={<RequireAuth roles={["dirigeant"]}><UsersPage /></RequireAuth>} />
             <Route path="parametres" element={<RequireAuth roles={["dirigeant"]}><SettingsPage /></RequireAuth>} />
+            <Route path="site" element={<RequireAuth roles={["dirigeant"]}><SitePage /></RequireAuth>} />
             <Route path="journal" element={<RequireAuth roles={["dirigeant"]}><ActivityPage /></RequireAuth>} />
           </Route>
         </Routes>
