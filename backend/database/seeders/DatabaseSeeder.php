@@ -5,17 +5,17 @@ namespace Database\Seeders;
 use App\Enums\Role;
 use App\Models\CompanySetting;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
  * Données de démonstration pour le développement local. En production, utiliser
  * `php artisan borom:create-director`.
+ *
+ * Les événements de modèle restent actifs : ils créent les références des biens et leur
+ * liste de vérification foncière.
  */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     public function run(): void
     {
         CompanySetting::current()->update([
@@ -37,5 +37,7 @@ class DatabaseSeeder extends Seeder
         foreach ($accounts as [$name, $email, $roles]) {
             User::factory()->withRoles(...$roles)->create(['name' => $name, 'email' => $email]);
         }
+
+        $this->call(DemoCrmSeeder::class);
     }
 }

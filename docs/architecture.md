@@ -76,8 +76,10 @@ borom-daradji/
     │   │   └── Resources/    format JSON des réponses
     │   ├── Models/
     │   │   └── Concerns/     traits partagés (LogsActivity)
+    │   ├── Policies/         droits par modèle (Property, Client, Visit, Task)
     │   ├── Rules/            règles de validation (SenegalPhone)
-    │   └── Support/          services sans état (PhoneNumber, ActivityLogger)
+    │   ├── Services/         règles métier à plusieurs étapes (statut d'un bien, rapprochement, demandes du site)
+    │   └── Support/          outils sans état (PhoneNumber, ActivityLogger, Sequence, WhatsApp, ImageOptimizer)
     ├── config/borom.php      paramètres propres au projet
     ├── routes/api.php        toutes les routes de l'API
     ├── routes/console.php    tâches planifiées
@@ -92,7 +94,9 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - `POST /api/auth/login` accepte `login` = email ou téléphone, `password`, `device_name` ; renvoie un jeton Sanctum (expiration : `SANCTUM_EXPIRATION` minutes, 30 jours par défaut).
 - Toutes les routes protégées passent par `auth:sanctum` **et** `active` (`EnsureUserIsActive`).
 - Rôles : `App\Enums\Role`, stockés en tableau JSON dans `users.roles` (cast `AsEnumCollection`). Méthodes `hasRole(Role ...$roles)`, `isDirigeant()`, scope `withRole()`.
-- Gate `administrate` (dirigeant) dans `AppServiceProvider`. Pour les modules métier, créer des policies par modèle (`PropertyPolicy`…) qui appliquent la matrice de droits de [`perimetre-et-lots.md`](perimetre-et-lots.md).
+- `Gate::before` accorde tout au dirigeant ; gate `administrate` pour les comptes, paramètres et journal.
+- Modules métier : une policy par modèle (`PropertyPolicy`, `ClientPolicy`…) qui applique la matrice de droits de [`perimetre-et-lots.md`](perimetre-et-lots.md). Écritures : contrôle dans `authorize()` de la Form Request (403 avant la validation). Lectures : `Gate::authorize()` dans le contrôleur.
+- Listes fermées : chaque enum (`app/Enums`) a un `label()` français ; `GET /api/meta` les expose toutes pour le front.
 
 ### Journal d'activité
 - Ajouter `use LogsActivity;` à tout modèle métier : création, modification (valeurs avant/après) et suppression sont tracées avec l'utilisateur, l'IP et le navigateur.
@@ -101,6 +105,10 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - Pour une mise à jour technique qui ne doit pas être journalisée : `saveQuietly()`.
 - **Chaque modèle journalisé doit avoir un alias** dans `Relation::enforceMorphMap()` (`AppServiceProvider`), sinon une exception est levée. Les alias sont stockés en base : ne jamais les renommer.
 - Purge quotidienne à 02:30 (`model:prune`) au-delà de `ACTIVITY_RETENTION_DAYS` jours.
+
+### Événements de modèle : à ne pas couper
+- `Property` génère sa référence et son slug (`creating`) puis sa liste de vérification foncière (`created`) ; `LogsActivity` journalise ; `Interaction` met à jour `clients.last_contact_at`.
+- Ne pas utiliser `WithoutModelEvents`, `createQuietly()` ou `Model::withoutEvents()` pour créer ces modèles (le seeder de démo a buté dessus). `saveQuietly()` reste possible pour une mise à jour technique qui ne doit pas être journalisée.
 
 ### Téléphones
 - `PhoneNumber::normalize()` accepte « 77 123 45 67 », « 00221… », « +221… » et renvoie `+221XXXXXXXXX`, ou `null` si ce n'est pas un numéro sénégalais à 9 chiffres commençant par 3 ou 7.
