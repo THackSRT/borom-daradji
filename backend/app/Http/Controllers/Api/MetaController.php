@@ -14,6 +14,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Enums\LandStatus;
 use App\Enums\LeadSource;
+use App\Enums\LeaseStatus;
 use App\Enums\MandateStatus;
 use App\Enums\MandateType;
 use App\Enums\PaymentMethod;
@@ -64,6 +65,7 @@ class MetaController extends Controller
             'activities' => Activity::class,
             'payment_methods' => PaymentMethod::class,
             'cash_movement_types' => CashMovementType::class,
+            'lease_statuses' => LeaseStatus::class,
         ];
 
         $data = array_map(

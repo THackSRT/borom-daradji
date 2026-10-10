@@ -67,6 +67,12 @@ final class PermissionCatalog
                 'payments.view_all' => ['Voir les encaissements de toute l\'équipe', 'Sinon, seulement les siens.'],
                 'cash.view_all' => ['Voir et clôturer les caisses de l\'équipe', ''],
             ]],
+            'leases' => ['label' => 'Gestion locative', 'permissions' => [
+                'leases.view' => ['Consulter les baux et les loyers', 'Baux, échéancier, arriérés, quittances.'],
+                'leases.manage' => ['Gérer les baux', 'Créer et résilier des baux, lancer les appels de loyer.'],
+                'payouts.view' => ['Consulter les relevés des propriétaires', 'Loyers encaissés, commission, net à reverser.'],
+                'payouts.manage' => ['Enregistrer les reversements', 'Verser au propriétaire ce qui lui revient, ou annuler un versement.'],
+            ]],
             'administration' => ['label' => 'Administration', 'permissions' => [
                 'users.view' => ['Consulter les comptes', 'Liste de l\'équipe et droits de chacun.'],
                 'users.manage' => ['Gérer les comptes', 'Créer, modifier, désactiver, attribuer des rôles, réinitialiser un mot de passe.'],
@@ -123,13 +129,13 @@ final class PermissionCatalog
                 'permissions' => [
                     'properties.view', 'properties.create', 'properties.update', 'properties.delete', 'properties.documents', 'properties.mandates',
                     ...$prospection,
-                    'invoices.view', 'payments.create',
+                    'invoices.view', 'payments.create', 'leases.view', 'leases.manage',
                 ],
             ],
             SystemRole::Commercial->value => [
                 'label' => 'Commercial',
                 'description' => 'Suit les prospects et les visites, consulte les biens, encaisse.',
-                'permissions' => ['properties.view', ...$prospection, 'invoices.view', 'payments.create'],
+                'permissions' => ['properties.view', ...$prospection, 'invoices.view', 'payments.create', 'leases.view'],
             ],
             SystemRole::ResponsableTravaux->value => [
                 'label' => 'Responsable travaux',
@@ -143,6 +149,7 @@ final class PermissionCatalog
                     'properties.view', 'properties.mandates', 'clients.view', 'clients.create', 'clients.update',
                     'invoices.view', 'invoices.manage', 'invoices.issue', 'invoices.credit',
                     'payments.create', 'payments.cancel', 'payments.view_all', 'cash.view_all',
+                    'leases.view', 'payouts.view', 'payouts.manage',
                 ],
             ],
         ];
@@ -156,7 +163,13 @@ final class PermissionCatalog
      */
     public static function newPermissionDefaults(): array
     {
-        return [];
+        return [
+            // Gestion locative (ajoutée après la mise en place du RBAC).
+            'leases.view' => ['agent', 'commercial', 'comptable'],
+            'leases.manage' => ['agent'],
+            'payouts.view' => ['comptable'],
+            'payouts.manage' => ['comptable'],
+        ];
     }
 
     /**

@@ -164,4 +164,12 @@ class Property extends Model
     {
         $query->whereIn('status', PropertyStatus::public());
     }
+
+    /**
+     * @return HasMany<Lease, $this>
+     */
+    public function leases(): HasMany
+    {
+        return $this->hasMany(Lease::class)->latest('start_date');
+    }
 }

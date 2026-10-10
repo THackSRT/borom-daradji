@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Encaissement d'une facture, avec son reçu numéroté (REC-AAAA-00001). Jamais supprimé :
  * une erreur s'annule avec un motif.
  */
-#[Fillable(['number', 'invoice_id', 'client_id', 'method', 'amount', 'paid_on', 'reference', 'proof_path', 'note', 'received_by', 'cash_session_id'])]
+#[Fillable(['number', 'invoice_id', 'client_id', 'method', 'amount', 'paid_on', 'reference', 'proof_path', 'note', 'received_by', 'cash_session_id', 'owner_payout_id'])]
 class Payment extends Model
 {
     use LogsActivity;

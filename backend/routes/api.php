@@ -9,8 +9,10 @@ use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InteractionController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\OwnerPayoutController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PropertyCheckController;
 use App\Http\Controllers\Api\PropertyController;
@@ -95,6 +97,18 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('payments/{payment}/cancel', [PaymentController::class, 'cancel']);
     Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt']);
     Route::get('payments/{payment}/proof', [PaymentController::class, 'proof']);
+
+    // Gestion locative : baux, appels de loyer, quittances, reversements.
+    Route::apiResource('leases', LeaseController::class)->except(['destroy']);
+    Route::post('leases/{lease}/terminate', [LeaseController::class, 'terminate']);
+    Route::post('leases/{lease}/rent-calls', [LeaseController::class, 'generate']);
+    Route::get('leases/{lease}/rent-calls/{rentCall}/quittance', [LeaseController::class, 'quittance']);
+    Route::get('owner-payouts', [OwnerPayoutController::class, 'index']);
+    Route::get('owner-payouts/owners', [OwnerPayoutController::class, 'owners']);
+    Route::get('owner-payouts/{ownerPayout}/pdf', [OwnerPayoutController::class, 'pdf']);
+    Route::post('owner-payouts/{ownerPayout}/cancel', [OwnerPayoutController::class, 'cancel']);
+    Route::get('owners/{client}/statement', [OwnerPayoutController::class, 'statement']);
+    Route::post('owners/{client}/payouts', [OwnerPayoutController::class, 'store']);
 
     // Caisse journalière.
     Route::get('cash-sessions', [CashSessionController::class, 'index']);

@@ -32,4 +32,16 @@ return [
     | Factures : délai de paiement par défaut, en jours après la date d'émission. À valider.
     */
     'invoice_due_days' => (int) env('INVOICE_DUE_DAYS', 15),
+
+    /*
+    | Gestion locative : valeurs par défaut proposées à la création d'un bail, toutes modifiables
+    | bail par bail. À valider avec le dirigeant (questions ouvertes du journal).
+    */
+    'rent_due_day' => (int) env('RENT_DUE_DAY', 5),
+    'rent_vat_rate' => (float) env('RENT_VAT_RATE', 0),
+    'management_commission_rate' => (float) env('MANAGEMENT_COMMISSION_RATE', 10),
+    // TVA sur la commission de gestion (prestation de l'agence).
+    'management_fee_vat_rate' => (float) env('MANAGEMENT_FEE_VAT_RATE', 18),
+    // Appels de loyer émis automatiquement (sinon laissés en brouillon pour le comptable).
+    'rent_calls_auto_issue' => (bool) env('RENT_CALLS_AUTO_ISSUE', true),
 ];

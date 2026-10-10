@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\CompanySetting;
 use App\Models\Invoice;
+use App\Models\OwnerPayout;
 use App\Models\Payment;
+use App\Models\RentCall;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +38,35 @@ final class InvoicePdf
             ...self::common(),
             'inWords' => self::inWords($payment->amount),
         ])->setPaper('a5', 'landscape')->setOption('isFontSubsettingEnabled', true)->download("{$payment->number}.pdf");
+    }
+
+    /**
+     * Quittance de loyer : le mois est entièrement payé.
+     */
+    public static function quittance(RentCall $call): Response
+    {
+        $call->load(['lease.property', 'lease.tenant', 'lease.owner', 'invoice.payments']);
+        $month = $call->period->locale('fr')->translatedFormat('F Y');
+
+        return Pdf::loadView('pdf.quittance', [
+            'call' => $call,
+            'month' => $month,
+            ...self::common(),
+            'inWords' => self::inWords($call->invoice->total),
+        ])->setPaper('a5', 'landscape')->setOption('isFontSubsettingEnabled', true)
+            ->download('quittance-'.$call->lease->reference.'-'.$call->period->format('Y-m').'.pdf');
+    }
+
+    /**
+     * Relevé de gérance remis au propriétaire avec son reversement.
+     */
+    public static function ownerStatement(OwnerPayout $payout): Response
+    {
+        return Pdf::loadView('pdf.owner-statement', [
+            'payout' => $payout,
+            'month' => $payout->period->locale('fr')->translatedFormat('F Y'),
+            ...self::common(),
+        ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)->download("{$payout->number}.pdf");
     }
 
     /**

@@ -9,7 +9,9 @@ use App\Models\ClientDocument;
 use App\Models\CompanySetting;
 use App\Models\Interaction;
 use App\Models\Invoice;
+use App\Models\Lease;
 use App\Models\Mandate;
+use App\Models\OwnerPayout;
 use App\Models\Payment;
 use App\Models\Permission;
 use App\Models\Property;
@@ -59,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
             'cash_session' => CashSession::class,
             'cash_movement' => CashMovement::class,
             'role' => Role::class,
+            'lease' => Lease::class,
+            'owner_payout' => OwnerPayout::class,
             'permission' => Permission::class,
         ]);
 

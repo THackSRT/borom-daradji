@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -171,5 +172,15 @@ class Invoice extends Model
     public function scopeOverdue(Builder $query): void
     {
         $query->outstanding()->whereDate('due_date', '<', today());
+    }
+
+    /**
+     * Appel de loyer dont cette facture est la facture du mois (le cas échéant).
+     *
+     * @return HasOne<RentCall, $this>
+     */
+    public function rentCall(): HasOne
+    {
+        return $this->hasOne(RentCall::class);
     }
 }
