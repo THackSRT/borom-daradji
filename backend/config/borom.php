@@ -28,4 +28,8 @@ return [
     */
     'mandate_alert_days' => 7,
 
+    /*
+    | Factures : délai de paiement par défaut, en jours après la date d'émission. À valider.
+    */
+    'invoice_due_days' => (int) env('INVOICE_DUE_DAYS', 15),
 ];

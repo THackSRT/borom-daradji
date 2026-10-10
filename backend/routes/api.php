@@ -2,13 +2,16 @@
 
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InteractionController;
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PropertyCheckController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\PropertyDocumentController;
@@ -80,6 +83,25 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::apiResource('visits', VisitController::class)->only(['index', 'store', 'update']);
     Route::apiResource('tasks', TaskController::class)->except(['show']);
+
+    // Facturation et encaissements (droits dans InvoicePolicy).
+    Route::apiResource('invoices', InvoiceController::class);
+    Route::post('invoices/{invoice}/issue', [InvoiceController::class, 'issue']);
+    Route::post('invoices/{invoice}/credit-notes', [InvoiceController::class, 'creditNote']);
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+    Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store']);
+    Route::get('payments', [PaymentController::class, 'index']);
+    Route::post('payments/{payment}/cancel', [PaymentController::class, 'cancel']);
+    Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt']);
+    Route::get('payments/{payment}/proof', [PaymentController::class, 'proof']);
+
+    // Caisse journalière.
+    Route::get('cash-sessions', [CashSessionController::class, 'index']);
+    Route::get('cash-sessions/current', [CashSessionController::class, 'current']);
+    Route::put('cash-sessions/current', [CashSessionController::class, 'open']);
+    Route::post('cash-sessions/current/movements', [CashSessionController::class, 'storeMovement']);
+    Route::get('cash-sessions/{cashSession}', [CashSessionController::class, 'show']);
+    Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
 
     // Administration : réservée au dirigeant.
     Route::middleware('can:administrate')->group(function () {

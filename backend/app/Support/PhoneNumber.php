@@ -56,4 +56,20 @@ final class PhoneNumber
     {
         return preg_match('/^[37]\d{8}$/', $digits) ? '+'.self::COUNTRY_CODE.$digits : null;
     }
+
+    /**
+     * Affichage lisible : « +221771234567 » → « 77 123 45 67 » ; un numéro étranger reste tel quel.
+     */
+    public static function format(?string $phone): string
+    {
+        if ($phone === null || $phone === '') {
+            return '';
+        }
+
+        if (preg_match('/^\+221(\d{2})(\d{3})(\d{2})(\d{2})$/', $phone, $m)) {
+            return "{$m[1]} {$m[2]} {$m[3]} {$m[4]}";
+        }
+
+        return $phone;
+    }
 }

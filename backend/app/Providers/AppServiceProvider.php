@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\CashMovement;
+use App\Models\CashSession;
 use App\Models\Client;
 use App\Models\ClientDocument;
 use App\Models\CompanySetting;
 use App\Models\Interaction;
+use App\Models\Invoice;
 use App\Models\Mandate;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertyCheck;
 use App\Models\PropertyDocument;
@@ -48,6 +52,10 @@ class AppServiceProvider extends ServiceProvider
             'interaction' => Interaction::class,
             'visit' => Visit::class,
             'task' => Task::class,
+            'invoice' => Invoice::class,
+            'payment' => Payment::class,
+            'cash_session' => CashSession::class,
+            'cash_movement' => CashMovement::class,
         ]);
 
         // Le dirigeant a accès à tout ; les autres rôles passent par les policies.
