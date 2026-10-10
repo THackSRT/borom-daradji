@@ -4,20 +4,21 @@
 
 ## État actuel
 
-- **Lot en cours** : lot 1 (biens et prospects) — API terminée, front non commencé.
-- **Branches** : `main` (= lot 0) ; `lot-1-biens-prospects` (API du lot 1, pas encore fusionnée, pas de pull request ouverte).
-- **Tests** : 86 tests, tous verts (`cd backend && php artisan test`).
+- **Lot en cours** : lot 1 (biens et prospects) — API et back-office faits ; site vitrine encore sur ses données en dur.
+- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (API du lot 1 + `frontend/` avec le back-office), pas encore fusionnée, pas de pull request.
+- **Tests** : 86 tests backend verts ; front : `typecheck`, `lint` (1 avertissement sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, comptable sur téléphone).
+- **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
 
 ## Prochaines actions, dans l'ordre
 
-1. Faire relire et fusionner `lot-1-biens-prospects` dans `main` (pull request à ouvrir sur demande de l'utilisateur).
-2. Créer `frontend/` en reprenant le code de `THackSRT/borom-daradji-properties` (Vite, React, TypeScript, Tailwind, shadcn/ui) :
-    1. Site vitrine branché sur `GET /api/public/properties`, `/public/places`, `/public/company` et le formulaire sur `POST /api/public/leads` ; corriger `index.html` (`lang="fr"`, titre, images de partage Lovable).
-    2. Back-office : connexion, tâches du jour, biens (fiche, photos, vérification foncière, statut), clients, visites ; comptes et paramètres (clôt le lot 0).
+1. Brancher le site vitrine (`frontend/src/pages`) sur l'API : catalogue `GET /api/public/properties`, filtres `/public/places`, fiche par slug, coordonnées `/public/company`, formulaires de contact et de bien sur `POST /api/public/leads`. Supprimer ensuite `src/data/properties.ts`.
+2. Faire relire et fusionner `lot-1-biens-prospects` dans `main` (pull request à ouvrir sur demande de l'utilisateur).
 3. Choisir l'hébergement et déployer une première version (questions ouvertes).
 4. Lot 2 (encaissements et location) : attendre les réponses aux trois premières questions ouvertes.
+
+Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, photos de démo externes non modifiables.
 
 ## Questions ouvertes pour le client
 
@@ -39,6 +40,13 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Durée de conservation des sauvegardes (30 jours proposés).
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Back-office React
+
+- Repris le site Lovable dans `frontend/` (sans `lovable-tagger`) ; `index.html` en français ; Vite relaie `/api` vers Laravel.
+- Back-office sous `/admin` : connexion (email ou téléphone), mes tâches (aujourd'hui, semaine, équipe pour le dirigeant), biens (liste, création, fiche à onglets : vérification foncière, photos, fiche, pièces, mandats, historique, changement de statut), clients (liste, création avec détection de doublon, fiche : échanges, critères et biens correspondants, visites, pièces, informations), planning des visites et comptes-rendus, comptes, paramètres et logo, journal d'activité, changement de mot de passe. Menu adapté au rôle, version téléphone.
+- Corrigé : ordre des points de vérification (API, test ajouté), débordement horizontal sur téléphone, Vite qui n'écoutait qu'en IPv6.
+- Décisions D-024 à D-026.
 
 ### 2026-10-10 (suite) — API du lot 1
 

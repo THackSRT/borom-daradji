@@ -47,7 +47,7 @@ Un monolithe modulaire plutôt que des microservices : 2 développeurs et un ser
 | Serveur | Laravel 13, PHP 8.3+ | En place |
 | Authentification | Laravel Sanctum, jetons Bearer | En place |
 | Base de données | SQLite en local et en test ; MySQL ou PostgreSQL en production | À choisir avec l'hébergement |
-| Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` | À faire (lot 1) |
+| Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` ; TanStack Query pour les appels | Back-office en place ; site vitrine pas encore branché sur l'API |
 | Terrain | PWA installable, file de synchronisation hors ligne | Lot 3 |
 | PDF | Génération côté serveur depuis des modèles HTML | Lot 2 |
 | Exports | Laravel Excel | Lot 5 |
@@ -64,7 +64,12 @@ borom-daradji/
 ├── CLAUDE.md                 point d'entrée pour une session Claude
 ├── README.md                 installation et avancement
 ├── docs/                     contexte, périmètre, architecture, décisions, journal
-├── .github/workflows/        CI : Pint + tests du backend
+├── .github/workflows/        CI : Pint + tests du backend (ne s'exécute pas pour l'instant)
+├── frontend/                 site vitrine (src/pages, src/components) et back-office (src/admin)
+│   └── src/
+│       ├── lib/api.ts        client de l'API : jeton, erreurs 422 par champ, téléchargements protégés
+│       └── admin/            back-office : auth.tsx, hooks.ts (useMeta, useApiMutation), types.ts,
+│                             components/ (mise en page, formulaires), pages/ (une page par écran)
 └── backend/                  API Laravel
     ├── app/
     │   ├── Console/Commands/ commandes artisan (borom:*)

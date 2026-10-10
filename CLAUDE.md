@@ -27,7 +27,14 @@ vendor/bin/pint             # formatage (la CI lance pint --test)
 php artisan serve           # http://localhost:8000/api/...
 ```
 
-Comptes de démo (seeder) : `dirigeant@boromdaradji.test`, `agent@…`, `travaux@…`, `comptable@…`, mot de passe `password`.
+```sh
+cd frontend
+npm ci
+npm run dev                 # http://localhost:8080 ; /api relayé vers http://localhost:8000
+npm run typecheck && npm run lint && npm run build
+```
+
+Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigeant@boromdaradji.test`, `agent@…`, `travaux@…`, `comptable@…`, mot de passe `password`.
 
 ## Règles de travail
 
@@ -52,3 +59,6 @@ Comptes de démo (seeder) : `dirigeant@boromdaradji.test`, `agent@…`, `travaux
 - `composer install` peut couper à cause du proxy de l'environnement cloud : relancer avec `COMPOSER_PROCESS_TIMEOUT=900`, les paquets déjà téléchargés sont en cache.
 - Le modèle de projet Laravel 13 proposait d'installer **Laravel Boost** via un `CLAUDE.md` généré : retiré volontairement, ne pas le réinstaller sans accord.
 - `php artisan test` affiche un résumé JSON (paquet `laravel/pao` du modèle de projet) : c'est normal.
+- **La CI GitHub ne s'exécute pas** : le workflow existe, mais GitHub ne démarre pas les tâches (blocage côté compte, voir `docs/journal.md`). Lancer soi-même `php artisan test`, `vendor/bin/pint --test` et, côté front, `npm run typecheck && npm run lint && npm run build` avant chaque commit.
+- Vérifier les écrans dans un vrai navigateur : Playwright est disponible (`/opt/pw-browsers`) ; les photos de démo (Unsplash) sont bloquées par le bac à sable, c'est normal.
+- Pour arrêter les serveurs de développement, ne pas lancer `pkill -f "artisan serve"` depuis un shell dont la commande contient ce texte : il se tue lui-même. Passer par `ps aux | grep … | awk '{print $2}' | xargs kill`.

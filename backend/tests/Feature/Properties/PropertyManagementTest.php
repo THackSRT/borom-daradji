@@ -50,6 +50,11 @@ class PropertyManagementTest extends TestCase
 
         $this->postJson('/api/properties', $this->payload(['title' => 'Deuxième bien']))
             ->assertJsonPath('data.reference', "BD-{$year}-0002");
+
+        // La liste suit l'ordre logique de la vérification, pas l'ordre alphabétique des codes.
+        $this->getJson("/api/properties/{$response->json('data.id')}")
+            ->assertJsonPath('data.checks.0.item.value', PropertyCheckItem::IdentiteProprietaire->value)
+            ->assertJsonPath('data.checks.5.item.value', PropertyCheckItem::MandatSigne->value);
     }
 
     public function test_other_roles_can_read_but_not_write(): void

@@ -119,7 +119,8 @@ class Property extends Model
      */
     public function checks(): HasMany
     {
-        return $this->hasMany(PropertyCheck::class);
+        // Ordre de création = ordre logique de la vérification (identité, droit, état des droits réels…).
+        return $this->hasMany(PropertyCheck::class)->orderBy('id');
     }
 
     /**
