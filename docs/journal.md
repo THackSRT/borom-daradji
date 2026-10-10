@@ -6,17 +6,17 @@
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
 - **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances et reversements **faits** (valeurs par défaut à valider, D-035) ; reste les états des lieux et la restitution de la caution.
-- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). Pas de pull request.
+- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). L'environnement Docker est sur `lot-2-encaissements-location`. Pas de pull request.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 166 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
-- **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
-- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
-- **Déploiement** : aucun serveur pour l'instant.
+- **Tests** : 167 tests backend verts, sur SQLite et sur MySQL ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Docker** (D-037) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, MySQL) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, MySQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
+- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), 4 clients, une visite, une tâche.
+- **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
 
 ## Prochaines actions, dans l'ordre
 
 1. Faire relire et fusionner `lot-1-biens-prospects` dans `main`, puis `lot-2-encaissements-location` (pull requests à ouvrir sur demande de l'utilisateur).
-2. Choisir l'hébergement et déployer une première version (questions ouvertes).
+2. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
 3. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
 4. Lot 2, fin : états des lieux d'entrée et de sortie (pièces, état, photos) et restitution ou retenue de la caution. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client.
 
@@ -39,7 +39,7 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Logiciel du cabinet comptable (Sage, Ciel, autre) pour le format des exports.
 - [ ] Nombre d'utilisateurs et rôles cumulés.
 - [ ] Données existantes à reprendre (Excel, cahiers).
-- [ ] Hébergement et nom de domaine : qui paie, qui administre. Choix MySQL ou PostgreSQL.
+- [ ] Hébergement et nom de domaine : qui paie, qui administre. *MySQL 8.4 retenu par défaut dans l'environnement Docker (D-037) ; PostgreSQL reste possible si l'hébergeur l'impose.*
 - [ ] Taux horaire ou budget, date de démarrage.
 - [ ] Durée de conservation des sauvegardes (30 jours proposés).
 - [ ] Vraies coordonnées de l'agence (téléphone, WhatsApp, email, adresse) à saisir dans Paramètres : le site les affiche partout ; les valeurs de démo sont fictives.
@@ -48,6 +48,15 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Environnement Docker, fin de GitHub Actions
+
+- Demande de l'utilisateur : il n'utilise pas GitHub Actions ; mettre en place l'environnement Docker. D-037, D-038.
+- Développement (`compose.yaml`, `make up`) : API (`artisan serve --no-reload`, code monté, UID de la machine), planificateur (`schedule:work`), Vite (dépendances dans un volume, `/api` relayé vers l'API), MySQL 8.4 avec une base `borom_test` pour les tests. Au premier démarrage : `composer install`, `npm ci`, migrations, données de démo, permissions, lien `public/storage` relatif.
+- Production (`compose.prod.yaml`, `make prod-up`) : Caddy (fichiers React, `/api` et `/up` vers PHP-FPM, `/storage` en lecture seule, HTTPS automatique), PHP-FPM sans root (caches, migrations et `borom:sync-permissions` au démarrage), planificateur, MySQL ; `.env.prod.example` ; `make prod-key`, `prod-director`, `prod-backup` (base + fichiers).
+- `Makefile` : `up`, `down`, `logs`, `artisan`, `fresh`, `test`, `test-mysql`, `check`, et les équivalents de production. Workflow `.github/workflows/backend.yml` supprimé.
+- Corrigé : les tests lancés dans un conteneur auraient vidé la base MySQL de dev (`phpunit.xml` impose maintenant SQLite par des lignes `<server>`) ; deux tests comparaient l'ordre des clés JSON, que MySQL change (la suite passe désormais sur MySQL) ; une requête API sans `Accept: application/json` (robots, curl) renvoyait 500 « Route [login] not defined » au lieu de 401 (`redirectGuestsTo`, test ajouté).
+- Vérifié dans le bac à sable avec une variante Debian de l'image PHP (le dépôt Alpine y est bloqué) : pile de production complète (migrations, création du dirigeant, connexion via Caddy, photos servies, chemins `../` et `.env` inaccessibles, gzip et cache des fichiers, redémarrage sans nouvelle migration, tâches planifiées, sauvegarde) ; pile de dev (connexion au back-office dans Chromium sur MySQL, `make check`, `make test-mysql`). **Non vérifié ici** : la construction de l'image PHP Alpine réelle (`install-php-extensions`), à lancer une fois sur une vraie machine.
 
 ### 2026-10-10 (suite) — Lot 2 : gestion locative
 

@@ -48,9 +48,12 @@ class SiteSettingsTest extends TestCase
             ->assertJsonPath('data.content.home.hero_highlight', 'ici')
             ->assertJsonPath('data.customized', ['home']);
 
+        // Tri des clés : MySQL réordonne les clés des colonnes JSON.
+        $stored = CompanySetting::current()->site;
+        ksort($stored['home']);
         $this->assertSame(
             ['home' => ['hero_title' => 'Trouvez votre maison à Dakar', 'show_cta' => false]],
-            CompanySetting::current()->site,
+            $stored,
         );
 
         $this->getJson('/api/public/site')

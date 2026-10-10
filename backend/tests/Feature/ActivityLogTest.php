@@ -38,8 +38,11 @@ class ActivityLogTest extends TestCase
         $this->putJson("/api/users/{$agent->id}", ['name' => 'Nouveau Nom', 'password' => 'MotDePasse2027'])->assertOk();
 
         $log = ActivityLog::where('action', 'updated')->where('subject_id', $agent->id)->latest('id')->firstOrFail();
-        $this->assertSame(['old' => 'Ancien Nom', 'new' => 'Nouveau Nom'], $log->changes['name']);
-        $this->assertSame(['old' => null, 'new' => '(modifié)'], $log->changes['password']);
+        // Clé par clé : MySQL réordonne les clés des colonnes JSON.
+        $this->assertSame('Ancien Nom', $log->changes['name']['old']);
+        $this->assertSame('Nouveau Nom', $log->changes['name']['new']);
+        $this->assertNull($log->changes['password']['old']);
+        $this->assertSame('(modifié)', $log->changes['password']['new']);
     }
 
     public function test_only_the_dirigeant_reads_the_log_and_can_filter_it(): void

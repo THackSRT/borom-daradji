@@ -1,0 +1,93 @@
+# Environnement de développement : docker compose up
+#   site et back-office : http://localhost:8080 (Vite, /api relayé vers l'API)
+#   API Laravel         : http://localhost:8000
+# Les dossiers ./backend et ./frontend sont montés : les modifications sont
+# prises en compte sans reconstruire. Détail dans README.md.
+name: borom-dev
+
+services:
+  backend:
+    build: &backend-build
+      context: .
+      dockerfile: docker/backend/Dockerfile
+      target: dev
+      args:
+        # Fichiers créés dans ./backend au nom de l'utilisateur de la machine
+        # (make les renseigne ; sans make, les mettre dans un fichier .env).
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: borom-daradji/backend:dev
+    volumes:
+      - ./backend:/var/www/html
+    environment: &backend-env
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: borom
+      DB_USERNAME: borom
+      DB_PASSWORD: borom
+      APP_URL: http://localhost:${BACKEND_PORT:-8000}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # Premier démarrage : composer install, migrations et données de démo.
+      start_period: 10m
+
+  # Tâches planifiées (appels de loyer, alertes de mandats, purge du journal).
+  scheduler:
+    build: *backend-build
+    image: borom-daradji/backend:dev
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - ./backend:/var/www/html
+    environment: *backend-env
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: dev
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: borom-daradji/frontend:dev
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      VITE_BACKEND_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      - backend
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: borom
+      MYSQL_USER: borom
+      MYSQL_PASSWORD: borom
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db:/var/lib/mysql
+      - ./docker/mysql/init-test-database.sql:/docker-entrypoint-initdb.d/init-test-database.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  db:
+  frontend_node_modules:

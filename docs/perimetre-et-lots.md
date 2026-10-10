@@ -50,7 +50,7 @@ Livré sur la branche `lot-0-socle`. Détail de l'API dans [`backend/README.md`]
 - Journal d'activité automatique (trait `LogsActivity`) : création, modification avant/après, suppression, connexion, déconnexion ; mots de passe jamais copiés ; purge après 365 jours.
 - Commande `borom:create-director` pour créer le premier compte en production.
 
-**Reste à faire pour clore le lot 0** : écrans de connexion, de gestion des comptes et des paramètres dans le back-office (le dossier `frontend/` n'existe pas encore) ; déploiement sur un serveur. Les messages de validation sont traduits (`lang/fr/validation.php`).
+**Écrans** de connexion, de gestion des comptes, des rôles et des paramètres : faits dans le back-office. **Déploiement** : environnement Docker de production prêt (D-037) ; reste à choisir le serveur et le nom de domaine.
 
 ---
 
