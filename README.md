@@ -2,6 +2,17 @@
 
 Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion locative, travaux et négoce de matériaux.
 
+**Reprendre le projet** (développeur ou session Claude) : commencer par [`CLAUDE.md`](CLAUDE.md), puis [`docs/journal.md`](docs/journal.md).
+
+| Document | Contenu |
+| --- | --- |
+| [`docs/journal.md`](docs/journal.md) | État actuel, prochaines actions, questions ouvertes, historique des sessions |
+| [`docs/perimetre-et-lots.md`](docs/perimetre-et-lots.md) | Périmètre, détail de chaque lot, règles métier, critères d'acceptation |
+| [`docs/contexte-metier.md`](docs/contexte-metier.md) | Le client, les utilisateurs, les réalités du terrain, le glossaire |
+| [`docs/architecture.md`](docs/architecture.md) | Architecture, mécanismes transverses, conventions |
+| [`docs/decisions.md`](docs/decisions.md) | Décisions prises et leurs raisons |
+| [`docs/sources.md`](docs/sources.md) | Résumé des documents du client et erreurs relevées |
+
 ## Organisation du dépôt
 
 | Dossier | Contenu |
@@ -13,7 +24,7 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 
 | Lot | Contenu | État |
 | --- | --- | --- |
-| 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | En cours |
+| 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | API faite, écrans à faire |
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | À faire |
 | 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | À faire |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
