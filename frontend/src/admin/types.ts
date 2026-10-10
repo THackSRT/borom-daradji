@@ -228,7 +228,13 @@ export type MetaKey =
   | "mandate_types"
   | "mandate_statuses"
   | "commission_types"
-  | "task_priorities";
+  | "task_priorities"
+  | "invoice_types"
+  | "invoice_statuses"
+  | "payment_states"
+  | "activities"
+  | "payment_methods"
+  | "cash_movement_types";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -248,4 +254,86 @@ export interface Dashboard {
   new_leads: Client[];
   drafts: (Property & { checks_progress?: { cleared: number; total: number } })[];
   tasks: Task[];
+}
+
+export interface InvoiceLine {
+  id?: number;
+  description: string;
+  quantity: number;
+  unit: string | null;
+  unit_price: number;
+  vat_rate: number;
+  amount?: number;
+  vat_amount?: number;
+}
+
+export interface Payment {
+  id: number;
+  number: string;
+  invoice?: { id: number; number: string };
+  client?: Ref;
+  method: Option;
+  amount: number;
+  paid_on: string;
+  reference: string | null;
+  has_proof: boolean;
+  note: string | null;
+  received_by?: Ref;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: number;
+  type: Option<"facture" | "avoir">;
+  number: string | null;
+  status: Option<"brouillon" | "emise">;
+  payment_state: Option<"non_payee" | "partielle" | "payee" | "annulee"> | null;
+  is_overdue: boolean;
+  client: { id: number; name: string; phone: string | null };
+  property?: { id: number; reference: string; title: string } | null;
+  activity: Option;
+  credited_invoice?: { id: number; number: string | null } | null;
+  issue_date: string | null;
+  due_date: string | null;
+  subtotal: number;
+  vat_total: number;
+  total: number;
+  paid_total: number;
+  credited_total: number;
+  balance: number;
+  notes: string | null;
+  lines?: InvoiceLine[];
+  payments?: Payment[];
+  credit_notes?: { id: number; number: string | null; status: Option; total: number }[];
+  whatsapp_reminder_url?: string | null;
+  issued_at: string | null;
+  created_at: string;
+  can: { update: boolean; issue: boolean; delete: boolean; credit: boolean; pay: boolean; cancel_payment: boolean };
+}
+
+export interface InvoiceSummary {
+  outstanding: number;
+  overdue: number;
+  overdue_count: number;
+  drafts: number;
+}
+
+export interface CashSession {
+  id: number;
+  user?: Ref;
+  date: string;
+  is_today: boolean;
+  opening_amount: number;
+  cash_in: number;
+  movements_total: number;
+  expected_amount: number;
+  counted_amount: number | null;
+  difference: number | null;
+  closing_note: string | null;
+  closed_at: string | null;
+  other_methods?: { method: Option; total: number; count: number }[];
+  payments?: Payment[];
+  movements?: { id: number; type: Option; amount: number; label: string; created_at: string }[];
 }

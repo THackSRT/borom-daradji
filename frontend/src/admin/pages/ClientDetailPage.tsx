@@ -17,8 +17,9 @@ import { formatDate, formatDateTime, formatPrice, fromNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../auth";
 import { useApiMutation, useOptions } from "../hooks";
-import type { Client, DocumentItem, Interaction, Property, SearchCriterion, Visit } from "../types";
+import type { Client, DocumentItem, Interaction, Invoice, InvoiceSummary, Paginated, Property, SearchCriterion, Visit } from "../types";
 import { ClientForm } from "../components/ClientForm";
+import { cfa, InvoiceStateBadge } from "../components/billing";
 import { useQuickCreate } from "../components/QuickCreate";
 import { PlanVisitDialog, VisitReportDialog } from "../components/VisitDialogs";
 import { Avatar, EmptyState, Field, FormError, LoadingBlock, Panel, StatusBadge, WhatsAppLink } from "../components/ui";
@@ -38,6 +39,7 @@ export default function ClientDetailPage() {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const quickCreate = useQuickCreate();
+  const canSeeInvoices = hasRole("comptable", "agent", "commercial");
   const key = ["client", id];
   const { data: client, isLoading } = useQuery({ queryKey: key, queryFn: () => api<{ data: Client }>(`/clients/${id}`).then((r) => r.data) });
   const [planning, setPlanning] = useState(false);
@@ -99,6 +101,7 @@ export default function ClientDetailPage() {
               ["activite", "Activité"],
               ["recherche", "Recherche"],
               ...(client.can.view_documents ? [["pieces", "Pièces"]] : []),
+              ...(canSeeInvoices ? [["factures", "Factures"]] : []),
               ["infos", "Informations"],
             ].map(([value, label]) => (
               <TabsTrigger key={value} value={value} className="rounded-lg border border-transparent px-3 py-1.5 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm">{label}</TabsTrigger>
@@ -110,6 +113,7 @@ export default function ClientDetailPage() {
           </TabsContent>
           <TabsContent value="recherche" className="mt-4"><SearchTab client={client} editable={prospection} /></TabsContent>
           {client.can.view_documents && <TabsContent value="pieces" className="mt-4"><DocumentsTab client={client} /></TabsContent>}
+          {canSeeInvoices && <TabsContent value="factures" className="mt-4"><ClientInvoices client={client} /></TabsContent>}
           <TabsContent value="infos" className="mt-4"><Panel><EditClient client={client} /></Panel></TabsContent>
         </Tabs>
 
@@ -410,4 +414,45 @@ function EditClient({ client }: { client: Client }) {
     invalidate: [["client", String(client.id)], ["clients"]],
   });
   return <ClientForm client={client} error={mutation.error} pending={mutation.isPending} onSubmit={(p) => mutation.mutate(p)} />;
+}
+
+/** Factures du client et reste à payer ; création d'une facture déjà rattachée à lui. */
+function ClientInvoices({ client }: { client: Client }) {
+  const { hasRole } = useAuth();
+  const navigate = useNavigate();
+  const { data, isLoading } = useQuery({
+    queryKey: ["invoices", { client_id: client.id }],
+    queryFn: () => api<Paginated<Invoice> & { summary: InvoiceSummary }>("/invoices", { query: { client_id: client.id, per_page: 50 } }),
+  });
+  if (isLoading) return <LoadingBlock rows={2} />;
+  const invoices = data?.data ?? [];
+  const due = invoices.reduce((sum, inv) => sum + Math.max(0, inv.balance), 0);
+  return (
+    <Panel
+      title="Factures"
+      description={invoices.length ? `Reste à payer : ${cfa(due)}` : undefined}
+      action={hasRole("comptable") && (
+        <Button size="sm" onClick={() => navigate(`/admin/factures/nouvelle?client=${client.id}&nom=${encodeURIComponent(client.name)}`)}>Nouvelle facture</Button>
+      )}
+    >
+      {!invoices.length ? <p className="text-sm text-muted-foreground">Aucune facture pour ce client.</p> : (
+        <ul className="divide-y">
+          {invoices.map((inv) => (
+            <li key={inv.id}>
+              <Link to={`/admin/factures/${inv.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:bg-muted/30">
+                <span className="min-w-0">
+                  <span className="block font-medium">{inv.number ?? "Brouillon"}{inv.type.value === "avoir" && " (avoir)"}</span>
+                  <span className="text-xs text-muted-foreground">{inv.issue_date ? formatDate(inv.issue_date) : "Non émise"} · {cfa(inv.total)}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
+                  {inv.balance > 0 && <span className="tabular-nums text-muted-foreground">reste {cfa(inv.balance)}</span>}
+                  <InvoiceStateBadge invoice={inv} />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
 }

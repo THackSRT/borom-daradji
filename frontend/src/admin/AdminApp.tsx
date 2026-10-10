@@ -16,6 +16,10 @@ const UsersPage = lazy(() => import("./pages/UsersPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SitePage = lazy(() => import("./pages/SitePage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
+const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
+const InvoiceDetailPage = lazy(() => import("./pages/InvoiceDetailPage"));
+const InvoiceEditorPage = lazy(() => import("./pages/InvoiceEditorPage"));
+const CashPage = lazy(() => import("./pages/CashPage"));
 
 /**
  * Back-office, monté sous /admin. Chargé à la demande : le site vitrine ne télécharge pas ce code.
@@ -40,6 +44,11 @@ export default function AdminApp() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />} />
             <Route path="visites" element={<RequireAuth roles={["agent", "commercial"]}><VisitsPage /></RequireAuth>} />
+            <Route path="factures" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><InvoicesPage /></RequireAuth>} />
+            <Route path="factures/nouvelle" element={<RequireAuth roles={["comptable"]}><InvoiceEditorPage /></RequireAuth>} />
+            <Route path="factures/:id" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><InvoiceDetailPage /></RequireAuth>} />
+            <Route path="factures/:id/modifier" element={<RequireAuth roles={["comptable"]}><InvoiceEditorPage /></RequireAuth>} />
+            <Route path="caisse" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><CashPage /></RequireAuth>} />
             <Route path="comptes" element={<RequireAuth roles={["dirigeant"]}><UsersPage /></RequireAuth>} />
             <Route path="parametres" element={<RequireAuth roles={["dirigeant"]}><SettingsPage /></RequireAuth>} />
             <Route path="site" element={<RequireAuth roles={["dirigeant"]}><SitePage /></RequireAuth>} />

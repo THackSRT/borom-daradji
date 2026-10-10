@@ -26,7 +26,7 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | --- | --- | --- |
 | 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
-| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | À faire |
+| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | En cours (factures, encaissements, caisse faits) |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
 | 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | À faire |

@@ -24,7 +24,7 @@ class DemoBillingSeeder extends Seeder
         $rental = Property::where('transaction', 'location')->first();
 
         $tenant = Client::create([
-            'name' => 'Ibrahima Fall',
+            'name' => 'Aminata Ba',
             'phone' => '+221776543210',
             'categories' => [ClientCategory::Locataire],
             'assigned_user_id' => $agent->id,

@@ -157,6 +157,11 @@ const tones: Record<string, string> = {
   haute: "bg-red-50 text-red-700 [--dot:theme(colors.red.500)]",
   normale: "bg-slate-100 text-slate-600 [--dot:theme(colors.slate.400)]",
   basse: "bg-slate-50 text-slate-500 [--dot:theme(colors.slate.300)]",
+  emise: "bg-blue-50 text-blue-700 [--dot:theme(colors.blue.500)]",
+  non_payee: "bg-amber-50 text-amber-700 [--dot:theme(colors.amber.500)]",
+  partielle: "bg-sky-50 text-sky-700 [--dot:theme(colors.sky.500)]",
+  payee: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
+  en_retard: "bg-red-50 text-red-700 [--dot:theme(colors.red.500)]",
 };
 
 /** Pastille de statut : point de couleur + libellé. */
@@ -212,14 +217,14 @@ export function Avatar({ name, size = "md", className }: { name: string; size?: 
 }
 
 /** Petite barre de progression (ex. vérification foncière 4/6). */
-export function ProgressBar({ value, total, className }: { value: number; total: number; className?: string }) {
-  const pct = total ? Math.round((value / total) * 100) : 0;
+export function ProgressBar({ value, total, className, label }: { value: number; total: number; className?: string; label?: string }) {
+  const pct = total ? Math.min(100, Math.round((value / total) * 100)) : 0;
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
         <div className={cn("h-full rounded-full transition-all", pct === 100 ? "bg-emerald-500" : "bg-amber-500")} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs tabular-nums text-muted-foreground">{value}/{total}</span>
+      <span className="text-xs tabular-nums text-muted-foreground">{label ?? `${value}/${total}`}</span>
     </div>
   );
 }
@@ -231,6 +236,7 @@ export function StatCard({
   icon: Icon,
   tone = "default",
   onClick,
+  className,
 }: {
   label: string;
   value: number | string;
@@ -238,6 +244,7 @@ export function StatCard({
   icon: LucideIcon;
   tone?: "default" | "warning" | "danger" | "success";
   onClick?: () => void;
+  className?: string;
 }) {
   const tones = {
     default: "bg-primary/10 text-primary",
@@ -249,13 +256,13 @@ export function StatCard({
   return (
     <Tag
       onClick={onClick}
-      className={cn("flex flex-col items-start gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition sm:flex-row sm:gap-4 sm:p-4", onClick && "hover:border-primary/30 hover:shadow-md")}
+      className={cn("flex min-w-0 flex-col items-start gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition sm:flex-row sm:gap-4 sm:p-4", onClick && "hover:border-primary/30 hover:shadow-md", className)}
     >
       <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", tones[tone])}>
         <Icon className="h-5 w-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-2xl font-semibold tabular-nums leading-tight text-foreground">{value}</span>
+        <span className={cn("block font-semibold tabular-nums leading-tight text-foreground", String(value).length > 9 ? "text-lg sm:text-xl" : "text-2xl")}>{value}</span>
         <span className="block text-xs text-muted-foreground sm:text-sm">{label}</span>
         {hint && <span className="mt-0.5 block text-xs text-muted-foreground/80">{hint}</span>}
       </span>

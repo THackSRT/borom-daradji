@@ -6,7 +6,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | À faire |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **En cours** : facturation, encaissements et caisse faits ; baux et loyers en attente des réponses du client |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
@@ -111,6 +111,17 @@ Reprendre le code du dépôt `borom-daradji-properties` (Vite, React, TypeScript
 ---
 
 ## Lot 2 — Encaissements et location
+
+**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse. **Reste** : baux, appels de loyer, quittances, états des lieux, reversements (bloqués par les questions ouvertes).
+
+Règles en place :
+- Brouillon modifiable et supprimable, sans numéro. À l'émission : numéro `FAC-AAAA-00001` (avoir `AV-AAAA-00001`) attribué dans la même transaction que le changement de statut, date d'émission, échéance (15 jours par défaut, `INVOICE_DUE_DAYS`). Une facture émise ne se modifie ni ne se supprime.
+- Totaux toujours recalculés côté serveur ; montant HT et TVA arrondis au franc **par ligne** ; TVA choisie par ligne (taux de l'entreprise par défaut).
+- Avoir préparé depuis une facture émise (reprend ses lignes, à ajuster), même client, plafonné à ce qui reste à créditer. Facture entièrement créditée et non payée = « annulée par avoir ».
+- Reste à payer = total − avoirs − encaissements valides. Encaissement refusé s'il dépasse le reste, si la facture est un brouillon, si la date est future ; référence obligatoire hors espèces, refusée si déjà enregistrée pour le même mode (double saisie). Reçu `REC-AAAA-00001`, justificatif sur le disque privé, consultation journalisée.
+- Espèces rattachées à la caisse du jour de la personne qui encaisse (créée d'office). Mouvements : apport, dépôt en banque, dépense, remise au dirigeant ; une sortie ne peut pas dépasser les espèces présentes. Clôture : montant compté, écart avec le théorique, explication obligatoire si écart. Caisse clôturée : plus d'espèces, plus d'annulation de ses encaissements.
+- Encaissement jamais supprimé : annulation avec motif (comptable ou dirigeant).
+- Droits par défaut (à valider) : le comptable prépare, émet, fait les avoirs et annule ; agents et commerciaux consultent et encaissent ; chacun voit sa caisse, le comptable voit celles de l'équipe ; responsable travaux sans accès pour l'instant.
 
 - **Socle de facturation** réutilisé par les lots 3 et 4 : factures (lignes, HT, TVA, TTC), avoirs, numérotation `FAC-AAAA-00001` **continue et sans trou** (compteur verrouillé en transaction, jamais de suppression d'une facture émise), PDF depuis un modèle HTML, reçus.
 - **Encaissements** : modes `especes`, `wave`, `orange_money`, `free_money`, `cheque`, `virement` ; référence de transaction ; capture d'écran ; paiement partiel ; reste dû recalculé ; caisse journalière par utilisateur avec clôture.

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
+  Banknote,
   Building2,
   CalendarDays,
   Globe,
@@ -13,6 +14,7 @@ import {
   LogOut,
   Menu,
   Plus,
+  Receipt,
   Search,
   Settings,
   UserCog,
@@ -60,6 +62,13 @@ const sections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/biens", label: "Biens", icon: Building2 },
       { to: "/admin/clients", label: "Clients", icon: Users },
+    ],
+  },
+  {
+    title: "Finances",
+    items: [
+      { to: "/admin/factures", label: "Factures", icon: Receipt, roles: ["comptable", "agent", "commercial"] },
+      { to: "/admin/caisse", label: "Caisse", icon: Banknote, roles: ["comptable", "agent", "commercial"] },
     ],
   },
   {
@@ -165,6 +174,7 @@ function UserMenu({ onPassword }: { onPassword: () => void }) {
 function CreateMenu({ compact = false }: { compact?: boolean }) {
   const { open } = useQuickCreate();
   const { hasRole } = useAuth();
+  const navigate = useNavigate();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -177,6 +187,7 @@ function CreateMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuItem onClick={() => open("client")}><Users className="mr-2 h-4 w-4" /> Un client</DropdownMenuItem>
         {hasRole("agent") && <DropdownMenuItem onClick={() => open("property")}><Building2 className="mr-2 h-4 w-4" /> Un bien</DropdownMenuItem>}
         <DropdownMenuItem onClick={() => open("task")}><ClipboardList className="mr-2 h-4 w-4" /> Une tâche</DropdownMenuItem>
+        {hasRole("comptable") && <DropdownMenuItem onClick={() => navigate("/admin/factures/nouvelle")}><Receipt className="mr-2 h-4 w-4" /> Une facture</DropdownMenuItem>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -184,11 +195,15 @@ function CreateMenu({ compact = false }: { compact?: boolean }) {
 
 /** Barre de navigation en bas de l'écran sur téléphone : les 4 écrans les plus utilisés à une main. */
 function BottomNav({ onMore }: { onMore: () => void }) {
+  const { hasRole, isDirigeant } = useAuth();
+  // Le comptable a besoin des factures et de la caisse sous le pouce ; les autres, des biens et clients.
+  const finance = hasRole("comptable") && !isDirigeant && !hasRole("agent", "commercial");
   const items = [
     { to: "/admin", label: "Accueil", icon: LayoutDashboard },
     { to: "/admin/taches", label: "Tâches", icon: ClipboardList },
-    { to: "/admin/biens", label: "Biens", icon: Building2 },
-    { to: "/admin/clients", label: "Clients", icon: Users },
+    ...(finance
+      ? [{ to: "/admin/factures", label: "Factures", icon: Receipt }, { to: "/admin/caisse", label: "Caisse", icon: Banknote }]
+      : [{ to: "/admin/biens", label: "Biens", icon: Building2 }, { to: "/admin/clients", label: "Clients", icon: Users }]),
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">

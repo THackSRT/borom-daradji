@@ -83,8 +83,8 @@ borom-daradji/
     │   │   └── Concerns/     traits partagés (LogsActivity)
     │   ├── Policies/         droits par modèle (Property, Client, Visit, Task)
     │   ├── Rules/            règles de validation (SenegalPhone)
-    │   ├── Services/         règles métier à plusieurs étapes (statut d'un bien, rapprochement, demandes du site)
-    │   └── Support/          outils sans état (PhoneNumber, ActivityLogger, Sequence, WhatsApp, ImageOptimizer)
+    │   ├── Services/         règles métier à plusieurs étapes (statut d'un bien, rapprochement, demandes du site, Billing)
+    │   └── Support/          outils sans état (PhoneNumber, ActivityLogger, Sequence, WhatsApp, ImageOptimizer, SiteContent, InvoicePdf)
     ├── config/borom.php      paramètres propres au projet
     ├── routes/api.php        toutes les routes de l'API
     ├── routes/console.php    tâches planifiées
@@ -118,6 +118,12 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 ### Téléphones
 - `PhoneNumber::normalize()` accepte « 77 123 45 67 », « 00221… », « +221… » et renvoie `+221XXXXXXXXX`, ou `null` si ce n'est pas un numéro sénégalais à 9 chiffres commençant par 3 ou 7.
 - Normaliser dans `prepareForValidation()` des Form Requests, puis valider avec `new SenegalPhone` et `unique`. Le mutateur du modèle normalise aussi, en filet de sécurité.
+
+### Facturation (lot 2, réutilisée aux lots 3 et 4)
+- Toute écriture passe par `App\Services\Billing` : `saveDraft()` (lignes + totaux), `issue()` (numéro sans trou), `prepareCreditNote()`, `recordPayment()`, `cancelPayment()`. Les travaux et le négoce créeront leurs factures avec ces mêmes méthodes, en choisissant l'`activity`.
+- Numéros : `Sequence::next('facture' | 'avoir' | 'recu')`, appelé à l'intérieur de la transaction d'émission (un échec annule aussi l'incrément).
+- `invoices.paid_total` et `credited_total` sont des cumuls recalculés par le service ; le reste à payer se calcule (`Invoice::balance()`, scopes `outstanding()` et `overdue()`).
+- PDF : dompdf (`barryvdh/laravel-dompdf`), modèles `resources/views/pdf/*.blade.php`, police DejaVu Sans en sous-ensemble, logo intégré en base64, couleur principale du site ; montant en lettres si l'extension `intl` est présente.
 
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.

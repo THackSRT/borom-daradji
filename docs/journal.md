@@ -4,18 +4,20 @@
 
 ## État actuel
 
-- **Lot en cours** : lot 1 (biens et prospects) — API, back-office et site vitrine branché, **contenu du site paramétrable** (back-office > Site internet) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
-- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (API du lot 1 + `frontend/` avec le back-office), pas encore fusionnée, pas de pull request.
-- **Tests** : 108 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 14 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
+- **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour et leurs écrans **faits** ; baux, loyers, quittances, états des lieux et reversements en attente des réponses du client.
+- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). Pas de pull request.
+- **Tests** : 133 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
 
 ## Prochaines actions, dans l'ordre
 
-1. Faire relire et fusionner `lot-1-biens-prospects` dans `main` (pull request à ouvrir sur demande de l'utilisateur).
+1. Faire relire et fusionner `lot-1-biens-prospects` dans `main`, puis `lot-2-encaissements-location` (pull requests à ouvrir sur demande de l'utilisateur).
 2. Choisir l'hébergement et déployer une première version (questions ouvertes).
-3. Lot 2 (encaissements et location) : attendre les réponses aux trois premières questions ouvertes.
+3. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
+4. Lot 2, suite : baux, appels de loyer automatiques, quittances, états des lieux, reversements — dès les réponses aux trois premières questions ouvertes.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -30,7 +32,9 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Un bien « en négociation » doit-il rester visible sur le site (oui par défaut, D-020) ?
 - [ ] Volumes : biens en portefeuille, chantiers par an, articles en stock, factures par mois.
 - [ ] Le négoce a-t-il un dépôt avec vente au comptoir, ou seulement des livraisons sur chantier ?
-- [ ] Avec le comptable : méthode de valorisation du stock (CMUP proposé), TVA par activité, mentions obligatoires sur les factures.
+- [ ] Avec le comptable : méthode de valorisation du stock (CMUP proposé), TVA par activité (les loyers d'habitation sont-ils exonérés ? la TVA est choisie ligne par ligne, 18 % par défaut), mentions obligatoires sur les factures, délai de paiement par défaut (15 jours proposés).
+- [ ] Droits sur les factures (proposés) : le comptable prépare, émet et fait les avoirs ; agents et commerciaux consultent et encaissent ; le responsable travaux n'y a pas accès. Qui peut annuler un encaissement (comptable et dirigeant proposés) ?
+- [ ] Coordonnées bancaires à saisir dans Paramètres : elles s'impriment sur les factures (virement).
 - [ ] Logiciel du cabinet comptable (Sage, Ciel, autre) pour le format des exports.
 - [ ] Nombre d'utilisateurs et rôles cumulés.
 - [ ] Données existantes à reprendre (Excel, cahiers).
@@ -43,6 +47,14 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Lot 2 : facturation, encaissements, caisse
+
+- Branche `lot-2-encaissements-location` créée depuis le lot 1 (D-030).
+- API : factures et avoirs (`invoices`, `invoice_lines`), encaissements (`payments`), caisse (`cash_sessions`, `cash_movements`) ; règles dans `App\Services\Billing` (détail dans `perimetre-et-lots.md`, lot 2) ; droits dans `InvoicePolicy` ; PDF de facture, d'avoir et de reçu (dompdf, D-033) avec montant en lettres et couleur de la charte ; relance WhatsApp pré-remplie avec le reste à payer ; `GET /api/meta` complété. D-031, D-032. 25 tests (133), dont l'affichage des numéros (`PhoneNumber::format`).
+- Données de démo : 4 factures (payée par Wave, payée en partie en espèces, commission en retard, brouillon négoce).
+- Écrans : Factures (chiffres « reste à encaisser », « en retard », filtres, recherche), saisie d'une facture (client et bien recherchés, lignes réordonnables, TVA par ligne, totaux en direct, « Enregistrer et émettre »), fiche (PDF, encaisser, relancer, avoir, encaissements avec reçu, justificatif et annulation), fenêtre d'encaissement (modes en gros boutons, référence exigée hors espèces, capture, reçu à télécharger), Caisse (ma caisse du jour, mouvements, clôture avec écart expliqué, encaissements par mode, caisses de l'équipe pour le comptable), onglet Factures de la fiche client, factures en retard sur l'accueil, menu Finances, barre du bas du téléphone adaptée au comptable.
+- Vérifié dans Chromium : comptable (création, émission, PDF, encaissement Wave refusé sans référence puis accepté, avoir sur facture en retard), agent (pas de création, encaissement en espèces, dépense, clôture refusée sans explication de l'écart puis acceptée), comptable (encaissements, caisses de l'équipe, factures d'un client) ; téléphone 390 px sans débordement.
 
 ### 2026-10-10 (suite) — Site vitrine entièrement paramétrable
 

@@ -6,9 +6,10 @@ import { AlertTriangle, ArrowRight, Building2, CalendarDays, ClipboardList, Home
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { fromNow } from "@/lib/format";
+import { formatDate, fromNow } from "@/lib/format";
 import { useAuth } from "../auth";
-import type { Dashboard } from "../types";
+import type { Dashboard, Invoice, InvoiceSummary, Paginated } from "../types";
+import { cfa } from "../components/billing";
 import { TaskItem } from "../components/TaskItem";
 import { useQuickCreate } from "../components/QuickCreate";
 import { Avatar, EmptyState, Panel, ProgressBar, StatCard, WhatsAppLink } from "../components/ui";
@@ -78,6 +79,8 @@ export default function DashboardPage() {
             )}
           </Panel>
 
+          {hasRole("comptable", "agent", "commercial") && <OverdueInvoices />}
+
           {hasRole("agent") && (
             <Panel title="Biens en attente de publication" description="Terminez la vérification foncière pour les mettre en ligne."
               action={<Button variant="ghost" size="sm" asChild><Link to="/admin/biens?statut=brouillon">Voir <ArrowRight className="h-4 w-4" /></Link></Button>}
@@ -146,5 +149,31 @@ export default function DashboardPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Factures en retard : relance WhatsApp en un geste depuis l'accueil. */
+function OverdueInvoices() {
+  const { data } = useQuery({
+    queryKey: ["invoices", { state: "en_retard", dashboard: true }],
+    queryFn: () => api<Paginated<Invoice> & { summary: InvoiceSummary }>("/invoices", { query: { state: "en_retard", per_page: 5 } }),
+  });
+  if (!data?.data.length) return null;
+  return (
+    <Panel title={`Factures en retard · ${cfa(data.summary.overdue)}`} description="À relancer par téléphone ou WhatsApp."
+      action={<Button variant="ghost" size="sm" asChild><Link to="/admin/factures?filtre=en_retard">Tout voir <ArrowRight className="h-4 w-4" /></Link></Button>}
+      bodyClassName="p-2">
+      <div className="divide-y">
+        {data.data.map((inv) => (
+          <div key={inv.id} className="flex items-center gap-3 px-3 py-2.5">
+            <Link to={`/admin/factures/${inv.id}`} className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{inv.client.name}</p>
+              <p className="text-xs text-muted-foreground">{inv.number} · échue le {formatDate(inv.due_date)}</p>
+            </Link>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-red-600">{cfa(inv.balance)}</span>
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }
