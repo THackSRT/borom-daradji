@@ -27,7 +27,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();
-        $all = $user->isDirigeant();
+        $all = $user->hasPermission('dashboard.view_all');
         $endOfDay = now()->endOfDay();
 
         $properties = Property::query()->when(! $all, fn ($q) => $q->where('agent_id', $user->id));

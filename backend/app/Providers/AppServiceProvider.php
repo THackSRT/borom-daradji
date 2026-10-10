@@ -11,9 +11,11 @@ use App\Models\Interaction;
 use App\Models\Invoice;
 use App\Models\Mandate;
 use App\Models\Payment;
+use App\Models\Permission;
 use App\Models\Property;
 use App\Models\PropertyCheck;
 use App\Models\PropertyDocument;
+use App\Models\Role;
 use App\Models\SearchCriterion;
 use App\Models\Task;
 use App\Models\User;
@@ -56,12 +58,12 @@ class AppServiceProvider extends ServiceProvider
             'payment' => Payment::class,
             'cash_session' => CashSession::class,
             'cash_movement' => CashMovement::class,
+            'role' => Role::class,
+            'permission' => Permission::class,
         ]);
 
-        // Le dirigeant a accès à tout ; les autres rôles passent par les policies.
-        Gate::before(fn (User $user) => $user->isDirigeant() ? true : null);
-
-        // Comptes, paramètres de l'entreprise et journal d'activité : dirigeant uniquement.
-        Gate::define('administrate', fn (User $user) => $user->isDirigeant());
+        // RBAC : le dirigeant (super-administrateur) a accès à tout ; les autres passent par leurs
+        // permissions, vérifiées dans les policies ou directement (« can:invoices.view »).
+        Gate::before(fn (User $user) => $user->isSuperAdmin() ? true : null);
     }
 }

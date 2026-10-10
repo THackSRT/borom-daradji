@@ -24,8 +24,8 @@ const filters = [
 
 export default function InvoicesPage() {
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
-  const canCreate = hasRole("comptable");
+  const { can } = useAuth();
+  const canCreate = can("invoices.manage");
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

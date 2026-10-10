@@ -98,9 +98,13 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 ### Authentification et droits
 - `POST /api/auth/login` accepte `login` = email ou téléphone, `password`, `device_name` ; renvoie un jeton Sanctum (expiration : `SANCTUM_EXPIRATION` minutes, 30 jours par défaut).
 - Toutes les routes protégées passent par `auth:sanctum` **et** `active` (`EnsureUserIsActive`).
-- Rôles : `App\Enums\Role`, stockés en tableau JSON dans `users.roles` (cast `AsEnumCollection`). Méthodes `hasRole(Role ...$roles)`, `isDirigeant()`, scope `withRole()`.
-- `Gate::before` accorde tout au dirigeant ; gate `administrate` pour les comptes, paramètres et journal.
-- Modules métier : une policy par modèle (`PropertyPolicy`, `ClientPolicy`…) qui applique la matrice de droits de [`perimetre-et-lots.md`](perimetre-et-lots.md). Écritures : contrôle dans `authorize()` de la Form Request (403 avant la validation). Lectures : `Gate::authorize()` dans le contrôleur.
+- **RBAC** (D-034) avec `spatie/laravel-permission` : tables `roles` (+ `label`, `description`, `is_system`), `permissions`, `role_has_permissions`, `model_has_roles`, `model_has_permissions` (droits individuels). Modèles `App\Models\Role` et `App\Models\Permission` (journalisés, garde `web` : les jetons Sanctum utilisent le même fournisseur).
+- **Catalogue** : `App\Support\PermissionCatalog` fait foi (permissions par module, libellés, rôles par défaut). `php artisan borom:sync-permissions` met la base en accord (à lancer après chaque déploiement ; la migration RBAC l'appelle). Les rôles modifiés par le dirigeant ne sont jamais écrasés.
+- **Super-administrateur** : le rôle `dirigeant` (`PermissionCatalog::SUPER_ADMIN`) a tout, y compris les permissions futures (`Gate::before`) ; il ne se modifie pas.
+- Vérifier un droit : dans une policy, `$user->hasPermission('invoices.issue')` ; ailleurs `$user->can('invoices.issue')` ou le middleware `can:settings.manage`. Une portée « les siens / toute l'équipe » = une permission `*.view_all` combinée à un test de propriété dans la policy (ex. pièces d'identité : client suivi OU `clients.documents.view_all`).
+- **Ajouter une fonction** : déclarer ses permissions dans le catalogue (et, si besoin, à quels rôles par défaut les donner dans `newPermissionDefaults()`), les vérifier côté serveur, puis côté écran avec `can()` de `useAuth()` (le front reçoit `permissions` dans `/api/auth/me`).
+- **Garde-fous** (`App\Support\AccessGuard`, `ValidatesAccess`) : pas d'escalade (on ne donne que les droits qu'on a), rôle dirigeant attribué ou retiré par un dirigeant seulement, on ne modifie pas ses propres droits, il reste toujours un dirigeant actif. Chaque changement de droits est journalisé avec avant/après (`permissions_changed`, `access_changed`).
+- Modules métier : une policy par modèle (`PropertyPolicy`, `ClientPolicy`, `InvoicePolicy`…) traduit les actions en permissions. Écritures : contrôle dans `authorize()` de la Form Request (403 avant la validation). Lectures : `Gate::authorize()` dans le contrôleur.
 - Listes fermées : chaque enum (`app/Enums`) a un `label()` français ; `GET /api/meta` les expose toutes pour le front.
 
 ### Journal d'activité

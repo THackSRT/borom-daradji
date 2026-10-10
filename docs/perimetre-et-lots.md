@@ -24,7 +24,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 
 | v2.0 | Retenu |
 | --- | --- |
-| Permissions granulaires par module, action et donnée (6.2) | 5 rôles fixes, cumulables |
+| Permissions granulaires par module, action et donnée (6.2) | RBAC : rôles paramétrables par le dirigeant, permissions par action, droits individuels (D-034 ; 5 rôles fixes au départ, D-005) |
 | Valorisation FIFO (4.16) | CMUP (la v2.0 mélangeait FIFO et moyenne pondérée) |
 | ElasticSearch, PostGIS (1.5, 1.6, 6.9, 6.10) | Recherche SQL ; latitude/longitude simples ; carte Leaflet + OpenStreetMap |
 | Lead scoring automatique (2.5) | Statut choisi par l'agent + date du dernier contact |
@@ -44,7 +44,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 Livré sur la branche `lot-0-socle`. Détail de l'API dans [`backend/README.md`](../backend/README.md).
 
 - Connexion par jeton Sanctum, par email **ou** téléphone ; 5 échecs → blocage 60 s ; jeton valable 30 jours.
-- 5 rôles cumulables (`App\Enums\Role`) ; la gate `administrate` réserve comptes, paramètres et journal au dirigeant.
+- Rôles cumulables ; depuis D-034, RBAC complet (rôles paramétrables, permissions par module, droits individuels), voir `architecture.md`.
 - Comptes désactivés, jamais supprimés ; un compte désactivé perd l'accès immédiatement (middleware `active`) ; le dirigeant connecté ne peut ni se désactiver ni retirer son rôle de dirigeant.
 - Paramètres de l'entreprise (une ligne : NINEA, RCCM, TVA 18 %, XOF, WhatsApp, logo, coordonnées bancaires) + version publique sans données fiscales ni bancaires.
 - Journal d'activité automatique (trait `LogsActivity`) : création, modification avant/après, suppression, connexion, déconnexion ; mots de passe jamais copiés ; purge après 365 jours.
@@ -121,7 +121,7 @@ Règles en place :
 - Reste à payer = total − avoirs − encaissements valides. Encaissement refusé s'il dépasse le reste, si la facture est un brouillon, si la date est future ; référence obligatoire hors espèces, refusée si déjà enregistrée pour le même mode (double saisie). Reçu `REC-AAAA-00001`, justificatif sur le disque privé, consultation journalisée.
 - Espèces rattachées à la caisse du jour de la personne qui encaisse (créée d'office). Mouvements : apport, dépôt en banque, dépense, remise au dirigeant ; une sortie ne peut pas dépasser les espèces présentes. Clôture : montant compté, écart avec le théorique, explication obligatoire si écart. Caisse clôturée : plus d'espèces, plus d'annulation de ses encaissements.
 - Encaissement jamais supprimé : annulation avec motif (comptable ou dirigeant).
-- Droits par défaut (à valider) : le comptable prépare, émet, fait les avoirs et annule ; agents et commerciaux consultent et encaissent ; chacun voit sa caisse, le comptable voit celles de l'équipe ; responsable travaux sans accès pour l'instant.
+- Droits (RBAC, D-034) : permissions `invoices.view|manage|issue|credit`, `payments.create|cancel|view_all`, `cash.view_all`. Par défaut, le comptable prépare, émet, fait les avoirs et annule ; agents et commerciaux consultent et encaissent ; chacun voit sa caisse ; le dirigeant ajuste dans « Rôles et droits ».
 
 - **Socle de facturation** réutilisé par les lots 3 et 4 : factures (lignes, HT, TVA, TTC), avoirs, numérotation `FAC-AAAA-00001` **continue et sans trou** (compteur verrouillé en transaction, jamais de suppression d'une facture émise), PDF depuis un modèle HTML, reçus.
 - **Encaissements** : modes `especes`, `wave`, `orange_money`, `free_money`, `cheque`, `virement` ; référence de transaction ; capture d'écran ; paiement partiel ; reste dû recalculé ; caisse journalière par utilisateur avec clôture.

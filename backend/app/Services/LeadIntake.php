@@ -5,13 +5,13 @@ namespace App\Services;
 use App\Enums\ClientCategory;
 use App\Enums\InteractionChannel;
 use App\Enums\LeadSource;
-use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TransactionType;
 use App\Models\Client;
 use App\Models\Property;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\PermissionCatalog;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -71,6 +71,6 @@ class LeadIntake
      */
     private function fallbackAssignee(): ?User
     {
-        return User::active()->withRole(Role::Dirigeant)->orderBy('id')->first();
+        return User::active()->withRole(PermissionCatalog::SUPER_ADMIN)->orderBy('id')->first();
     }
 }

@@ -43,7 +43,8 @@ class CreateDirector extends Command
             return self::FAILURE;
         }
 
-        $user = User::create([...$validator->validated(), 'roles' => [Role::Dirigeant]]);
+        $user = User::create($validator->validated());
+        $user->assignRole(Role::Dirigeant->value);
 
         $this->info("Compte dirigeant créé : {$user->email}");
 

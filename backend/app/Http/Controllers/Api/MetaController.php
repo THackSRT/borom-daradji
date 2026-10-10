@@ -23,12 +23,12 @@ use App\Enums\PropertyCheckItem;
 use App\Enums\PropertyDocumentType;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
-use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TransactionType;
 use App\Enums\VisitFeedback;
 use App\Enums\VisitStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -39,7 +39,6 @@ class MetaController extends Controller
     public function __invoke(): JsonResponse
     {
         $enums = [
-            'roles' => Role::class,
             'property_types' => PropertyType::class,
             'transaction_types' => TransactionType::class,
             'property_statuses' => PropertyStatus::class,
@@ -67,11 +66,15 @@ class MetaController extends Controller
             'cash_movement_types' => CashMovementType::class,
         ];
 
-        return response()->json([
-            'data' => array_map(
-                fn (string $enum) => array_map(fn ($case) => ['value' => $case->value, 'label' => $case->label()], $enum::cases()),
-                $enums,
-            ),
-        ]);
+        $data = array_map(
+            fn (string $enum) => array_map(fn ($case) => ['value' => $case->value, 'label' => $case->label()], $enum::cases()),
+            $enums,
+        );
+
+        // Rôles : définis par le dirigeant (RBAC), lus en base.
+        $data['roles'] = Role::query()->orderByDesc('is_system')->orderBy('label')->get()
+            ->map(fn (Role $role) => ['value' => $role->name, 'label' => $role->label])->all();
+
+        return response()->json(['data' => $data]);
     }
 }

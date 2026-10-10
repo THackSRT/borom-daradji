@@ -2,51 +2,57 @@
 
 namespace App\Policies;
 
-use App\Enums\Role;
 use App\Models\Invoice;
 use App\Models\User;
 
 /**
- * Factures (droits par défaut, à valider avec le dirigeant) :
- * - le comptable prépare, émet et corrige (avoir) les factures, et annule les encaissements ;
- * - les agents et commerciaux consultent et encaissent (paiements reçus sur le terrain) ;
- * - le dirigeant fait tout (Gate::before).
+ * Factures, encaissements et caisses : permissions « invoices.* », « payments.* » et « cash.view_all ».
  */
 class InvoicePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(Role::Comptable, Role::Agent, Role::Commercial);
+        return $user->hasPermission('invoices.view');
     }
 
     public function view(User $user, Invoice $invoice): bool
     {
-        return $this->viewAny($user);
+        return $user->hasPermission('invoices.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(Role::Comptable);
+        return $user->hasPermission('invoices.manage');
     }
 
     public function update(User $user, Invoice $invoice): bool
     {
-        return $user->hasRole(Role::Comptable);
+        return $user->hasPermission('invoices.manage');
     }
 
     public function delete(User $user, Invoice $invoice): bool
     {
-        return $user->hasRole(Role::Comptable);
+        return $user->hasPermission('invoices.manage');
+    }
+
+    public function issue(User $user, Invoice $invoice): bool
+    {
+        return $user->hasPermission('invoices.issue');
+    }
+
+    public function credit(User $user, Invoice $invoice): bool
+    {
+        return $user->hasPermission('invoices.credit');
     }
 
     public function recordPayment(User $user, Invoice $invoice): bool
     {
-        return $user->hasRole(Role::Comptable, Role::Agent, Role::Commercial);
+        return $user->hasPermission('payments.create');
     }
 
     public function cancelPayment(User $user): bool
     {
-        return $user->hasRole(Role::Comptable);
+        return $user->hasPermission('payments.cancel');
     }
 
     /**
@@ -54,7 +60,12 @@ class InvoicePolicy
      */
     public function useCash(User $user): bool
     {
-        return $user->hasRole(Role::Comptable, Role::Agent, Role::Commercial);
+        return $user->hasPermission('payments.create', 'cash.view_all');
+    }
+
+    public function viewAllPayments(User $user): bool
+    {
+        return $user->hasPermission('payments.view_all');
     }
 
     /**
@@ -62,6 +73,6 @@ class InvoicePolicy
      */
     public function viewAllCash(User $user): bool
     {
-        return $user->hasRole(Role::Comptable);
+        return $user->hasPermission('cash.view_all');
     }
 }

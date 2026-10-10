@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
@@ -103,16 +104,26 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('cash-sessions/{cashSession}', [CashSessionController::class, 'show']);
     Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
 
-    // Administration : réservée au dirigeant.
-    Route::middleware('can:administrate')->group(function () {
-        Route::apiResource('users', UserController::class);
+    // Administration (RBAC) : comptes, rôles, paramètres, site, journal.
+    Route::apiResource('users', UserController::class);
+    Route::get('roles', [RoleController::class, 'index']);
+    Route::get('roles/{role}', [RoleController::class, 'show']);
+    Route::get('permissions', [RoleController::class, 'permissions']);
+    Route::post('roles', [RoleController::class, 'store']);
+    Route::put('roles/{role}', [RoleController::class, 'update']);
+    Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate']);
+    Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+
+    Route::middleware('can:settings.manage')->group(function () {
         Route::put('settings/company', [CompanySettingsController::class, 'update']);
         Route::post('settings/company/logo', [CompanySettingsController::class, 'updateLogo']);
         Route::delete('settings/company/logo', [CompanySettingsController::class, 'destroyLogo']);
+    });
+    Route::middleware('can:site.manage')->group(function () {
         Route::get('settings/site', [SiteSettingsController::class, 'show']);
         Route::post('settings/site/images', [SiteSettingsController::class, 'storeImage']);
         Route::put('settings/site/{section}', [SiteSettingsController::class, 'update'])->whereIn('section', SiteContent::SECTIONS);
         Route::delete('settings/site/{section}', [SiteSettingsController::class, 'reset'])->whereIn('section', SiteContent::SECTIONS);
-        Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity.view');
 });

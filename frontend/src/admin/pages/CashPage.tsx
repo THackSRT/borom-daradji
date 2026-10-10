@@ -21,8 +21,9 @@ import { EmptyState, Field, FormError, LoadingBlock, PageHeader, Pagination, Pan
 const tabClass = "rounded-lg border border-transparent px-3 py-1.5 data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:shadow-sm";
 
 export default function CashPage() {
-  const { hasRole } = useAuth();
-  const team = hasRole("comptable");
+  const { can } = useAuth();
+  const team = can("cash.view_all");
+  const allPayments = can("payments.view_all");
   return (
     <>
       <PageHeader title="Caisse" description="Espèces du jour, encaissements par mode de paiement, clôture." />
@@ -33,7 +34,7 @@ export default function CashPage() {
           {team && <TabsTrigger value="equipe" className={tabClass}>Caisses de l'équipe</TabsTrigger>}
         </TabsList>
         <TabsContent value="jour" className="mt-4"><TodayTill /></TabsContent>
-        <TabsContent value="encaissements" className="mt-4"><PaymentsList team={team} /></TabsContent>
+        <TabsContent value="encaissements" className="mt-4"><PaymentsList team={allPayments} /></TabsContent>
         {team && <TabsContent value="equipe" className="mt-4"><TeamTills /></TabsContent>}
       </Tabs>
     </>

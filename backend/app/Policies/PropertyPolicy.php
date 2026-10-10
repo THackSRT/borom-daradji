@@ -2,29 +2,28 @@
 
 namespace App\Policies;
 
-use App\Enums\Role;
 use App\Models\Property;
 use App\Models\User;
 
 /**
- * Biens : agents en écriture ; responsable travaux, comptable et commercial en lecture (matrice v2.0).
+ * Biens : permissions « properties.* » (catalogue dans App\Support\PermissionCatalog).
  * Le dirigeant passe par Gate::before.
  */
 class PropertyPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->hasPermission('properties.view');
     }
 
     public function view(User $user, Property $property): bool
     {
-        return true;
+        return $user->hasPermission('properties.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(Role::Agent);
+        return $user->hasPermission('properties.create');
     }
 
     /**
@@ -32,12 +31,12 @@ class PropertyPolicy
      */
     public function update(User $user, Property $property): bool
     {
-        return $user->hasRole(Role::Agent);
+        return $user->hasPermission('properties.update');
     }
 
     public function delete(User $user, Property $property): bool
     {
-        return $user->hasRole(Role::Agent);
+        return $user->hasPermission('properties.delete');
     }
 
     /**
@@ -45,11 +44,11 @@ class PropertyPolicy
      */
     public function viewDocuments(User $user, Property $property): bool
     {
-        return $user->hasRole(Role::Agent);
+        return $user->hasPermission('properties.documents');
     }
 
     public function viewMandates(User $user, Property $property): bool
     {
-        return $user->hasRole(Role::Agent, Role::Comptable);
+        return $user->hasPermission('properties.mandates');
     }
 }

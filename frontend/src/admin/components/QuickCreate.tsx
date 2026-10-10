@@ -102,7 +102,8 @@ function ClientCreateDialog({ onClose }: { onClose: () => void }) {
 }
 
 function TaskCreateDialog({ defaults, onClose }: { defaults: TaskDefaults; onClose: () => void }) {
-  const { user, isDirigeant } = useAuth();
+  const { user, can } = useAuth();
+  const assignToOthers = can("users.view", "users.manage");
   const priorities = useOptions("task_priorities");
   const tomorrow9 = new Date(Date.now() + 86_400_000);
   tomorrow9.setHours(9, 0, 0, 0);
@@ -118,7 +119,7 @@ function TaskCreateDialog({ defaults, onClose }: { defaults: TaskDefaults; onClo
   const { data: users } = useQuery({
     queryKey: ["users", "assignable"],
     queryFn: () => api<Paginated<User>>("/users", { query: { active: true } }),
-    enabled: isDirigeant,
+    enabled: assignToOthers,
   });
 
   const mutation = useApiMutation(

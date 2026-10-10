@@ -51,7 +51,7 @@ Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigean
 - Montants en **francs CFA entiers** (`bigInteger`, pas de centimes, pas de float).
 - Téléphones toujours passés par `App\Support\PhoneNumber::normalize()` → format `+221XXXXXXXXX`.
 - Tout modèle métier utilise le trait `LogsActivity` **et** reçoit un alias dans `Relation::enforceMorphMap()` (`AppServiceProvider`). Oublier l'alias fait planter la journalisation.
-- Droits vérifiés côté serveur (gates/policies), jamais seulement dans l'interface.
+- Droits vérifiés côté serveur, jamais seulement dans l'interface : RBAC (D-034). Une nouvelle fonction = ses permissions dans `App\Support\PermissionCatalog`, vérifiées dans une policy (`$user->hasPermission()`) ou par `can:` ; côté écran, `can()` de `useAuth()`. Après déploiement : `php artisan borom:sync-permissions`.
 - Rien n'est supprimé physiquement quand il y a un historique : archivage (`SoftDeletes`) ou désactivation.
 
 ## Pièges connus de l'environnement

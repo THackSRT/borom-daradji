@@ -93,7 +93,7 @@ class InvoiceController extends Controller
 
     public function issue(Request $request, Invoice $invoice): InvoiceResource
     {
-        Gate::authorize('update', $invoice);
+        Gate::authorize('issue', $invoice);
 
         return new InvoiceResource($this->loaded(Billing::issue($invoice, $request->user())));
     }
@@ -103,7 +103,7 @@ class InvoiceController extends Controller
      */
     public function creditNote(Request $request, Invoice $invoice): InvoiceResource
     {
-        Gate::authorize('update', $invoice);
+        Gate::authorize('credit', $invoice);
 
         return new InvoiceResource($this->loaded(Billing::prepareCreditNote($invoice, $request->user())));
     }

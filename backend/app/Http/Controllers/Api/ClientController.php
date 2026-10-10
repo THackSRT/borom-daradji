@@ -20,6 +20,8 @@ class ClientController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', Client::class);
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'category' => ['nullable', Rule::enum(ClientCategory::class)],

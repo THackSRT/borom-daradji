@@ -5,7 +5,8 @@ export interface Option<V extends string = string> {
   label: string;
 }
 
-export type RoleValue = "dirigeant" | "agent" | "responsable_travaux" | "comptable" | "commercial";
+/** Rôles fournis par défaut ; le dirigeant peut en créer d'autres (RBAC). */
+export type RoleValue = string;
 
 export interface Paginated<T> {
   data: T[];
@@ -18,7 +19,12 @@ export interface User {
   name: string;
   email: string;
   phone: string | null;
-  roles: Option<RoleValue>[];
+  roles: (Option<RoleValue> & { id: number; is_super_admin: boolean })[];
+  is_super_admin: boolean;
+  /** Permissions données en plus des rôles. */
+  direct_permissions: string[];
+  /** Toutes les permissions du compte (rôles + individuelles). */
+  permissions: string[];
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
@@ -336,4 +342,22 @@ export interface CashSession {
   other_methods?: { method: Option; total: number; count: number }[];
   payments?: Payment[];
   movements?: { id: number; type: Option; amount: number; label: string; created_at: string }[];
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  label: string;
+  description: string | null;
+  is_system: boolean;
+  is_super_admin: boolean;
+  permissions: string[];
+  users_count: number;
+  updated_at: string;
+}
+
+export interface PermissionModule {
+  key: string;
+  label: string;
+  permissions: { name: string; label: string; description: string | null; roles: string[] }[];
 }

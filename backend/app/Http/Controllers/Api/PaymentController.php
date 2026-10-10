@@ -29,7 +29,7 @@ class PaymentController extends Controller
 
         $query = Payment::query()->with(['invoice', 'client', 'receiver']);
 
-        if (! $request->user()->can('viewAllCash', Invoice::class)) {
+        if (! $request->user()->can('viewAllPayments', Invoice::class)) {
             $query->where('received_by', $request->user()->id);
         } elseif ($request->filled('received_by')) {
             $query->where('received_by', $request->query('received_by'));

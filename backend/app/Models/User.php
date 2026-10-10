@@ -4,27 +4,30 @@ namespace App\Models;
 
 use App\Enums\Role;
 use App\Models\Concerns\LogsActivity;
+use App\Support\PermissionCatalog;
 use App\Support\PhoneNumber;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'roles', 'is_active', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'is_active', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, LogsActivity, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
+
+    /** Garde des rôles et permissions (les jetons Sanctum s'authentifient sur le même fournisseur). */
+    protected string $guard_name = 'web';
 
     protected $attributes = [
-        'roles' => '[]',
         'is_active' => true,
     ];
 
@@ -34,7 +37,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'roles' => AsEnumCollection::of(Role::class),
             'is_active' => 'boolean',
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
@@ -49,10 +51,31 @@ class User extends Authenticatable
         );
     }
 
-    public function hasRole(Role ...$roles): bool
+    /**
+     * Le dirigeant est super-administrateur : toutes les permissions, y compris les futures.
+     */
+    public function isSuperAdmin(): bool
     {
-        foreach ($roles as $role) {
-            if ($this->roles->contains($role)) {
+        return $this->hasRole(PermissionCatalog::SUPER_ADMIN);
+    }
+
+    public function isDirigeant(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    /**
+     * Vrai si le compte a au moins une des permissions (par ses rôles ou à titre individuel).
+     * À utiliser dans les policies ; ailleurs, `can()` passe aussi par les policies.
+     */
+    public function hasPermission(string ...$permissions): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($this->checkPermissionTo($permission)) {
                 return true;
             }
         }
@@ -60,9 +83,18 @@ class User extends Authenticatable
         return false;
     }
 
-    public function isDirigeant(): bool
+    /**
+     * Permissions effectives (rôles + individuelles), triées.
+     *
+     * @return list<string>
+     */
+    public function effectivePermissions(): array
     {
-        return $this->hasRole(Role::Dirigeant);
+        if ($this->isSuperAdmin()) {
+            return PermissionCatalog::names();
+        }
+
+        return $this->getAllPermissions()->pluck('name')->unique()->sort()->values()->all();
     }
 
     /**
@@ -76,8 +108,8 @@ class User extends Authenticatable
     /**
      * @param  Builder<User>  $query
      */
-    public function scopeWithRole(Builder $query, Role $role): void
+    public function scopeWithRole(Builder $query, Role|string $role): void
     {
-        $query->whereJsonContains('roles', $role->value);
+        $query->role($role instanceof Role ? $role->value : $role);
     }
 }

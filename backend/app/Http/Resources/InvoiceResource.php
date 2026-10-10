@@ -75,9 +75,9 @@ class InvoiceResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'can' => $user ? [
                 'update' => $this->isDraft() && $user->can('update', $this->resource),
-                'issue' => $this->isDraft() && $user->can('update', $this->resource),
+                'issue' => $this->isDraft() && $user->can('issue', $this->resource),
                 'delete' => $this->isDraft() && $user->can('delete', $this->resource),
-                'credit' => ! $this->isDraft() && ! $this->isCreditNote() && $this->total > $this->credited_total && $user->can('update', $this->resource),
+                'credit' => ! $this->isDraft() && ! $this->isCreditNote() && $this->total > $this->credited_total && $user->can('credit', $this->resource),
                 'pay' => $this->balance() > 0 && $user->can('recordPayment', $this->resource),
                 'cancel_payment' => $user->can('cancelPayment', Invoice::class),
             ] : null,

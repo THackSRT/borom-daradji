@@ -3,15 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { api, getToken, setToken } from "@/lib/api";
-import type { RoleValue, User } from "./types";
+import type { User } from "./types";
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (login: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  hasRole: (...roles: RoleValue[]) => boolean;
-  isDirigeant: boolean;
+  /** Vrai si le compte a au moins une de ces permissions (le dirigeant les a toutes). */
+  can: (...permissions: string[]) => boolean;
+  isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -63,15 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(() => {
     const current = hasToken ? (user ?? null) : null;
-    const hasRole = (...roles: RoleValue[]) =>
-      !!current && (current.roles.some((r) => r.value === "dirigeant") || current.roles.some((r) => roles.includes(r.value)));
+    const granted = new Set(current?.permissions ?? []);
+    const can = (...permissions: string[]) =>
+      !!current && (current.is_super_admin || permissions.some((p) => granted.has(p)));
     return {
       user: current,
       isLoading: hasToken && isLoading,
       login,
       logout,
-      hasRole,
-      isDirigeant: !!current?.roles.some((r) => r.value === "dirigeant"),
+      can,
+      isSuperAdmin: !!current?.is_super_admin,
     };
   }, [hasToken, user, isLoading, login, logout]);
 
@@ -84,9 +86,12 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
-/** Protège une page : connexion obligatoire, et éventuellement un des rôles donnés (le dirigeant passe toujours). */
-export function RequireAuth({ children, roles }: { children: ReactNode; roles?: RoleValue[] }) {
-  const { user, isLoading, hasRole } = useAuth();
+/**
+ * Protège une page : connexion obligatoire, et éventuellement une des permissions données.
+ * L'API vérifie de toute façon chaque appel : ceci n'évite que d'afficher une page inutilisable.
+ */
+export function RequireAuth({ children, permissions }: { children: ReactNode; permissions?: string[] }) {
+  const { user, isLoading, can } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -99,7 +104,7 @@ export function RequireAuth({ children, roles }: { children: ReactNode; roles?: 
 
   if (!user) return <Navigate to="/admin/connexion" replace state={{ from: location.pathname }} />;
 
-  if (roles && !hasRole(...roles)) {
+  if (permissions && !can(...permissions)) {
     return <p className="p-8 text-muted-foreground">Vous n'avez pas accès à cette page.</p>;
   }
 

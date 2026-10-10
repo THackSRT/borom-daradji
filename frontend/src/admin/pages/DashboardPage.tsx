@@ -15,7 +15,7 @@ import { useQuickCreate } from "../components/QuickCreate";
 import { Avatar, EmptyState, Panel, ProgressBar, StatCard, WhatsAppLink } from "../components/ui";
 
 export default function DashboardPage() {
-  const { user, hasRole, isDirigeant } = useAuth();
+  const { user, can } = useAuth();
   const navigate = useNavigate();
   const quickCreate = useQuickCreate();
   const { data, isLoading } = useQuery({
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground first-letter:uppercase">{format(new Date(), "EEEE d MMMM", { locale: fr })}</p>
         <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">{greeting} {user?.name.split(" ")[0]}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isDirigeant ? "Voici l'activité de toute l'agence." : "Voici ce qui vous attend aujourd'hui."}
+          {can("dashboard.view_all") ? "Voici l'activité de toute l'agence." : "Voici ce qui vous attend aujourd'hui."}
         </p>
       </div>
 
@@ -46,7 +46,7 @@ export default function DashboardPage() {
             hint={k.tasks_overdue ? `dont ${k.tasks_overdue} en retard` : "Rien en retard"} tone={k.tasks_overdue ? "danger" : "default"}
             onClick={() => navigate("/admin/taches")} />
           <StatCard icon={CalendarDays} label="Visites aujourd'hui" value={k.visits_today} hint={`${k.visits_week} cette semaine`}
-            onClick={hasRole("agent", "commercial") ? () => navigate("/admin/visites") : undefined} />
+            onClick={can("visits.view", "visits.manage") ? () => navigate("/admin/visites") : undefined} />
           <StatCard icon={UserPlus} label="Prospects à contacter" value={k.new_leads} hint={`${k.leads_this_week} nouveaux en 7 jours`}
             tone={k.new_leads ? "warning" : "default"} onClick={() => navigate("/admin/clients?etape=nouveau")} />
           <StatCard icon={Building2} label="Biens en ligne" value={k.published} hint={k.drafts ? `${k.drafts} en attente de vérification` : "Aucun brouillon"}
@@ -79,9 +79,9 @@ export default function DashboardPage() {
             )}
           </Panel>
 
-          {hasRole("comptable", "agent", "commercial") && <OverdueInvoices />}
+          {can("invoices.view") && <OverdueInvoices />}
 
-          {hasRole("agent") && (
+          {can("properties.update") && (
             <Panel title="Biens en attente de publication" description="Terminez la vérification foncière pour les mettre en ligne."
               action={<Button variant="ghost" size="sm" asChild><Link to="/admin/biens?statut=brouillon">Voir <ArrowRight className="h-4 w-4" /></Link></Button>}
               bodyClassName="p-2">

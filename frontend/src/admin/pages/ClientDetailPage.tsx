@@ -37,9 +37,9 @@ const channelIcons: Record<string, typeof Phone> = {
 export default function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
+  const { can } = useAuth();
   const quickCreate = useQuickCreate();
-  const canSeeInvoices = hasRole("comptable", "agent", "commercial");
+  const canSeeInvoices = can("invoices.view");
   const key = ["client", id];
   const { data: client, isLoading } = useQuery({ queryKey: key, queryFn: () => api<{ data: Client }>(`/clients/${id}`).then((r) => r.data) });
   const [planning, setPlanning] = useState(false);
@@ -52,7 +52,7 @@ export default function ClientDetailPage() {
   });
 
   if (isLoading || !client) return <LoadingBlock rows={6} />;
-  const prospection = hasRole("agent", "commercial");
+  const prospection = can("clients.prospection");
   const openVisit = (v: Visit) => setReporting({ ...v, client: { id: client.id, name: client.name, phone: client.phone, whatsapp_url: client.whatsapp_url } });
 
   return (
@@ -418,7 +418,7 @@ function EditClient({ client }: { client: Client }) {
 
 /** Factures du client et reste à payer ; création d'une facture déjà rattachée à lui. */
 function ClientInvoices({ client }: { client: Client }) {
-  const { hasRole } = useAuth();
+  const { can } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["invoices", { client_id: client.id }],
@@ -431,7 +431,7 @@ function ClientInvoices({ client }: { client: Client }) {
     <Panel
       title="Factures"
       description={invoices.length ? `Reste à payer : ${cfa(due)}` : undefined}
-      action={hasRole("comptable") && (
+      action={can("invoices.manage") && (
         <Button size="sm" onClick={() => navigate(`/admin/factures/nouvelle?client=${client.id}&nom=${encodeURIComponent(client.name)}`)}>Nouvelle facture</Button>
       )}
     >

@@ -7,7 +7,8 @@
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
 - **Lot 2 en cours** : facturation, avoirs, encaissements, reçus, caisse du jour et leurs écrans **faits** ; baux, loyers, quittances, états des lieux et reversements en attente des réponses du client.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). Pas de pull request.
-- **Tests** : 133 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
+- **Tests** : 147 tests backend verts ; front : `typecheck`, `lint` (0 erreur, 17 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **CI GitHub** : le workflow existe mais GitHub ne démarre pas les tâches (aucune machine attribuée, aucun journal). Cause côté compte, probablement la facturation ou des Actions désactivées ; à vérifier par l'utilisateur sur la page de l'exécution.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (10 publiés), 4 clients, une visite, une tâche.
 - **Déploiement** : aucun serveur pour l'instant.
@@ -33,7 +34,7 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Volumes : biens en portefeuille, chantiers par an, articles en stock, factures par mois.
 - [ ] Le négoce a-t-il un dépôt avec vente au comptoir, ou seulement des livraisons sur chantier ?
 - [ ] Avec le comptable : méthode de valorisation du stock (CMUP proposé), TVA par activité (les loyers d'habitation sont-ils exonérés ? la TVA est choisie ligne par ligne, 18 % par défaut), mentions obligatoires sur les factures, délai de paiement par défaut (15 jours proposés).
-- [ ] Droits sur les factures (proposés) : le comptable prépare, émet et fait les avoirs ; agents et commerciaux consultent et encaissent ; le responsable travaux n'y a pas accès. Qui peut annuler un encaissement (comptable et dirigeant proposés) ?
+- [ ] Droits des rôles par défaut (désormais modifiables par le dirigeant dans « Rôles et droits ») : à passer en revue avec lui à la mise en service, notamment les factures (le comptable prépare, émet, fait les avoirs et annule les encaissements ; agents et commerciaux consultent et encaissent ; responsable travaux sans accès).
 - [ ] Coordonnées bancaires à saisir dans Paramètres : elles s'impriment sur les factures (virement).
 - [ ] Logiciel du cabinet comptable (Sage, Ciel, autre) pour le format des exports.
 - [ ] Nombre d'utilisateurs et rôles cumulés.
@@ -47,6 +48,14 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — RBAC : rôles et droits paramétrables
+
+- Demande de l'utilisateur : un système RBAC standard, complet. D-034 remplace D-005.
+- Serveur : `spatie/laravel-permission` ; catalogue de 31 permissions en 8 modules (`App\Support\PermissionCatalog`) ; 5 rôles par défaut reprenant exactement les droits d'avant ; reprise automatique des rôles existants (ancienne colonne `users.roles` supprimée) ; policies, routes et contrôleurs réécrits sur les permissions (`hasPermission`, `can:`) ; commande `borom:sync-permissions`.
+- API : `GET /api/roles`, `/api/permissions` (catalogue + qui a quoi), `POST/PUT/DELETE /api/roles`, `POST /api/roles/{id}/duplicate` ; comptes avec plusieurs rôles et droits individuels ; `/api/auth/me` renvoie les permissions effectives. Garde-fous : pas d'escalade, rôle dirigeant réservé aux dirigeants, pas de modification de ses propres droits, toujours un dirigeant actif, rôles par défaut non supprimables, rôle attribué non supprimable. Journal avant/après. 14 tests (147).
+- Écrans : « Rôles et droits » (liste, éditeur par module avec recherche et « tout le module », compteur +/− avant enregistrement, dupliquer, supprimer, matrice rôles × droits), « Comptes » (filtre par rôle, fiche latérale : compte, rôles cumulables, droits individuels avec « donné par » ; cases grisées pour ce qu'on ne peut pas donner) ; menu, pages et boutons pilotés par `can()`.
+- Vérifié dans Chromium : création d'un rôle « Assistante d'agence » à partir de Commercial, ajustement, compte avec ce rôle + un droit individuel, connexion de ce compte (menu réduit, page Comptes refusée) ; 390 px sans débordement. Corrigé au passage : après la création d'un rôle, l'écran restait sur le premier rôle de la liste.
 
 ### 2026-10-10 (suite) — Lot 2 : facturation, encaissements, caisse
 

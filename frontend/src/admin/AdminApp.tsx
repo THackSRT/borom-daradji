@@ -13,6 +13,7 @@ const ClientsPage = lazy(() => import("./pages/ClientsPage"));
 const ClientDetailPage = lazy(() => import("./pages/ClientDetailPage"));
 const VisitsPage = lazy(() => import("./pages/VisitsPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
+const RolesPage = lazy(() => import("./pages/RolesPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SitePage = lazy(() => import("./pages/SitePage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
@@ -39,20 +40,21 @@ export default function AdminApp() {
           <Route element={<RequireAuth><AdminLayout /></RequireAuth>}>
             <Route index element={<DashboardPage />} />
             <Route path="taches" element={<TasksPage />} />
-            <Route path="biens" element={<PropertiesPage />} />
-            <Route path="biens/:id" element={<PropertyDetailPage />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients/:id" element={<ClientDetailPage />} />
-            <Route path="visites" element={<RequireAuth roles={["agent", "commercial"]}><VisitsPage /></RequireAuth>} />
-            <Route path="factures" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><InvoicesPage /></RequireAuth>} />
-            <Route path="factures/nouvelle" element={<RequireAuth roles={["comptable"]}><InvoiceEditorPage /></RequireAuth>} />
-            <Route path="factures/:id" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><InvoiceDetailPage /></RequireAuth>} />
-            <Route path="factures/:id/modifier" element={<RequireAuth roles={["comptable"]}><InvoiceEditorPage /></RequireAuth>} />
-            <Route path="caisse" element={<RequireAuth roles={["comptable", "agent", "commercial"]}><CashPage /></RequireAuth>} />
-            <Route path="comptes" element={<RequireAuth roles={["dirigeant"]}><UsersPage /></RequireAuth>} />
-            <Route path="parametres" element={<RequireAuth roles={["dirigeant"]}><SettingsPage /></RequireAuth>} />
-            <Route path="site" element={<RequireAuth roles={["dirigeant"]}><SitePage /></RequireAuth>} />
-            <Route path="journal" element={<RequireAuth roles={["dirigeant"]}><ActivityPage /></RequireAuth>} />
+            <Route path="biens" element={<RequireAuth permissions={["properties.view"]}><PropertiesPage /></RequireAuth>} />
+            <Route path="biens/:id" element={<RequireAuth permissions={["properties.view"]}><PropertyDetailPage /></RequireAuth>} />
+            <Route path="clients" element={<RequireAuth permissions={["clients.view"]}><ClientsPage /></RequireAuth>} />
+            <Route path="clients/:id" element={<RequireAuth permissions={["clients.view"]}><ClientDetailPage /></RequireAuth>} />
+            <Route path="visites" element={<RequireAuth permissions={["visits.view", "visits.manage"]}><VisitsPage /></RequireAuth>} />
+            <Route path="factures" element={<RequireAuth permissions={["invoices.view"]}><InvoicesPage /></RequireAuth>} />
+            <Route path="factures/nouvelle" element={<RequireAuth permissions={["invoices.manage"]}><InvoiceEditorPage /></RequireAuth>} />
+            <Route path="factures/:id" element={<RequireAuth permissions={["invoices.view"]}><InvoiceDetailPage /></RequireAuth>} />
+            <Route path="factures/:id/modifier" element={<RequireAuth permissions={["invoices.manage"]}><InvoiceEditorPage /></RequireAuth>} />
+            <Route path="caisse" element={<RequireAuth permissions={["payments.create", "payments.view_all", "cash.view_all"]}><CashPage /></RequireAuth>} />
+            <Route path="comptes" element={<RequireAuth permissions={["users.view", "users.manage"]}><UsersPage /></RequireAuth>} />
+            <Route path="roles" element={<RequireAuth permissions={["roles.manage", "users.view", "users.manage"]}><RolesPage /></RequireAuth>} />
+            <Route path="parametres" element={<RequireAuth permissions={["settings.manage"]}><SettingsPage /></RequireAuth>} />
+            <Route path="site" element={<RequireAuth permissions={["site.manage"]}><SitePage /></RequireAuth>} />
+            <Route path="journal" element={<RequireAuth permissions={["activity.view"]}><ActivityPage /></RequireAuth>} />
           </Route>
         </Routes>
       </Suspense>
