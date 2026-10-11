@@ -35,6 +35,8 @@ const WorksiteDetailPage = lazy(() => import("./pages/WorksiteDetailPage"));
 const WorkersPage = lazy(() => import("./pages/WorkersPage"));
 const TerrainPage = lazy(() => import("./pages/TerrainPage"));
 const StockPage = lazy(() => import("./pages/StockPage"));
+const PilotagePage = lazy(() => import("./pages/PilotagePage"));
+const ExportsPage = lazy(() => import("./pages/ExportsPage"));
 const ArticleDetailPage = lazy(() => import("./pages/ArticleDetailPage"));
 const PurchasesPage = lazy(() => import("./pages/PurchasesPage"));
 const PurchaseEditorPage = lazy(() => import("./pages/PurchaseEditorPage"));
@@ -82,6 +84,8 @@ export default function AdminApp() {
             <Route path="catalogue" element={<RequireAuth permissions={["works.catalog"]}><CatalogPage /></RequireAuth>} />
             <Route path="chantiers" element={<RequireAuth permissions={["works.view"]}><WorksitesPage /></RequireAuth>} />
             <Route path="chantiers/:id" element={<RequireAuth permissions={["works.view"]}><WorksiteDetailPage /></RequireAuth>} />
+            <Route path="pilotage" element={<RequireAuth permissions={["reports.view"]}><PilotagePage /></RequireAuth>} />
+            <Route path="exports" element={<RequireAuth permissions={["reports.export", "settings.manage"]}><ExportsPage /></RequireAuth>} />
             <Route path="stock" element={<RequireAuth permissions={["stock.view", "stock.sell", "stock.purchases"]}><StockPage /></RequireAuth>} />
             <Route path="stock/:id" element={<RequireAuth permissions={["stock.view", "stock.sell", "stock.purchases"]}><ArticleDetailPage /></RequireAuth>} />
             <Route path="achats" element={<RequireAuth permissions={["stock.purchases"]}><PurchasesPage /></RequireAuth>} />

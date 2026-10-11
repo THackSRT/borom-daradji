@@ -18,8 +18,9 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->hasPermission('reports.view'), 403);
         [$from, $to] = self::period($request);
+        $preset = $request->filled('from') ? null : $request->query('period', 'mois');
 
-        return response()->json(['data' => $reports->overview($from, $to)]);
+        return response()->json(['data' => $reports->overview($from, $to, $preset)]);
     }
 
     /**

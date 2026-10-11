@@ -26,9 +26,9 @@ class ReportService
     /**
      * @return array<string, mixed>
      */
-    public function overview(CarbonImmutable $from, CarbonImmutable $to): array
+    public function overview(CarbonImmutable $from, CarbonImmutable $to, ?string $preset = 'mois'): array
     {
-        [$previousFrom, $previousTo] = self::previousPeriod($from, $to);
+        [$previousFrom, $previousTo] = self::previousPeriod($from, $to, $preset);
 
         return [
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
@@ -49,22 +49,21 @@ class ReportService
     }
 
     /**
-     * Période de comparaison : pour une période qui commence un 1er, les mêmes jours autant de mois
-     * plus tôt (1er–20 octobre → 1er–20 septembre ; une année → l'année d'avant) ; sinon, la période
-     * de même durée juste avant.
+     * Période de comparaison selon le préréglage : mois (et mois précédent) → les mêmes jours le mois
+     * d'avant ; trimestre → les mêmes jours au trimestre d'avant ; année → les mêmes dates l'année
+     * d'avant ; dates libres → la période de même durée juste avant.
      *
      * @return array{0: CarbonImmutable, 1: CarbonImmutable}
      */
-    public static function previousPeriod(CarbonImmutable $from, CarbonImmutable $to): array
+    public static function previousPeriod(CarbonImmutable $from, CarbonImmutable $to, ?string $preset = null): array
     {
-        if ($from->day === 1) {
-            $months = ($to->year - $from->year) * 12 + $to->month - $from->month + 1;
-
-            return [$from->subMonthsNoOverflow($months), $to->subMonthsNoOverflow($months)];
-        }
-        $days = (int) $from->diffInDays($to) + 1;
-
-        return [$from->subDays($days), $from->subDay()];
+        return match ($preset) {
+            'mois' => [$from->subMonthNoOverflow(), $to->subMonthNoOverflow()],
+            'mois_precedent' => [$from->subMonthNoOverflow()->startOfMonth(), $from->subMonthNoOverflow()->endOfMonth()->startOfDay()],
+            'trimestre' => [$from->subMonthsNoOverflow(3), $to->subMonthsNoOverflow(3)],
+            'annee', 'annee_precedente' => [$from->subYearNoOverflow(), $to->subYearNoOverflow()],
+            default => [$from->subDays((int) $from->diffInDays($to) + 1), $from->subDay()],
+        };
     }
 
     /**

@@ -116,7 +116,11 @@ class OverviewTest extends TestCase
         $this->getJson('/api/reports/overview')->assertForbidden();
 
         Sanctum::actingAs(User::factory()->dirigeant()->create());
-        $this->getJson('/api/reports/overview?period=annee')->assertOk()->assertJsonPath('data.period.from', '2026-01-01');
+        $this->getJson('/api/reports/overview?period=annee')->assertOk()->assertJsonPath('data.period.from', '2026-01-01')
+            ->assertJsonPath('data.previous_period.from', '2025-01-01')->assertJsonPath('data.previous_period.to', '2025-10-20');
+        $this->getJson('/api/reports/overview?period=trimestre')->assertJsonPath('data.previous_period.from', '2026-07-01')->assertJsonPath('data.previous_period.to', '2026-07-20');
+        $this->getJson('/api/reports/overview?period=mois_precedent')->assertJsonPath('data.previous_period.from', '2026-08-01')->assertJsonPath('data.previous_period.to', '2026-08-31');
+        $this->getJson('/api/reports/overview?from=2026-10-11&to=2026-10-20')->assertJsonPath('data.previous_period.from', '2026-10-01')->assertJsonPath('data.previous_period.to', '2026-10-10');
         $this->getJson('/api/reports/overview?from=2026-10-10&to=2026-10-01')->assertJsonValidationErrors('to');
     }
 }
