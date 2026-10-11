@@ -8,10 +8,10 @@
 - **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`. **Fusionné dans `main`** (PR #2, 2026-10-11).
 - **Lot 3** (travaux) : terminé, **fusionné dans `main`** (PR #4, 2026-10-11) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation acompte/situations/solde, tâcherons et pointage, caisse de chantier, budget et alerte à +10 %, lien de suivi du client (`/suivi/{jeton}`), appli terrain hors ligne (`/admin/terrain`). Règles et critères d'acceptation dans `perimetre-et-lots.md`, décisions D-044 à D-050 (valeurs par défaut à valider).
 - **Lot 4** (stock et négoce) : terminé, **fusionné dans `main`** (PR #5, 2026-10-11) : articles et catégories, mouvements au CMUP, achats fournisseurs et paiements, sorties vers les chantiers (coût réel du chantier) et retours, pertes, vente au comptoir, inventaire à l'aveugle, alertes de seuil. Règles et critères dans `perimetre-et-lots.md`, décisions D-051 à D-055.
-- **Lot 5** (pilotage) : **fonctionnellement terminé** sur la branche `lot-5-pilotage` (poussée, pas encore de PR ni de fusion, à faire sur demande de l'utilisateur) : tableau de bord du dirigeant (`/admin/pilotage`), exports comptables Excel avec comptes SYSCOHADA paramétrables (`/admin/exports`), recherche globale côté serveur. Décisions D-056 à D-058. **Les six lots du périmètre sont faits** ; reste la recette finale et la mise en production.
-- **Branches** : `main` contient les lots 0 à 4 (PR #1, #2, #4 et #5 fusionnées le 2026-10-11). Les branches des lots précédents sont conservées pour l'historique. Lot 5 sur `lot-5-pilotage` (depuis `main`), non fusionné. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
+- **Lot 5** (pilotage) : terminé, **fusionné dans `main`** (PR #6, 2026-10-11) : tableau de bord du dirigeant (`/admin/pilotage`), exports comptables Excel avec comptes SYSCOHADA paramétrables (`/admin/exports`), recherche globale côté serveur. Décisions D-056 à D-058. **Les six lots du périmètre sont faits** ; reste la recette finale et la mise en production.
+- **Branches** : `main` contient les lots 0 à 5 (PR #1, #2, #4, #5 et #6 fusionnées le 2026-10-11). Les branches des lots sont conservées pour l'historique. Branche `recette-finale` (depuis `main`) pour les corrections de la recette. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 262 tests backend verts sur `lot-5-pilotage` (252 sur `main`), sur SQLite **et** sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 262 tests backend verts sur `main`, sur SQLite **et** sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, le catalogue des travaux, des devis à chaque étape, le chantier en cours de Ngor (avancement, journal, lien de suivi, acompte payé et situation émise, 7 tâcherons, deux semaines de pointage, caisse du chef de chantier, matériaux sortis du stock), le stock (13 articles, 3 fournisseurs, 4 achats dont un à payer en retard, une vente au comptoir, 2 articles sous le seuil), les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
 - **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
@@ -22,9 +22,8 @@
 2. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
 3. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
 4. Tester l'appli terrain sur un vrai téléphone Android en HTTPS (installation, appareil photo, coupure réseau) ; ajuster les valeurs par défaut des lots 3 et 4 selon les réponses du client.
-5. Lot 5 : relecture par l'utilisateur, puis PR `lot-5-pilotage` → `main` et fusion **sur sa demande**.
-6. Faire valider par le cabinet comptable le format des exports (colonnes « écritures », import dans son logiciel) et les numéros de compte proposés (écran Exports comptables).
-7. Recette finale avec l'agence (parcours par rôle, données réelles), puis mise en production.
+5. Faire valider par le cabinet comptable le format des exports (colonnes « écritures », import dans son logiciel) et les numéros de compte proposés (écran Exports comptables).
+6. Recette finale avec l'agence (parcours par rôle, données réelles), puis mise en production.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -63,6 +62,10 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-11 (suite) — Fusion du lot 5
+
+- Demande de l'utilisateur : ouvrir la PR du lot 5 et la fusionner. PR #6 `lot-5-pilotage` → `main` (GitGuardian vert, sans conflit) fusionnée ; `main` vérifiée : 262 tests verts, Pint, typecheck et build propres. Les six lots sont dans `main`. Branche `recette-finale` créée pour la suite (recette, mise en production).
 
 ### 2026-10-11 (suite) — Fusion du lot 4, lot 5 : pilotage
 
