@@ -93,6 +93,10 @@ final class PermissionCatalog
                 'stock.inventory' => ['Faire les inventaires', 'Comptage physique et ajustement du stock.'],
                 'stock.costs' => ['Voir les coûts du stock', 'Prix d\'achat, coût moyen pondéré, valeur du stock, achats.'],
             ]],
+            'reports' => ['label' => 'Pilotage', 'permissions' => [
+                'reports.view' => ['Voir le tableau de bord de l\'agence', 'Chiffre d\'affaires par activité, encaissements, impayés, chantiers, stock.'],
+                'reports.export' => ['Exporter pour la comptabilité', 'Journaux des ventes, encaissements et achats, balances ; numéros de compte.'],
+            ]],
             'administration' => ['label' => 'Administration', 'permissions' => [
                 'users.view' => ['Consulter les comptes', 'Liste de l\'équipe et droits de chacun.'],
                 'users.manage' => ['Gérer les comptes', 'Créer, modifier, désactiver, attribuer des rôles, réinitialiser un mot de passe.'],
@@ -176,6 +180,7 @@ final class PermissionCatalog
                     'leases.view', 'payouts.view', 'payouts.manage', 'deposits.settle',
                     'works.view', 'works.payments', 'works.costs',
                     'stock.view', 'stock.purchases', 'stock.sell', 'stock.inventory', 'stock.costs',
+                    'reports.view', 'reports.export',
                 ],
             ],
         ];
@@ -213,6 +218,9 @@ final class PermissionCatalog
             'stock.sell' => ['comptable', 'commercial'],
             'stock.inventory' => ['responsable_travaux', 'comptable'],
             'stock.costs' => ['responsable_travaux', 'comptable'],
+            // Pilotage (lot 5).
+            'reports.view' => ['comptable'],
+            'reports.export' => ['comptable'],
         ];
     }
 

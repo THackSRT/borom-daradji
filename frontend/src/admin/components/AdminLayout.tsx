@@ -31,6 +31,8 @@ import {
   Store,
   ShoppingCart,
   ClipboardCheck,
+  ChartColumn,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +85,13 @@ const sections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/devis", label: "Devis", icon: FileSignature, permissions: ["works.view", "works.quotes"] },
       { to: "/admin/tacherons", label: "Tâcherons", icon: UsersRound, permissions: ["works.team", "works.payments"] },
       { to: "/admin/catalogue", label: "Catalogue", icon: BookOpen, permissions: ["works.catalog"] },
+    ],
+  },
+  {
+    title: "Pilotage",
+    items: [
+      { to: "/admin/pilotage", label: "Tableau de bord", icon: ChartColumn, permissions: ["reports.view"] },
+      { to: "/admin/exports", label: "Exports comptables", icon: FileSpreadsheet, permissions: ["reports.export"] },
     ],
   },
   {

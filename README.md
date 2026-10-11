@@ -29,8 +29,8 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
 | 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | Fait (états des lieux et restitution de la caution compris) |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client, appli terrain hors ligne | Fait (branche `lot-3-travaux`) |
-| 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir, inventaire | Fait (branche `lot-4-stock-negoce`) |
-| 5. Pilotage | Tableau de bord, exports comptables | À faire |
+| 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir, inventaire | Fait |
+| 5. Pilotage | Tableau de bord, exports comptables, recherche globale | Fait (branche `lot-5-pilotage`) |
 
 ## Démarrer avec Docker (recommandé)
 

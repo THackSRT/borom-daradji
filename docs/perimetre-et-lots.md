@@ -8,8 +8,8 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait**, fusionné |
 | 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait**, fusionné (valeurs par défaut à valider) |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | **Fait**, fusionné (valeurs par défaut à valider) |
-| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | **Fait** sur `lot-4-stock-negoce` (valeurs par défaut à valider) |
-| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
+| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | **Fait** sur `lot-5-pilotage` (comptes à valider avec le cabinet) |
 | Recette finale | Corrections, mise en production | 19-20 | — | — |
 
 Hors développement (déjà compris dans les 1 270 h) : maquettes 50 h, gestion de projet et démos 90 h, recette 110 h, reprise des données 30 h, formation 40 h.
@@ -264,6 +264,30 @@ Chacun est couvert par un test de fonctionnalité (`tests/Feature/Stock`).
 
 ## Lot 5 — Pilotage
 
-- Tableau de bord dirigeant : CA par activité (immobilier, travaux, négoce), encaissements, impayés, loyers en retard, chantiers en retard ou hors budget, stock sous le seuil.
-- Exports Excel : journal des ventes, des encaissements, des achats, balances clients et fournisseurs, avec numéros de compte SYSCOHADA paramétrables ; format à caler sur le logiciel du cabinet comptable.
-- Recherche globale (clients, biens, chantiers, factures, articles).
+**Fait** (branche `lot-5-pilotage`) : tableau de bord du dirigeant, exports comptables Excel, recherche globale. Valeurs par défaut **à valider** avec le client et son cabinet comptable.
+
+Tableau de bord (`/admin/pilotage`, `reports.view` : dirigeant et comptable par défaut, D-056) :
+- Période : ce mois, mois dernier, trimestre, cette année, année dernière ou dates libres ; comparaison avec la même période du mois, du trimestre ou de l'année d'avant (dates libres : la période de même durée juste avant).
+- Chiffre d'affaires HT = factures émises moins avoirs émis, à la date d'émission, par activité (immobilier, location, travaux, matériaux, autre) ; graphique des douze derniers mois par activité, avec tableau.
+- Encaissements par mode (hors retenues sur caution, qui ne sont pas de l'argent reçu).
+- Reste à encaisser par ancienneté de l'échéance (pas échu, 1-30, 31-60, 61-90, plus de 90 jours) et principaux débiteurs ; loyers en retard ; chantiers en retard ou hors budget ; stock sous le seuil et valeur du stock ; dettes fournisseurs (dont échues).
+
+Exports comptables (`/admin/exports`, `reports.export`, D-057) :
+- Fichiers Excel (.xlsx) : journal des ventes, des encaissements, des achats (avec règlements des fournisseurs) sur une période ; balances clients et fournisseurs à une date.
+- Chaque journal : une feuille « Écritures » (journal, date, n° de pièce, compte, compte de tiers, libellé, débit, crédit), équilibrée pièce par pièce, à importer dans le logiciel du cabinet après correspondance des colonnes, et une feuille de détail.
+- Ventes : client au débit (TTC), compte de ventes de l'activité (HT) et TVA collectée au crédit ; avoir : l'inverse. Encaissements : compte de trésorerie du mode au débit, client au crédit. Achats : achats (HT) et TVA déductible au débit, fournisseur au crédit ; règlements : fournisseur au débit, trésorerie au crédit.
+- Numéros de compte SYSCOHADA proposés (clients 4111, fournisseurs 4011, ventes 7061 / 7073 / 705 / 701 / 707, TVA 4431 et 4452, achats 601, caisse 571, Wave 5211, Orange Money 5212, Free Money 5213, chèques 513, banque 521, cautions 165), journaux VT / AC / TR, comptes de tiers « préfixe + n° de fiche » (C00023, F00007) : tous modifiables. Chaque export est inscrit au journal d'activité.
+
+Recherche globale (Ctrl+K) : clients (nom, e-mail, téléphone même partiel), biens, chantiers, devis, factures, articles, achats, chaque groupe seulement avec le droit de le consulter.
+
+### Critères d'acceptation du lot 5
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Reports`).
+
+- Le chiffre d'affaires par activité déduit les avoirs, ignore les brouillons et se compare à la période précédente.
+- Les encaissements excluent les retenues sur caution ; les impayés sont répartis par ancienneté.
+- Chantiers en retard, stock sous le seuil et dettes fournisseurs apparaissent au tableau de bord.
+- Les journaux exportés sont équilibrés pièce par pièce et utilisent les comptes de chaque activité et mode ; un compte modifié est repris dans l'export suivant.
+- Les balances clients et fournisseurs donnent le solde et la part échue à la date demandée.
+- La recherche globale trouve un client par un numéro partiel et ne montre que les groupes permis.
+- Tableau de bord et exports réservés à `reports.view` et `reports.export`.

@@ -152,6 +152,11 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - Numéros : `Sequence::next('achat' | 'inventaire')`, et `Sequence::next('article', 0)` (compteur sans année) pour `ART-0001`.
 - Lignes de facture rattachables à un article (`invoice_lines.article_id`, passé par `Billing::saveDraft`).
 
+### Pilotage (lot 5)
+- `App\Services\ReportService` calcule le tableau de bord (agrégats en PHP sur des volumes modestes, mêmes résultats sur SQLite et PostgreSQL) ; `ReportController::period()` lit la période (préréglage ou dates), réutilisée par les exports.
+- `App\Services\AccountingExport` produit les feuilles (écritures, détail, balances) ; `App\Support\Spreadsheet` les écrit en .xlsx avec OpenSpout (dates au format jj/mm/aaaa, montants entiers) ; `App\Support\AccountingAccounts` fusionne les comptes par défaut (`config/borom.php`, `accounting`) et ceux de l'agence.
+- Recherche globale : `Api\SearchController` ; ajouter un type = un groupe soumis à son droit, au format `{id, title, subtitle, url, status}`, et son libellé dans `GlobalSearch.tsx`.
+
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
 

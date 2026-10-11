@@ -100,4 +100,24 @@ return [
     ],
     'purchase_due_days' => (int) env('PURCHASE_DUE_DAYS', 30),
     'stock_allow_negative' => (bool) env('STOCK_ALLOW_NEGATIVE', false),
+
+    /*
+    | Exports comptables (lot 5) : numéros de compte SYSCOHADA proposés par défaut, modifiables par
+    | l'agence (écran Exports). À valider avec le cabinet comptable.
+    */
+    'accounting' => [
+        'journals' => ['sales' => 'VT', 'purchases' => 'AC', 'treasury' => 'TR'],
+        'clients' => '4111',
+        'client_prefix' => 'C',
+        'suppliers' => '4011',
+        'supplier_prefix' => 'F',
+        'sales' => ['immobilier' => '7061', 'location' => '7073', 'travaux' => '705', 'negoce' => '701', 'autre' => '707'],
+        'vat_collected' => '4431',
+        'vat_deductible' => '4452',
+        'purchases' => '601',
+        'treasury' => [
+            'especes' => '571', 'wave' => '5211', 'orange_money' => '5212', 'free_money' => '5213',
+            'cheque' => '513', 'virement' => '521', 'caution' => '165',
+        ],
+    ],
 ];
