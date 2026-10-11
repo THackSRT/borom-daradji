@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\CashMovementType;
 use App\Models\CashMovement;
 use App\Models\CashSession;
+use App\Models\Invoice;
 use App\Models\SiteCashEntry;
 use App\Models\User;
 use App\Models\Worksite;
@@ -190,6 +191,9 @@ class SiteCash
 
     private function openSession(User $by, ?int $outgoing = null): CashSession
     {
+        if (! $by->can('useCash', Invoice::class)) {
+            throw ValidationException::withMessages(['from_cash_register' => 'Vous ne tenez pas de caisse : décochez « caisse du jour », ou passez par la personne qui tient la caisse.']);
+        }
         $session = Billing::todaySession($by);
         if ($session->isClosed()) {
             throw ValidationException::withMessages(['from_cash_register' => 'Votre caisse du jour est clôturée.']);

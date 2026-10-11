@@ -245,7 +245,8 @@ export type MetaKey =
   | "inspection_types"
   | "item_conditions"
   | "quote_statuses"
-  | "worksite_statuses";
+  | "worksite_statuses"
+  | "stock_movement_types";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -752,4 +753,127 @@ export interface WorksiteBudget {
   margin: number;
   alerted_at: string | null;
   cash_balance: number;
+}
+
+export interface ArticleCategory {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  articles_count?: number;
+}
+
+export interface Article {
+  id: number;
+  reference: string;
+  name: string;
+  category: Ref | null;
+  unit: string;
+  sale_price: number;
+  vat_rate: number;
+  quantity: number;
+  min_quantity: number;
+  max_quantity: number | null;
+  is_low: boolean;
+  location: string | null;
+  supplier: { id: number; name: string; phone: string | null } | null;
+  is_active: boolean;
+  notes: string | null;
+  purchase_price?: number;
+  average_cost?: number;
+  stock_value?: number;
+  created_at: string;
+}
+
+export interface StockMovement {
+  id: number;
+  type: Option;
+  quantity: number;
+  quantity_after: number;
+  moved_on: string;
+  reason: string | null;
+  article?: { id: number; reference: string; name: string; unit: string };
+  worksite?: { id: number; reference: string; title: string } | null;
+  purchase?: { id: number; number: string } | null;
+  invoice?: { id: number; number: string | null } | null;
+  author?: Ref | null;
+  unit_cost?: number;
+  value?: number;
+  average_cost_after?: number;
+  created_at: string;
+}
+
+export interface ArticleDetail extends Article {
+  movements: StockMovement[];
+  purchase_prices: { purchase: { id: number; number: string }; received_on: string; supplier: string; quantity: number; unit_cost: number }[] | null;
+  can: { manage: boolean; issue: boolean; inventory: boolean };
+}
+
+export interface StockSummary {
+  articles: number;
+  low: number;
+  out_of_stock: number;
+  stock_value?: number;
+}
+
+export interface Purchase {
+  id: number;
+  number: string;
+  supplier?: { id: number; name: string; phone: string | null };
+  supplier_reference: string | null;
+  received_on: string;
+  due_date: string | null;
+  subtotal: number;
+  vat_total: number;
+  total: number;
+  paid_total: number;
+  balance: number;
+  is_overdue: boolean;
+  notes: string | null;
+  lines?: { id: number; article: { id: number; reference: string; name: string; unit: string }; quantity: number; unit_cost: number; vat_rate: number; amount: number; vat_amount: number }[];
+  payments?: { id: number; amount: number; paid_on: string; method: Option; reference: string | null; note: string | null; paid_by: Ref | null; cancelled_at: string | null; cancel_reason: string | null }[];
+  author?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface PurchaseSummary {
+  unpaid_count: number;
+  unpaid_total: number;
+  overdue_count: number;
+  month_total: number;
+}
+
+export interface InventorySummaryRow {
+  id: number;
+  number: string;
+  counted_on: string;
+  status: Option<"en_cours" | "valide">;
+  category: Ref | null;
+  notes: string | null;
+  lines_count: number;
+  counted_count: number;
+  value_difference: number | null;
+  author: Ref | null;
+  validated_at: string | null;
+  validator: Ref | null;
+}
+
+export interface InventoryDetail extends InventorySummaryRow {
+  lines: {
+    article: { id: number; reference: string; name: string; unit: string; location: string | null; category: string | null; quantity: number | null };
+    counted_quantity: number | null;
+    expected_quantity: number | null;
+    difference: number | null;
+    value_difference: number | null;
+    note: string | null;
+  }[];
+}
+
+export interface WorksiteStock {
+  articles: { article: { id: number; reference: string; name: string; unit: string }; quantity: number; value: number | null }[];
+  total: number | null;
+  movements: StockMovement[];
+  can: { issue: boolean };
 }

@@ -27,6 +27,7 @@ use App\Enums\PropertyDocumentType;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Enums\QuoteStatus;
+use App\Enums\StockMovementType;
 use App\Enums\TaskPriority;
 use App\Enums\TransactionType;
 use App\Enums\VisitFeedback;
@@ -74,6 +75,7 @@ class MetaController extends Controller
             'item_conditions' => ItemCondition::class,
             'quote_statuses' => QuoteStatus::class,
             'worksite_statuses' => WorksiteStatus::class,
+            'stock_movement_types' => StockMovementType::class,
         ];
 
         $data = array_map(

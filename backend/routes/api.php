@@ -1,15 +1,18 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
+use App\Http\Controllers\Api\CounterSaleController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepositSettlementController;
 use App\Http\Controllers\Api\InteractionController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\LeaseInspectionController;
@@ -25,6 +28,7 @@ use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
 use App\Http\Controllers\Api\Public\WorksiteTrackingController;
+use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
@@ -35,6 +39,7 @@ use App\Http\Controllers\Api\VisitController;
 use App\Http\Controllers\Api\WorkerController;
 use App\Http\Controllers\Api\WorksiteController;
 use App\Http\Controllers\Api\WorksiteCostController;
+use App\Http\Controllers\Api\WorksiteStockController;
 use App\Support\SiteContent;
 use Illuminate\Support\Facades\Route;
 
@@ -177,6 +182,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('worksites/{worksite}/cash/{entry}/receipt', [WorksiteCostController::class, 'receipt']);
     Route::post('worksites/{worksite}/cash/{entry}/cancel', [WorksiteCostController::class, 'cancelCashEntry']);
     Route::get('worksites/{worksite}/budget', [WorksiteCostController::class, 'budget']);
+    Route::get('worksites/{worksite}/stock', [WorksiteStockController::class, 'index']);
+    Route::post('worksites/{worksite}/stock-exits', [WorksiteStockController::class, 'store']);
+    Route::post('worksites/{worksite}/stock-returns', [WorksiteStockController::class, 'return']);
     Route::apiResource('workers', WorkerController::class)->except(['destroy']);
     Route::post('workers/{worker}/payments', [WorkerController::class, 'storePayment']);
     Route::post('workers/{worker}/payments/{payment}/cancel', [WorkerController::class, 'cancelPayment']);
@@ -191,6 +199,23 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // Administration (RBAC) : comptes, rôles, paramètres, site, journal.
     Route::get('team', [UserController::class, 'team']);
+
+    // Stock et négoce (droits stock.*).
+    Route::get('article-categories', [ArticleController::class, 'categories']);
+    Route::post('article-categories', [ArticleController::class, 'storeCategory']);
+    Route::put('article-categories/{category}', [ArticleController::class, 'updateCategory']);
+    Route::get('stock-movements', [ArticleController::class, 'movements']);
+    Route::apiResource('articles', ArticleController::class)->except(['destroy']);
+    Route::post('articles/{article}/loss', [ArticleController::class, 'loss']);
+    Route::post('articles/{article}/correction', [ArticleController::class, 'correction']);
+    Route::apiResource('purchases', PurchaseController::class)->except(['destroy']);
+    Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
+    Route::post('purchases/{purchase}/payments', [PurchaseController::class, 'storePayment']);
+    Route::post('purchases/{purchase}/payments/{payment}/cancel', [PurchaseController::class, 'cancelPayment']);
+    Route::post('counter-sales', [CounterSaleController::class, 'store']);
+    Route::post('invoices/{invoice}/stock-returns', [CounterSaleController::class, 'returnGoods']);
+    Route::apiResource('inventories', InventoryController::class);
+    Route::post('inventories/{inventory}/validate', [InventoryController::class, 'validateCount']);
     Route::apiResource('users', UserController::class);
     Route::get('roles', [RoleController::class, 'index']);
     Route::get('roles/{role}', [RoleController::class, 'show']);

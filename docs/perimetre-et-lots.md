@@ -7,8 +7,8 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait**, fusionné |
 | 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait**, fusionné (valeurs par défaut à valider) |
-| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
-| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
+| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | **Fait** sur `lot-4-stock-negoce` (valeurs par défaut à valider) |
 | 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
 | Recette finale | Corrections, mise en production | 19-20 | — | — |
 
@@ -200,7 +200,7 @@ Tâcherons, caisse de chantier, budget (D-047, D-048) :
 - Travaux à la tâche (prix convenu) : dus une fois marqués terminés ; une tâche terminée ne s'annule plus.
 - Avances et paiements (`works.payments`) : dû = journées + tâches terminées ; solde = dû − versé, tous chantiers confondus ; un paiement ne dépasse pas le reste dû (au-delà, c'est une avance) ; référence obligatoire hors espèces ; payé ou non avec la caisse du chantier ; jamais supprimé, annulé avec motif.
 - Caisse du chantier, tenue par le chef de chantier : approvisionnement par l'agence (`works.payments`), pris dans la caisse du jour (sortie automatique « avance à un chef de chantier ») ou versé autrement ; dépenses sur place par catégorie avec photo du reçu (`works.cash`), reçu ajoutable après coup, dépenses sans reçu signalées ; paiements de tâcherons ; reliquat rendu (éventuellement remis dans la caisse du jour). Solde négatif admis : le chef a avancé de sa poche. Annulation avec motif ; les espèces de la caisse du jour font le chemin inverse tant qu'elle n'est pas clôturée.
-- Budget prévu (matériaux, main-d'œuvre, autres) et coût réel (`works.costs`) : main-d'œuvre des tâcherons (dû, payé ou non) + dépenses de la caisse par poste ; marge = marché HT − coût réel. Au-delà de +10 % (`BUDGET_ALERT_TOLERANCE`), une tâche « budget dépassé » au chef de chantier, une seule fois tant que le budget ne change pas. Les sorties de stock vers le chantier s'ajouteront avec le lot 4.
+- Budget prévu (matériaux, main-d'œuvre, autres) et coût réel (`works.costs`) : main-d'œuvre des tâcherons (dû, payé ou non) + matériaux sortis du stock au CMUP (lot 4, retours déduits) + dépenses de la caisse par poste ; marge = marché HT − coût réel. Au-delà de +10 % (`BUDGET_ALERT_TOLERANCE`), une tâche « budget dépassé » au chef de chantier, une seule fois tant que le budget ne change pas.
 
 Lien de suivi du client (D-049) :
 - Adresse `/suivi/{jeton}` (jeton aléatoire de 48 caractères) créée, renouvelée ou révoquée depuis la fiche du chantier (`works.manage`) et envoyée par WhatsApp ; l'ancien lien cesse de fonctionner.
@@ -227,10 +227,40 @@ Chacun est couvert par un test de fonctionnalité (`tests/Feature/Works`), sauf 
 
 ## Lot 4 — Stock et négoce
 
-- Articles (référence, catégorie, unité, prix d'achat et de vente, seuils min/max, emplacement), fournisseurs.
-- Mouvements : entrée fournisseur, sortie vers un chantier (coût imputé au chantier), vente au comptoir (facture du lot 2), perte/casse (motif obligatoire), ajustement d'inventaire.
-- **Valorisation CMUP** recalculée à chaque entrée ; historique des prix.
-- Alertes de seuil, inventaire physique avec écarts.
+**Fait** (branche `lot-4-stock-negoce`) : articles et catégories, mouvements valorisés au CMUP, achats aux fournisseurs et leurs paiements, sorties vers les chantiers et retours, pertes, vente au comptoir, inventaire physique, alertes de seuil. Un seul dépôt (multi-dépôts et commandes fournisseurs reportés en phase 2). Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Articles et valorisation (D-051) :
+- Article : référence (`ART-0001` d'office, ou saisie), désignation, catégorie (10 créées à l'installation, modifiables), unité, prix de vente HT et TVA, seuil d'alerte et stock maximum, emplacement, fournisseur habituel. Désactivé plutôt que supprimé (`stock.manage`).
+- Quantité et coût moyen unitaire pondéré (CMUP) jamais saisis : ils suivent les mouvements. Entrée : CMUP = (stock × CMUP + quantité × prix d'achat) / (stock + quantité). Sortie (chantier, vente, perte) au CMUP du moment, qui ne change pas. Valeur du stock = quantité × CMUP. Quantités à deux décimales (m³ de sable), CMUP à quatre, valeurs des mouvements au franc.
+- Chaque mouvement garde la quantité et le CMUP après lui ; rien ne se modifie ni ne se supprime : une erreur se corrige par le mouvement inverse. Sortie refusée au-delà du stock (`STOCK_ALLOW_NEGATIVE` pour l'autoriser).
+- Prix d'achat, CMUP, valeurs et achats visibles avec `stock.costs` seulement.
+
+Achats aux fournisseurs (D-052) :
+- Bon d'entrée `ACH-AAAA-0001` (`stock.purchases`) : fournisseur (un client, qui reçoit la catégorie « fournisseur »), référence de son bon ou de sa facture, date de réception, lignes (article, quantité, prix unitaire HT, TVA). La marchandise entre en stock à l'enregistrement ; le prix d'achat de l'article devient le dernier payé ; historique des prix sur la fiche article.
+- Échéance à 30 jours par défaut (`PURCHASE_DUE_DAYS`) ; paiements partiels, référence obligatoire hors espèces ; en espèces, sortie automatique de la caisse du jour (mouvement « paiement d'un fournisseur »), réservée à qui tient une caisse. Paiement annulé avec motif (les espèces reviennent tant que la caisse est ouverte).
+- Achat annulé avec motif : la marchandise ressort à son prix d'achat (le CMUP redevient ce qu'il aurait été) ; refusé s'il reste des paiements ou si la marchandise est déjà sortie.
+
+Sorties, pertes, vente au comptoir (D-053) :
+- Bon de sortie vers un chantier ouvert (`stock.issue`), plusieurs articles : coût au CMUP imputé au chantier, compté dans son coût réel (poste matériaux) et son alerte de budget. Retour au dépôt au coût de sortie, sans dépasser ce qui est parti sur ce chantier.
+- Perte ou casse : motif obligatoire. Correction ponctuelle à la quantité constatée, avec motif (`stock.inventory`).
+- Vente au comptoir (`stock.sell`) : client connu, ou de passage (nom, téléphone facultatif ; un numéro connu retrouve la fiche) ; prix de la fiche, modifiable ligne par ligne (alerte sous le coût moyen pour qui voit les coûts). La facture « matériaux » est émise aussitôt (numéro continu du lot 2) et le stock diminue dans la même transaction ; encaissement immédiat possible (`payments.create`, espèces dans la caisse du jour). Rien n'est enregistré si un article manque.
+- Retour de marchandise vendue : rentre en stock au coût de sa sortie, sans dépasser ce qui a été vendu sur la facture ; l'avoir se fait à part (comptable).
+
+Inventaire et alertes (D-054) :
+- Inventaire `INV-AAAA-001` (`stock.inventory`), de tous les articles ou d'une catégorie, un seul en cours : comptage à l'aveugle (le stock théorique n'est pas affiché), enregistré au fil de la saisie. À la validation, chaque article compté est ajusté ; le théorique est relevé à ce moment (les mouvements pendant le comptage sont pris en compte) ; écarts valorisés au CMUP ; non comptés inchangés. Figé une fois validé ; un inventaire en cours peut être supprimé.
+- Seuil d'alerte atteint : une tâche « réapprovisionner » (responsable travaux, sinon dirigeant) avec le fournisseur habituel, une seule fois tant que le stock ne remonte pas au-dessus du seuil. Filtre « À réapprovisionner » dans la liste.
+
+### Critères d'acceptation du lot 4
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Stock`).
+
+- Deux achats à des prix différents donnent le CMUP attendu ; une sortie se fait au CMUP sans le modifier ; l'annulation d'un achat rend le CMUP d'avant.
+- Une sortie vers un chantier compte dans son coût réel ; un retour la diminue au coût de sortie ; aucune sortie au-delà du stock ni vers un chantier fermé.
+- Une perte exige un motif ; le seuil d'alerte crée une seule tâche, de nouveau possible après réapprovisionnement.
+- Un paiement fournisseur en espèces sort de la caisse du jour et y revient s'il est annulé ; un achat payé ne s'annule pas.
+- Une vente au comptoir émet la facture, diminue le stock et encaisse en un geste ; refusée sans rien enregistrer si le stock manque ; un client de passage connu par son téléphone n'est pas recréé.
+- Un inventaire ajuste les articles comptés au stock réel et valorise les écarts ; validé, il ne se modifie plus.
+- Prix d'achat et coûts réservés à `stock.costs` ; chaque action réservée à sa permission (`stock.*`, `payments.create`).
 
 ## Lot 5 — Pilotage
 

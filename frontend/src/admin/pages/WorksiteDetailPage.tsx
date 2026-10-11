@@ -22,6 +22,7 @@ import { ProtectedImage } from "../components/ProtectedImage";
 import { BillingTab } from "../components/worksite/BillingTab";
 import { BudgetTab } from "../components/worksite/BudgetTab";
 import { CashTab } from "../components/worksite/CashTab";
+import { MaterialsTab } from "../components/worksite/MaterialsTab";
 import { TeamTab } from "../components/worksite/TeamTab";
 import { useAuth } from "../auth";
 
@@ -95,6 +96,7 @@ export default function WorksiteDetailPage() {
           <TabsTrigger value="photos">Photos ({worksite.photos?.length ?? 0})</TabsTrigger>
           {can("works.team", "works.payments", "works.costs") && <TabsTrigger value="equipe">Équipe</TabsTrigger>}
           {can("works.cash", "works.payments", "works.costs") && <TabsTrigger value="caisse">Caisse</TabsTrigger>}
+          {can("stock.view", "stock.issue", "works.costs") && <TabsTrigger value="materiaux">Matériaux</TabsTrigger>}
           {worksite.can?.costs && <TabsTrigger value="budget">Budget</TabsTrigger>}
           {can("invoices.view", "works.costs") && <TabsTrigger value="factures">Factures</TabsTrigger>}
           <TabsTrigger value="suivi">Lien de suivi</TabsTrigger>
@@ -104,6 +106,7 @@ export default function WorksiteDetailPage() {
         <TabsContent value="photos"><PhotosTab worksite={worksite} /></TabsContent>
         <TabsContent value="equipe"><TeamTab worksite={worksite} /></TabsContent>
         <TabsContent value="caisse"><CashTab worksite={worksite} /></TabsContent>
+        <TabsContent value="materiaux"><MaterialsTab worksite={worksite} /></TabsContent>
         <TabsContent value="budget"><BudgetTab worksite={worksite} onEdit={canUpdate ? () => setEditing(true) : undefined} /></TabsContent>
         <TabsContent value="factures"><BillingTab worksite={worksite} /></TabsContent>
         <TabsContent value="suivi"><TrackingTab worksite={worksite} /></TabsContent>

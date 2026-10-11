@@ -6,12 +6,13 @@
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : terminé, **fusionné dans `main`** (PR #1, 2026-10-11).
 - **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`. **Fusionné dans `main`** (PR #2, 2026-10-11).
-- **Lot 3** (travaux) : **fonctionnellement terminé** sur la branche `lot-3-travaux` (poussée, **pas encore de PR ni de fusion**, à faire sur demande de l'utilisateur) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation acompte/situations/solde, tâcherons et pointage, caisse de chantier, budget et alerte à +10 %, lien de suivi du client (`/suivi/{jeton}`), appli terrain hors ligne (`/admin/terrain`). Règles et critères d'acceptation dans `perimetre-et-lots.md`, décisions D-044 à D-050 (valeurs par défaut à valider).
-- **Branches** : `main` contient les lots 0, 1 et 2 (PR #1 et #2 fusionnées le 2026-10-11). Les branches `lot-0-socle`, `lot-1-biens-prospects` et `lot-2-encaissements-location` sont conservées pour l'historique. Lot 3 sur `lot-3-travaux` (depuis `main`), non fusionné. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
+- **Lot 3** (travaux) : terminé, **fusionné dans `main`** (PR #4, 2026-10-11) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation acompte/situations/solde, tâcherons et pointage, caisse de chantier, budget et alerte à +10 %, lien de suivi du client (`/suivi/{jeton}`), appli terrain hors ligne (`/admin/terrain`). Règles et critères d'acceptation dans `perimetre-et-lots.md`, décisions D-044 à D-050 (valeurs par défaut à valider).
+- **Lot 4** (stock et négoce) : **fonctionnellement terminé** sur la branche `lot-4-stock-negoce` (poussée, pas encore de PR ni de fusion, à faire sur demande de l'utilisateur) : articles et catégories, mouvements au CMUP, achats fournisseurs et paiements, sorties vers les chantiers (coût réel du chantier) et retours, pertes, vente au comptoir, inventaire à l'aveugle, alertes de seuil. Règles et critères dans `perimetre-et-lots.md`, décisions D-051 à D-055.
+- **Branches** : `main` contient les lots 0 à 3 (PR #1, #2 et #4 fusionnées le 2026-10-11). Les branches `lot-0-socle`, `lot-1-biens-prospects`, `lot-2-encaissements-location` et `lot-3-travaux` sont conservées pour l'historique. Lot 4 sur `lot-4-stock-negoce` (depuis `main`), non fusionné. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 239 tests backend verts sur `lot-3-travaux`, sur SQLite **et** sur PostgreSQL (198 sur `main`) ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 252 tests backend verts sur `lot-4-stock-negoce` (239 sur `main`), sur SQLite **et** sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
-- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, le catalogue des travaux, des devis à chaque étape, le chantier en cours de Ngor (avancement, journal, lien de suivi, acompte payé et situation émise, 7 tâcherons, deux semaines de pointage, caisse du chef de chantier), les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
+- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, le catalogue des travaux, des devis à chaque étape, le chantier en cours de Ngor (avancement, journal, lien de suivi, acompte payé et situation émise, 7 tâcherons, deux semaines de pointage, caisse du chef de chantier, matériaux sortis du stock), le stock (13 articles, 3 fournisseurs, 4 achats dont un à payer en retard, une vente au comptoir, 2 articles sous le seuil), les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
 - **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
 
 ## Prochaines actions, dans l'ordre
@@ -19,8 +20,9 @@
 1. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl, pdo_pgsql…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
 2. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
 3. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
-4. Lot 3 : relecture par l'utilisateur, puis PR `lot-3-travaux` → `main` et fusion **sur sa demande**. Tester l'appli terrain sur un vrai téléphone Android en HTTPS (installation, appareil photo, coupure réseau).
-5. Lot 4 (stock et négoce), sur une branche `lot-4-stock-negoce` depuis `main` une fois le lot 3 fusionné : les sorties de stock vers un chantier s'ajouteront au coût réel (`WorksiteCosts`).
+4. Tester l'appli terrain sur un vrai téléphone Android en HTTPS (installation, appareil photo, coupure réseau) ; ajuster les valeurs par défaut du lot 3 selon les réponses du client.
+5. Lot 4 : relecture par l'utilisateur, puis PR `lot-4-stock-negoce` → `main` et fusion **sur sa demande**.
+6. Lot 5 (pilotage) : tableau de bord dirigeant, exports comptables (journaux des ventes, encaissements et achats, balances clients et fournisseurs) — les données existent maintenant (factures par activité, achats et dettes fournisseurs, valeur du stock).
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -44,6 +46,9 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Chef de chantier : a-t-il un compte ? Proposition : un rôle « Chef de chantier » (consulter les chantiers, photos et journal, pointage, caisse du chantier) à créer dans « Rôles et droits » ; qui approvisionne sa caisse et paie les tâcherons (comptable par défaut) ?
 - [ ] Tâcherons : demi-journée acceptée ? paiement chaque samedi, à la quinzaine, en fin de tâche ? Photo du reçu obligatoire au-delà d'un montant ?
 - [ ] Alerte de budget au-delà de 10 % : bon seuil ? qui la reçoit (chef de chantier, sinon responsable travaux) ?
+- [ ] Stock : liste des articles et catégories, prix de vente, seuils d'alerte ; qui gère le magasin et reçoit les alertes (responsable travaux par défaut) ; vente à perte au comptoir permise (aujourd'hui : oui, avec avertissement) ; stock négatif jamais (réglage `STOCK_ALLOW_NEGATIVE`).
+- [ ] Achats : délai de paiement habituel des fournisseurs (30 jours par défaut) ; les prix d'achat saisis sont-ils HT avec TVA récupérable ?
+- [ ] Comptoir : qui vend et qui encaisse (comptable et commerciaux par défaut) ; faut-il un client « comptoir » générique pour les ventes sans nom ?
 - [ ] Données existantes à reprendre (Excel, cahiers).
 - [ ] Hébergement et nom de domaine : qui paie, qui administre. *Base : PostgreSQL 17, choisi par l'utilisateur le 2026-10-10 (D-039).*
 - [ ] Caution : qui la garde (l'agence par défaut, sur sa facture d'entrée), et pour un bail géré, les retenues pour réparations reviennent-elles au propriétaire ? Faut-il un délai de restitution (souvent un ou deux mois après la sortie) ?
@@ -56,6 +61,18 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-11 (suite) — Lot 4 : stock et négoce
+
+- Demande de l'utilisateur : passer au lot 4. Branche `lot-4-stock-negoce` depuis `main`, poussée après chaque étape. D-051 à D-055.
+- API : `StockService` (CMUP, mouvements, alerte de seuil), `PurchaseService` (achats, paiements, annulation), `StockOperations` (sorties chantier, retours, pertes, corrections), `CounterSale` (vente au comptoir), `InventoryService` ; droits `stock.view|manage|purchases|issue|sell|inventory|costs` ; mouvements de caisse automatiques `paiement_fournisseur` / `retour_fournisseur` ; sorties de stock dans `WorksiteCosts`.
+- Écrans : Stock, fiche article, Achats (liste, saisie, fiche), Comptoir, Inventaires, onglet Matériaux du chantier ; menu « Stock et négoce ».
+- Corrigé en route : payer en espèces depuis la caisse du jour exige de tenir une caisse (D-055, s'applique aussi à la caisse de chantier) ; l'écran Caisse ne propose plus que les mouvements saisissables à la main.
+- 252 tests verts sur SQLite et PostgreSQL ; démo chargée sur PostgreSQL (mêmes résultats) ; front : typecheck, lint (0 erreur), build. Vérifié dans Chromium : stock, fiche article, sortie vers chantier, onglet Matériaux, inventaire validé, achats, vente au comptoir ; 390 px sans débordement.
+
+### 2026-10-11 (suite) — Fusion du lot 3
+
+- Demande de l'utilisateur : ouvrir la pull request du lot 3 et la fusionner. PR #4 `lot-3-travaux` → `main` (contrôle GitGuardian vert, sans conflit) fusionnée ; `main` vérifiée : 239 tests verts, Pint propre. Branche `lot-4-stock-negoce` créée depuis `main`.
 
 ### 2026-10-11 (suite) — Lot 3 : travaux
 

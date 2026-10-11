@@ -146,6 +146,12 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - `frontend/public/sw.js` (enregistré en production seulement, `src/main.tsx`) : pages en « réseau d'abord » avec repli sur la dernière page d'accueil, `/assets/` gardés à la première lecture (80 au plus), `/api/` et `/storage/` jamais interceptés. Caddy sert `sw.js`, `index.html` et le manifeste en `no-cache`. Changer le nom des caches (`borom-shell-v1`…) pour forcer un nettoyage.
 - Tester : `npm run build && npx vite preview` (relais `/api` vers l'API comme en dev) puis, dans Playwright, `context.setOffline(true)`.
 
+### Stock et négoce (lot 4)
+- Toute variation de stock passe par `App\Services\StockService` (`receive`, `issue`, `reverseEntry`, `adjustTo`) : verrou sur l'article, mouvement `stock_movements` (quantité et valeur signées, quantité et CMUP après), mise à jour de l'article, puis contrôle du seuil d'alerte. Ne jamais modifier `articles.quantity` ou `average_cost` ailleurs.
+- Au-dessus : `PurchaseService` (achats, paiements fournisseurs), `StockOperations` (sorties vers chantier, retours, pertes, corrections), `CounterSale` (vente au comptoir par `Billing`), `InventoryService`. `WorksiteCosts` lit les mouvements `sortie_chantier` / `retour_chantier` du chantier.
+- Numéros : `Sequence::next('achat' | 'inventaire')`, et `Sequence::next('article', 0)` (compteur sans année) pour `ART-0001`.
+- Lignes de facture rattachables à un article (`invoice_lines.article_id`, passé par `Billing::saveDraft`).
+
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
 

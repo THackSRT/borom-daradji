@@ -89,4 +89,15 @@ return [
     | de plus de ce pourcentage. Le cahier des charges dit 10 %.
     */
     'budget_alert_tolerance' => (float) env('BUDGET_ALERT_TOLERANCE', 10),
+
+    /*
+    | Stock (lot 4) : catégories créées à l'installation (modifiables), délai de paiement des achats
+    | fournisseurs, sortie refusée au-delà du stock disponible. À valider avec l'agence.
+    */
+    'default_article_categories' => [
+        'Ciment et liants', 'Fers et aciers', 'Agrégats (sable, gravier)', 'Briques et agglos', 'Bois et coffrage',
+        'Plomberie', 'Électricité', 'Carrelage et revêtements', 'Peinture', 'Quincaillerie et outillage',
+    ],
+    'purchase_due_days' => (int) env('PURCHASE_DUE_DAYS', 30),
+    'stock_allow_negative' => (bool) env('STOCK_ALLOW_NEGATIVE', false),
 ];
