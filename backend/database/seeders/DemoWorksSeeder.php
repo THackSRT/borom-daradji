@@ -10,15 +10,19 @@ use App\Models\Client;
 use App\Models\Quote;
 use App\Models\Trade;
 use App\Models\User;
+use App\Models\Worker;
+use App\Models\Worksite;
 use App\Services\Billing;
 use App\Services\QuoteService;
+use App\Services\SiteCash;
 use App\Services\WorksBilling;
 use App\Services\WorksiteService;
+use App\Services\WorksiteTeam;
 use Illuminate\Database\Seeder;
 
 /**
  * Travaux de démonstration : catalogue, un modèle de devis, des devis à chaque étape et un chantier
- * en cours (lots, avancement, journal, lien de suivi).
+ * en cours (lots, avancement, journal, lien de suivi, tâcherons, pointage, caisse de chantier).
  */
 class DemoWorksSeeder extends Seeder
 {
@@ -100,6 +104,8 @@ class DemoWorksSeeder extends Seeder
         Billing::recordPayment($deposit, ['method' => 'virement', 'amount' => $deposit->total, 'reference' => 'VIR-SY-ACOMPTE', 'paid_on' => today()->subWeeks(3)->toDateString()], $comptable);
         Billing::issue($billing->create($site->fresh(), 'situation', $comptable), $comptable);
 
+        $this->team($site, $manager, $comptable);
+
         // Devis envoyé, en attente de réponse.
         $roof = $quotes->save(new Quote([...$base, 'client_id' => $abdou->id, 'title' => 'Étanchéité de la terrasse et peinture de façade', 'site_address' => 'Liberté 6 extension']), [], [
             ['title' => 'Étanchéité', 'trade_id' => $trade('Étanchéité'), 'lines' => [$line('Étanchéité de toiture terrasse', 110)]],
@@ -114,5 +120,71 @@ class DemoWorksSeeder extends Seeder
         $refused = $quotes->duplicate(Quote::templates()->firstOrFail(), ['client_id' => $abdou->id, 'title' => 'Salle de bain de l\'étage'], $manager);
         $quotes->send($refused);
         $quotes->refuse($refused, 'Projet reporté à l\'année prochaine');
+    }
+
+    /**
+     * Équipe et argent du chantier en cours : deux semaines de pointage, des travaux à la tâche, des
+     * avances et paiements, la caisse du chef de chantier (approvisionnements, dépenses).
+     */
+    private function team(Worksite $site, User $manager, User $comptable): void
+    {
+        $worker = fn (string $name, string $phone, string $trade, string $type, int $rate) => Worker::create([
+            'name' => $name, 'phone' => $phone, 'trade_id' => $trade ? $this->tradeId($trade) : null, 'pay_type' => $type, 'daily_rate' => $rate, 'created_by' => $manager->id,
+        ]);
+        $chief = $worker('Ousmane Diallo', '+221771234501', 'Maçonnerie et gros œuvre', 'journalier', 10_000);
+        $mason = $worker('Lamine Faye', '+221771234502', 'Maçonnerie et gros œuvre', 'journalier', 7_000);
+        $helper1 = $worker('Babacar Ndour', '+221771234503', '', 'journalier', 5_000);
+        $helper2 = $worker('Cheikh Mbaye', '+221771234504', '', 'journalier', 5_000);
+        $steel = $worker('Aliou Cissé', '+221771234505', 'Béton armé et ferraillage', 'tache', 0);
+        $tiler = $worker('Pape Sow', '+221771234506', 'Carrelage et revêtements', 'tache', 0);
+        $worker('Mamadou Kane', '+221771234507', 'Électricité', 'tache', 0);
+
+        $team = app(WorksiteTeam::class);
+        $cash = app(SiteCash::class);
+
+        // Deux semaines de pointage (pas le dimanche), demi-journée de temps en temps.
+        for ($d = 13; $d >= 0; $d--) {
+            $day = today()->subDays($d);
+            if ($day->isSunday()) {
+                continue;
+            }
+            $entries = [['worker_id' => $chief->id, 'days' => 1.0], ['worker_id' => $mason->id, 'days' => $d % 5 === 0 ? 0.5 : 1.0], ['worker_id' => $helper1->id, 'days' => 1.0]];
+            if ($d % 3 !== 0) {
+                $entries[] = ['worker_id' => $helper2->id, 'days' => 1.0];
+            }
+            $team->recordAttendance($site, $day->toDateString(), $entries, $manager);
+        }
+
+        $ferraillage = $team->createTask($site, ['worker_id' => $steel->id, 'description' => 'Ferraillage de la dalle de l\'étage', 'amount' => 350_000], $manager);
+        $team->completeTask($ferraillage, today()->subDays(9)->toDateString());
+        $team->createTask($site, ['worker_id' => $tiler->id, 'description' => 'Carrelage des deux chambres (48 m²)', 'amount' => 240_000], $manager);
+
+        // Caisse du chef de chantier.
+        $cash->supply($site, ['amount' => 500_000, 'spent_on' => today()->subDays(13)->toDateString(), 'label' => 'Avance de démarrage'], $comptable);
+        $cash->supply($site, ['amount' => 400_000, 'spent_on' => today()->subDays(6)->toDateString(), 'label' => 'Avance de la semaine'], $comptable);
+        foreach ([
+            [12, 'materiaux', 180_000, '36 sacs de ciment'],
+            [12, 'transport', 25_000, 'Charrette et camion pour le sable'],
+            [10, 'materiaux', 150_000, '2 voyages de sable de mer lavé'],
+            [8, 'outillage', 60_000, 'Location bétonnière, une semaine'],
+            [5, 'materiaux', 120_000, '24 sacs de ciment'],
+            [3, 'divers', 15_000, 'Eau pour le gâchage'],
+            [1, 'transport', 20_000, 'Livraison des carreaux'],
+        ] as [$ago, $category, $amount, $label]) {
+            $cash->spend($site, ['category' => $category, 'amount' => $amount, 'label' => $label, 'spent_on' => today()->subDays($ago)->toDateString()], null, $manager);
+        }
+
+        // Avances et paiements : manœuvres payés chaque samedi avec la caisse, ferrailleur par Wave.
+        $team->pay($chief, ['kind' => 'avance', 'amount' => 30_000, 'method' => 'especes', 'worksite_id' => $site->id, 'from_site_cash' => true, 'paid_on' => today()->subDays(11)->toDateString()], $manager);
+        foreach ([$helper1, $helper2] as $helper) {
+            $team->pay($helper, ['kind' => 'paiement', 'amount' => 25_000, 'method' => 'especes', 'worksite_id' => $site->id, 'from_site_cash' => true, 'paid_on' => today()->subDays(7)->toDateString()], $manager);
+        }
+        $team->pay($steel, ['kind' => 'paiement', 'amount' => 350_000, 'method' => 'wave', 'reference' => 'WV-88213456', 'worksite_id' => $site->id, 'paid_on' => today()->subDays(8)->toDateString()], $comptable);
+        $team->pay($tiler, ['kind' => 'avance', 'amount' => 50_000, 'method' => 'orange_money', 'reference' => 'OM-5521987', 'worksite_id' => $site->id, 'paid_on' => today()->subDays(2)->toDateString()], $comptable);
+    }
+
+    private function tradeId(string $name): ?int
+    {
+        return Trade::where('name', $name)->value('id');
     }
 }

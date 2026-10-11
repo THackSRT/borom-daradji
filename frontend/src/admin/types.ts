@@ -642,3 +642,114 @@ export interface WorksiteSummary {
   late: number;
 }
 
+
+export interface Worker {
+  id: number;
+  name: string;
+  phone: string | null;
+  trade: Ref | null;
+  pay_type: Option<"journalier" | "tache">;
+  daily_rate: number;
+  is_active: boolean;
+  notes: string | null;
+  earned?: number;
+  paid?: number;
+  balance?: number;
+  created_at: string;
+}
+
+export interface WorkerPayment {
+  id: number;
+  kind: Option<"avance" | "paiement">;
+  amount: number;
+  paid_on: string;
+  method: Option;
+  reference: string | null;
+  note: string | null;
+  from_site_cash: boolean;
+  worksite?: { id: number; reference: string; title: string } | null;
+  paid_by?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface WorkerDetail extends Worker {
+  worksites: { id: number; reference: string; title: string; status: Option; days: number; earned: number; paid: number }[];
+  attendances: { id: number; worked_on: string; days: number; amount: number; worksite: { id: number; reference: string } }[];
+  tasks: { id: number; description: string; amount: number; status: string; completed_on: string | null; worksite: { id: number; reference: string } }[];
+  payments: WorkerPayment[];
+  can: { pay: boolean; update: boolean };
+}
+
+export interface Attendance {
+  id: number;
+  worker: Ref;
+  worked_on: string;
+  days: number;
+  daily_rate: number;
+  amount: number;
+  note: string | null;
+  client_uuid: string | null;
+}
+
+export interface WorkerTask {
+  id: number;
+  worker: Ref;
+  description: string;
+  amount: number;
+  status: Option<"en_cours" | "terminee" | "annulee">;
+  completed_on: string | null;
+}
+
+export interface WorksiteTeam {
+  date: string;
+  crew: {
+    worker: { id: number; name: string; phone: string | null; trade: string | null; pay_type: string; daily_rate: number; is_active: boolean };
+    days: number;
+    earned: number;
+    paid: number;
+    balance: number;
+  }[];
+  attendances: Attendance[];
+  tasks: WorkerTask[];
+  can: { team: boolean; pay: boolean };
+}
+
+export interface SiteCashEntry {
+  id: number;
+  kind: Option<"approvisionnement" | "depense" | "paiement_tacheron" | "retour">;
+  category: Option | null;
+  amount: number;
+  signed_amount: number;
+  label: string;
+  spent_on: string;
+  receipt_url: string | null;
+  from_cash_register: boolean;
+  client_uuid: string | null;
+  author?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface SiteCash {
+  totals: { approvisionnement: number; depense: number; paiement_tacheron: number; retour: number; balance: number; missing_receipts: number };
+  entries: SiteCashEntry[];
+  categories: Option[];
+  can: { spend: boolean; supply: boolean };
+}
+
+export interface WorksiteBudget {
+  planned: { materials: number; labor: number; other: number; total: number };
+  actual: { materials: number; labor: number; other: number; total: number };
+  labor_detail: { days: number; attendances: number; tasks: number };
+  expenses_by_category: { key: string; label: string; total: number }[];
+  consumed_rate: number | null;
+  tolerance: number;
+  over_budget: boolean;
+  contract_ht: number;
+  margin: number;
+  alerted_at: string | null;
+  cash_balance: number;
+}

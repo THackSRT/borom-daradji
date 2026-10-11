@@ -32,6 +32,8 @@ const QuoteDetailPage = lazy(() => import("./pages/QuoteDetailPage"));
 const CatalogPage = lazy(() => import("./pages/CatalogPage"));
 const WorksitesPage = lazy(() => import("./pages/WorksitesPage"));
 const WorksiteDetailPage = lazy(() => import("./pages/WorksiteDetailPage"));
+const WorkersPage = lazy(() => import("./pages/WorkersPage"));
+const WorkerDetailPage = lazy(() => import("./pages/WorkerDetailPage"));
 
 /**
  * Back-office, monté sous /admin. Chargé à la demande : le site vitrine ne télécharge pas ce code.
@@ -71,6 +73,8 @@ export default function AdminApp() {
             <Route path="catalogue" element={<RequireAuth permissions={["works.catalog"]}><CatalogPage /></RequireAuth>} />
             <Route path="chantiers" element={<RequireAuth permissions={["works.view"]}><WorksitesPage /></RequireAuth>} />
             <Route path="chantiers/:id" element={<RequireAuth permissions={["works.view"]}><WorksiteDetailPage /></RequireAuth>} />
+            <Route path="tacherons" element={<RequireAuth permissions={["works.view", "works.team", "works.payments"]}><WorkersPage /></RequireAuth>} />
+            <Route path="tacherons/:id" element={<RequireAuth permissions={["works.team", "works.payments"]}><WorkerDetailPage /></RequireAuth>} />
             <Route path="reversements" element={<RequireAuth permissions={["payouts.view", "payouts.manage"]}><PayoutsPage /></RequireAuth>} />
             <Route path="caisse" element={<RequireAuth permissions={["payments.create", "payments.view_all", "cash.view_all"]}><CashPage /></RequireAuth>} />
             <Route path="comptes" element={<RequireAuth permissions={["users.view", "users.manage"]}><UsersPage /></RequireAuth>} />

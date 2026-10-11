@@ -20,6 +20,9 @@ import { cfa, MoneyInput } from "../components/billing";
 import { EmptyState, Field, FormError, LoadingBlock, Panel, ProgressBar, StatusBadge, WhatsAppLink } from "../components/ui";
 import { ProtectedImage } from "../components/ProtectedImage";
 import { BillingTab } from "../components/worksite/BillingTab";
+import { BudgetTab } from "../components/worksite/BudgetTab";
+import { CashTab } from "../components/worksite/CashTab";
+import { TeamTab } from "../components/worksite/TeamTab";
 import { useAuth } from "../auth";
 
 export default function WorksiteDetailPage() {
@@ -90,12 +93,18 @@ export default function WorksiteDetailPage() {
           <TabsTrigger value="avancement">Avancement</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
           <TabsTrigger value="photos">Photos ({worksite.photos?.length ?? 0})</TabsTrigger>
+          {can("works.team", "works.payments", "works.costs") && <TabsTrigger value="equipe">Équipe</TabsTrigger>}
+          {can("works.cash", "works.payments", "works.costs") && <TabsTrigger value="caisse">Caisse</TabsTrigger>}
+          {worksite.can?.costs && <TabsTrigger value="budget">Budget</TabsTrigger>}
           {can("invoices.view", "works.costs") && <TabsTrigger value="factures">Factures</TabsTrigger>}
           <TabsTrigger value="suivi">Lien de suivi</TabsTrigger>
         </TabsList>
         <TabsContent value="avancement"><ProgressTab worksite={worksite} /></TabsContent>
         <TabsContent value="journal"><LogTab worksite={worksite} /></TabsContent>
         <TabsContent value="photos"><PhotosTab worksite={worksite} /></TabsContent>
+        <TabsContent value="equipe"><TeamTab worksite={worksite} /></TabsContent>
+        <TabsContent value="caisse"><CashTab worksite={worksite} /></TabsContent>
+        <TabsContent value="budget"><BudgetTab worksite={worksite} onEdit={canUpdate ? () => setEditing(true) : undefined} /></TabsContent>
         <TabsContent value="factures"><BillingTab worksite={worksite} /></TabsContent>
         <TabsContent value="suivi"><TrackingTab worksite={worksite} /></TabsContent>
       </Tabs>
@@ -348,7 +357,7 @@ function EditWorksiteDialog({ worksite, onClose }: { worksite: Worksite; onClose
       address: form.address || null, latitude: form.latitude, longitude: form.longitude, notes: form.notes || null,
       ...(costs ? { budget_materials: form.budget_materials || 0, budget_labor: form.budget_labor || 0, budget_other: form.budget_other || 0 } : {}),
     },
-  }), { success: "Chantier mis à jour.", invalidate: [["worksite", id], ["worksites"]], onSuccess: onClose });
+  }), { success: "Chantier mis à jour.", invalidate: [["worksite", id], ["worksites"], ["worksite-budget", worksite.id]], onSuccess: onClose });
   const err = (f: string) => mutation.error?.field(f);
   const locate = async () => {
     const p = await currentPosition(10_000);

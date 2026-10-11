@@ -50,7 +50,7 @@ export function BillingTab({ worksite }: { worksite: Worksite }) {
   const hasWork = billing.invoices.some((i) => i.kind.value !== "acompte");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Panel title="Factures du chantier" bodyClassName="p-0"
         action={billing.can_invoice && open && billing.contract_ht > 0 && (
           <div className="flex flex-wrap justify-end gap-2">

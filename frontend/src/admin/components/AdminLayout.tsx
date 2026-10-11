@@ -25,6 +25,7 @@ import {
   UserCog,
   Users,
   type LucideIcon,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +74,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/chantiers", label: "Chantiers", icon: HardHat, permissions: ["works.view"] },
       { to: "/admin/devis", label: "Devis", icon: FileSignature, permissions: ["works.view", "works.quotes"] },
+      { to: "/admin/tacherons", label: "Tâcherons", icon: UsersRound, permissions: ["works.team", "works.payments"] },
       { to: "/admin/catalogue", label: "Catalogue", icon: BookOpen, permissions: ["works.catalog"] },
     ],
   },

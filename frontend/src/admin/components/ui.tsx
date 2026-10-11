@@ -37,7 +37,7 @@ export function Panel({
   return (
     <section className={cn("rounded-xl border bg-card shadow-sm", className)}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 border-b px-5 py-4">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
           <div>
             {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
             {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
@@ -171,6 +171,7 @@ const tones: Record<string, string> = {
   suspendu: "bg-orange-50 text-orange-700 [--dot:theme(colors.orange.500)]",
   termine: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
   facture: "bg-indigo-50 text-indigo-700 [--dot:theme(colors.indigo.500)]",
+  terminee: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
 };
 
 /** Pastille de statut : point de couleur + libellé. */

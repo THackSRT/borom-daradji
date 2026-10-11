@@ -210,8 +210,8 @@ function CloseDialog({ session, open, onOpenChange }: { session: CashSession; op
 }
 
 function MovementDialog({ open, onOpenChange, available }: { open: boolean; onOpenChange: (open: boolean) => void; available: number }) {
-  // La restitution de caution sort de la caisse depuis la fiche du bail.
-  const types = useOptions("cash_movement_types").filter((t) => !["restitution_caution", "annulation_caution"].includes(t.value));
+  // Mouvements automatiques : la caution sort depuis la fiche du bail, les avances de chantier depuis la caisse du chantier.
+  const types = useOptions("cash_movement_types").filter((t) => !["restitution_caution", "annulation_caution", "avance_chantier", "retour_chantier"].includes(t.value));
   const [type, setType] = useState("depot_banque");
   const [amount, setAmount] = useState<number | "">("");
   const [label, setLabel] = useState("");
