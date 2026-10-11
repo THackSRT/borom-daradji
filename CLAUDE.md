@@ -14,6 +14,7 @@ Logiciel de gestion de **Borom Daradji**, une agence de Dakar qui fait de l'immo
 4. [`docs/architecture.md`](docs/architecture.md) : architecture, mécanismes transverses, conventions de code.
 5. [`docs/decisions.md`](docs/decisions.md) : décisions déjà prises et leurs raisons. **Ne pas les rediscuter sans élément nouveau.**
 6. [`docs/sources.md`](docs/sources.md) : résumé des documents du client (cahier des charges v2.0 et chiffrage) et erreurs relevées dedans.
+7. [`docs/phase-2.md`](docs/phase-2.md) : état des lieux après les lots 0 à 5 et proposition de phase 2 (lot 6 de consolidation, modules retenus, fonctionnalités retirées).
 
 ## Commandes
 

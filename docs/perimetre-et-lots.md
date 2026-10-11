@@ -35,7 +35,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 | Plusieurs tableaux de bord CA (5.17, 5.18, 6.5) | Un tableau de bord dirigeant, au lot 5 |
 | Pointage bancaire par import CSV (5.16) | Journal de caisse et rapprochement mobile money manuel |
 
-**Reporté en phase 2** : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
+**Reporté en phase 2** (proposition détaillée, état des lieux et tri dans [`phase-2.md`](phase-2.md)) : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
 
 ---
 

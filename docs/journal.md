@@ -24,6 +24,7 @@
 4. Tester l'appli terrain sur un vrai téléphone Android en HTTPS (installation, appareil photo, coupure réseau) ; ajuster les valeurs par défaut des lots 3 et 4 selon les réponses du client.
 5. Faire valider par le cabinet comptable le format des exports (colonnes « écritures », import dans son logiciel) et les numéros de compte proposés (écran Exports comptables).
 6. Recette finale avec l'agence (parcours par rôle, données réelles), puis mise en production.
+7. Faire valider par le client la proposition de phase 2 (`docs/phase-2.md`) : lot 6 de consolidation d'abord (reprise des données, carte, procès-verbal de réception, planning des chantiers, formulaire « Proposer mes biens »), puis l'ordre des neuf modules et les décisions de la section 7.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -62,6 +63,12 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-11 (suite) — Conception de la phase 2
+
+- Demande de l'utilisateur : concevoir la phase 2 en listant les fonctionnalités, retirer celles qui ne sont pas pertinentes, et faire l'état des lieux (prévu, fait, faisable, retiré). Document : `docs/phase-2.md`.
+- État des lieux vérifié dans le code : manques de la phase 1 relevés (carte, imports et exports de listes, procès-verbal de réception, planning des chantiers, bons de livraison, envois e-mail et SMS, mot de passe oublié, notifications) → proposés en **lot 6, consolidation**.
+- Phase 2 proposée en neuf modules (espace client, paiement en ligne, messages automatiques, signature simple, interventions et garanties, trésorerie et objectifs, négoce avancé, dossier technique, notifications et aide) ; retirés : application native, accusés de lecture, tutoriels vidéo en développement, lead scoring, ElasticSearch et PostGIS, calculs d'ingénierie, signature qualifiée ; sous condition : plusieurs dépôts, pointage bancaire. Estimations indicatives : lot 6 90-120 h, phase 2 620-890 h. Rien n'est développé : en attente de validation du client.
 
 ### 2026-10-11 (suite) — Fusion du lot 5
 
