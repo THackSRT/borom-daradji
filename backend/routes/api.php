@@ -152,6 +152,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'photo']);
     Route::put('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'updatePhoto']);
     Route::delete('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'destroyPhoto']);
+    Route::get('worksites/{worksite}/billing', [WorksiteController::class, 'billing']);
+    Route::get('worksites/{worksite}/invoices/preview', [WorksiteController::class, 'previewInvoice']);
+    Route::post('worksites/{worksite}/invoices', [WorksiteController::class, 'storeInvoice']);
     Route::post('worksites/{worksite}/tracking', [WorksiteController::class, 'enableTracking']);
     Route::delete('worksites/{worksite}/tracking', [WorksiteController::class, 'revokeTracking']);
 

@@ -9,6 +9,7 @@ use App\Models\Worksite;
 use App\Models\WorksiteLog;
 use App\Models\WorksiteLot;
 use App\Models\WorksitePhoto;
+use App\Services\WorksBilling;
 use App\Services\WorksiteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -190,6 +191,51 @@ class WorksiteController extends Controller
         $this->worksites->deletePhoto($photo);
 
         return new WorksiteResource($this->loaded($worksite));
+    }
+
+    /**
+     * Facturation du chantier : marché, factures (acompte, situations, solde), reste à facturer.
+     */
+    public function billing(Request $request, Worksite $worksite, WorksBilling $billing): JsonResponse
+    {
+        Gate::authorize('view', $worksite);
+        abort_unless($request->user()->hasPermission('invoices.view', 'works.costs'), 403);
+
+        return response()->json(['data' => [
+            ...$billing->summary($worksite),
+            'can_invoice' => $request->user()->hasPermission('invoices.manage'),
+        ]]);
+    }
+
+    public function previewInvoice(Request $request, Worksite $worksite, WorksBilling $billing): JsonResponse
+    {
+        Gate::authorize('view', $worksite);
+        abort_unless($request->user()->hasPermission('invoices.manage'), 403);
+        $data = $this->validateInvoiceRequest($request);
+
+        return response()->json(['data' => $billing->preview($worksite, $data['kind'], isset($data['deposit_rate']) ? (float) $data['deposit_rate'] : null)]);
+    }
+
+    public function storeInvoice(Request $request, Worksite $worksite, WorksBilling $billing): JsonResponse
+    {
+        Gate::authorize('view', $worksite);
+        abort_unless($request->user()->hasPermission('invoices.manage'), 403);
+        $data = $this->validateInvoiceRequest($request);
+
+        $invoice = $billing->create($worksite, $data['kind'], $request->user(), isset($data['deposit_rate']) ? (float) $data['deposit_rate'] : null);
+
+        return response()->json(['data' => ['id' => $invoice->id, 'total' => $invoice->total]], 201);
+    }
+
+    /**
+     * @return array{kind: string, deposit_rate?: float|string|null}
+     */
+    private function validateInvoiceRequest(Request $request): array
+    {
+        return $request->validate([
+            'kind' => ['required', Rule::in(array_keys(WorksBilling::KINDS))],
+            'deposit_rate' => ['nullable', 'numeric', 'min:1', 'max:100'],
+        ], [], ['kind' => 'type de facture', 'deposit_rate' => 'acompte']);
     }
 
     public function enableTracking(Worksite $worksite): WorksiteResource

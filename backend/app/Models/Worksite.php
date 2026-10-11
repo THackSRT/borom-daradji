@@ -114,6 +114,24 @@ class Worksite extends Model
     }
 
     /**
+     * @return HasMany<WorksiteInvoice, $this>
+     */
+    public function worksiteInvoices(): HasMany
+    {
+        return $this->hasMany(WorksiteInvoice::class)->orderBy('id');
+    }
+
+    /**
+     * Devis acceptés rattachés au chantier (le marché).
+     *
+     * @return HasMany<Quote, $this>
+     */
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class);
+    }
+
+    /**
      * Avancement global, pondéré par le montant des lots (moyenne simple si aucun montant).
      */
     public function progress(): int

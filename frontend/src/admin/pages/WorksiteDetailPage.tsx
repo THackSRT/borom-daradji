@@ -19,9 +19,12 @@ import type { Ref, Worksite } from "../types";
 import { cfa, MoneyInput } from "../components/billing";
 import { EmptyState, Field, FormError, LoadingBlock, Panel, ProgressBar, StatusBadge, WhatsAppLink } from "../components/ui";
 import { ProtectedImage } from "../components/ProtectedImage";
+import { BillingTab } from "../components/worksite/BillingTab";
+import { useAuth } from "../auth";
 
 export default function WorksiteDetailPage() {
   const { id } = useParams();
+  const { can } = useAuth();
   const [editing, setEditing] = useState(false);
   const { data: worksite, isLoading, isError } = useQuery({
     queryKey: ["worksite", id],
@@ -87,11 +90,13 @@ export default function WorksiteDetailPage() {
           <TabsTrigger value="avancement">Avancement</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
           <TabsTrigger value="photos">Photos ({worksite.photos?.length ?? 0})</TabsTrigger>
+          {can("invoices.view", "works.costs") && <TabsTrigger value="factures">Factures</TabsTrigger>}
           <TabsTrigger value="suivi">Lien de suivi</TabsTrigger>
         </TabsList>
         <TabsContent value="avancement"><ProgressTab worksite={worksite} /></TabsContent>
         <TabsContent value="journal"><LogTab worksite={worksite} /></TabsContent>
         <TabsContent value="photos"><PhotosTab worksite={worksite} /></TabsContent>
+        <TabsContent value="factures"><BillingTab worksite={worksite} /></TabsContent>
         <TabsContent value="suivi"><TrackingTab worksite={worksite} /></TabsContent>
       </Tabs>
 

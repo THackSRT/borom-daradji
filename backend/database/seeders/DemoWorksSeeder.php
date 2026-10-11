@@ -10,7 +10,9 @@ use App\Models\Client;
 use App\Models\Quote;
 use App\Models\Trade;
 use App\Models\User;
+use App\Services\Billing;
 use App\Services\QuoteService;
+use App\Services\WorksBilling;
 use App\Services\WorksiteService;
 use Illuminate\Database\Seeder;
 
@@ -90,6 +92,13 @@ class DemoWorksSeeder extends Seeder
         $worksites->log($site, 'Dalle coulée, décoffrage prévu dans 21 jours.', $manager, 'note', true, today()->subDays(9)->toDateString());
         $worksites->log($site, 'Livraison de 60 sacs de ciment et 2 voyages de sable.', $manager, 'note', false, today()->subDays(4)->toDateString());
         $worksites->enableTracking($site);
+
+        // Acompte de 30 % payé depuis Paris par virement, première situation émise, pas encore réglée.
+        $comptable = User::withRole(Role::Comptable)->firstOrFail();
+        $billing = app(WorksBilling::class);
+        $deposit = Billing::issue($billing->create($site->fresh(), 'acompte', $comptable), $comptable);
+        Billing::recordPayment($deposit, ['method' => 'virement', 'amount' => $deposit->total, 'reference' => 'VIR-SY-ACOMPTE', 'paid_on' => today()->subWeeks(3)->toDateString()], $comptable);
+        Billing::issue($billing->create($site->fresh(), 'situation', $comptable), $comptable);
 
         // Devis envoyé, en attente de réponse.
         $roof = $quotes->save(new Quote([...$base, 'client_id' => $abdou->id, 'title' => 'Étanchéité de la terrasse et peinture de façade', 'site_address' => 'Liberté 6 extension']), [], [
