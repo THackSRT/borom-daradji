@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
+use App\Http\Controllers\Api\Public\WorksiteTrackingController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
@@ -45,6 +46,12 @@ Route::prefix('public')->group(function () {
     Route::get('properties/{slug}', [PublicPropertyController::class, 'show']);
     Route::get('places', [PublicPropertyController::class, 'places']);
     Route::post('leads', [LeadController::class, 'store'])->middleware('throttle:5,1');
+    // Lien de suivi d'un chantier, envoyé au client.
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::get('worksites/{token}', [WorksiteTrackingController::class, 'show']);
+        Route::get('worksites/{token}/photos/{photo}', [WorksiteTrackingController::class, 'photo']);
+        Route::get('worksites/{token}/invoices/{invoice}/pdf', [WorksiteTrackingController::class, 'invoicePdf']);
+    });
 });
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
 

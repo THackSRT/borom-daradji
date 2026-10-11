@@ -2,7 +2,7 @@
  * Client de l'API Laravel : jeton Bearer, JSON, erreurs de validation (422) remontées par champ.
  */
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "/api";
+export const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "/api";
 const TOKEN_KEY = "borom_token";
 
 export class ApiError extends Error {
