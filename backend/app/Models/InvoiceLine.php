@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Ligne de facture. Pas de journal propre : les lignes ne changent que dans un brouillon,
  * et la facture journalise ses totaux. Montant et TVA arrondis au franc par ligne.
  */
-#[Fillable(['position', 'description', 'quantity', 'unit', 'unit_price', 'vat_rate', 'amount', 'vat_amount'])]
+#[Fillable(['article_id', 'position', 'description', 'quantity', 'unit', 'unit_price', 'vat_rate', 'amount', 'vat_amount'])]
 class InvoiceLine extends Model
 {
     /**

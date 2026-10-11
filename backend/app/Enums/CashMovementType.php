@@ -19,6 +19,8 @@ enum CashMovementType: string
     case AnnulationCaution = 'annulation_caution';
     case AvanceChantier = 'avance_chantier';
     case RetourChantier = 'retour_chantier';
+    case PaiementFournisseur = 'paiement_fournisseur';
+    case RetourFournisseur = 'retour_fournisseur';
 
     public function label(): string
     {
@@ -31,18 +33,20 @@ enum CashMovementType: string
             self::AnnulationCaution => 'Annulation d\'une restitution de caution',
             self::AvanceChantier => 'Avance à un chef de chantier',
             self::RetourChantier => 'Retour d\'avance de chantier',
+            self::PaiementFournisseur => 'Paiement d\'un fournisseur',
+            self::RetourFournisseur => 'Annulation d\'un paiement fournisseur',
         };
     }
 
     /** +1 pour une entrée d'argent dans la caisse, -1 pour une sortie. */
     public function sign(): int
     {
-        return in_array($this, [self::Apport, self::AnnulationCaution, self::RetourChantier], true) ? 1 : -1;
+        return in_array($this, [self::Apport, self::AnnulationCaution, self::RetourChantier, self::RetourFournisseur], true) ? 1 : -1;
     }
 
-    /** Créés automatiquement (caution, caisse de chantier), jamais saisis à la main. */
+    /** Créés automatiquement (caution, caisse de chantier, paiement fournisseur), jamais saisis à la main. */
     public function isAutomatic(): bool
     {
-        return in_array($this, [self::RestitutionCaution, self::AnnulationCaution, self::AvanceChantier, self::RetourChantier], true);
+        return ! in_array($this, [self::Apport, self::DepotBanque, self::Depense, self::Retrait], true);
     }
 }

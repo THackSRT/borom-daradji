@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Enums\Role;
+use App\Enums\StockMovementType;
 use App\Enums\TaskPriority;
 use App\Models\SiteCashEntry;
+use App\Models\StockMovement;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkerTask;
@@ -14,7 +16,8 @@ use App\Support\PermissionCatalog;
 
 /**
  * Budget prévu et coût réel d'un chantier. Coût réel = main-d'œuvre des tâcherons (journées pointées et
- * tâches terminées, qu'elles soient déjà payées ou non) + dépenses de la caisse de chantier. Les paiements
+ * tâches terminées, qu'elles soient déjà payées ou non) + matériaux sortis du stock (au CMUP, retours
+ * déduits) + dépenses de la caisse de chantier. Les paiements
  * des tâcherons ne s'ajoutent pas : ils règlent un travail déjà compté. Au-delà du budget plus la
  * tolérance (10 %), une tâche d'alerte, une seule fois tant que le budget ne change pas.
  */
@@ -41,7 +44,10 @@ class WorksiteCosts
         $expenses = SiteCashEntry::query()->valid()->where('worksite_id', $worksite->id)->where('kind', 'depense')
             ->selectRaw('category, sum(amount) as total')->groupBy('category')->pluck('total', 'category')
             ->map(fn ($v) => (int) $v);
-        $actual = ['materials' => 0, 'labor' => $attendances + $tasks, 'other' => 0];
+        // Matériaux sortis du stock vers ce chantier, retours déduits (valeurs signées des mouvements).
+        $stock = -(int) StockMovement::query()->where('worksite_id', $worksite->id)
+            ->whereIn('type', [StockMovementType::SortieChantier, StockMovementType::RetourChantier])->sum('value');
+        $actual = ['materials' => $stock, 'labor' => $attendances + $tasks, 'other' => 0];
         foreach ($expenses as $category => $total) {
             $actual[self::BUDGET_LINE[$category] ?? 'other'] += $total;
         }
@@ -58,6 +64,7 @@ class WorksiteCosts
             ],
             'actual' => [...$actual, 'total' => $actualTotal],
             'labor_detail' => ['days' => $days, 'attendances' => $attendances, 'tasks' => $tasks],
+            'materials_detail' => ['stock' => $stock, 'cash' => (int) ($expenses['materiaux'] ?? 0)],
             'expenses_by_category' => collect(SiteCashEntry::CATEGORIES)
                 ->map(fn (string $label, string $key) => ['key' => $key, 'label' => $label, 'total' => $expenses[$key] ?? 0])
                 ->values(),

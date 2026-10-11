@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Article;
+use App\Models\ArticleCategory;
 use App\Models\CashMovement;
 use App\Models\CashSession;
 use App\Models\CatalogItem;
@@ -10,6 +12,7 @@ use App\Models\ClientDocument;
 use App\Models\CompanySetting;
 use App\Models\DepositSettlement;
 use App\Models\Interaction;
+use App\Models\Inventory;
 use App\Models\Invoice;
 use App\Models\Lease;
 use App\Models\LeaseInspection;
@@ -21,10 +24,12 @@ use App\Models\Permission;
 use App\Models\Property;
 use App\Models\PropertyCheck;
 use App\Models\PropertyDocument;
+use App\Models\Purchase;
 use App\Models\Quote;
 use App\Models\Role;
 use App\Models\SearchCriterion;
 use App\Models\SiteCashEntry;
+use App\Models\SupplierPayment;
 use App\Models\Task;
 use App\Models\Trade;
 use App\Models\User;
@@ -89,6 +94,11 @@ class AppServiceProvider extends ServiceProvider
             'worker_task' => WorkerTask::class,
             'worker_payment' => WorkerPayment::class,
             'site_cash_entry' => SiteCashEntry::class,
+            'article_category' => ArticleCategory::class,
+            'article' => Article::class,
+            'purchase' => Purchase::class,
+            'supplier_payment' => SupplierPayment::class,
+            'inventory' => Inventory::class,
             'permission' => Permission::class,
         ]);
 
