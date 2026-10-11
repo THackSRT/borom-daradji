@@ -222,4 +222,98 @@ class DepositSettlementTest extends TestCase
         $this->postJson("/api/invoices/{$october->invoice_id}/payments", ['method' => 'caution', 'amount' => 1000])
             ->assertJsonValidationErrors('method');
     }
+
+    public function test_terminated_leases_awaiting_their_deposit_are_listed(): void
+    {
+        $lease = $this->endedLease();
+
+        $this->getJson('/api/leases?deposit_pending=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $lease->id)
+            ->assertJsonPath('summary.deposits_pending', 1);
+
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'wave', 'refund_reference' => 'WV-L'])->assertCreated();
+        $this->getJson('/api/leases?deposit_pending=1')->assertJsonCount(0, 'data')->assertJsonPath('summary.deposits_pending', 0);
+    }
+
+    public function test_a_settlement_is_cancelled_with_a_reason_and_can_be_redone(): void
+    {
+        $lease = $this->endedLease();
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'wave', 'refund_reference' => 'WV-A'])->assertCreated();
+        $this->assertSame(0, $lease->fresh()->arrears());
+
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", [])->assertJsonValidationErrors('reason');
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", ['reason' => 'Mauvais montant de caution'])
+            ->assertOk()
+            ->assertJsonPath('data.cancel_reason', 'Mauvais montant de caution');
+
+        // Octobre redevient impayé, la caution est de nouveau à restituer.
+        $this->assertSame(450_000, $lease->fresh()->arrears());
+        $this->getJson("/api/leases/{$lease->id}/deposit")
+            ->assertJsonPath('data.settlement', null)
+            ->assertJsonCount(1, 'data.cancelled')
+            ->assertJsonPath('data.can_settle', true);
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'wave', 'refund_reference' => 'WV-B'])
+            ->assertCreated()
+            ->assertJsonPath('data.number', 'CAU-2026-0002');
+    }
+
+    public function test_cancelling_a_cash_refund_puts_the_cash_back_while_the_till_is_open(): void
+    {
+        $lease = $this->endedLease();
+        $session = CashSession::query()->where('user_id', $this->accountant->id)->firstOrFail();
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'especes'])->assertCreated();
+        $this->assertSame(450_000, $session->fresh()->expected());
+
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", ['reason' => 'Saisie en double'])->assertOk();
+
+        $this->assertSame(900_000, $session->fresh()->expected());
+        $this->assertSame('annulation_caution', $session->movements()->latest('id')->first()->type->value);
+    }
+
+    public function test_a_settlement_cannot_be_cancelled_once_the_till_is_closed(): void
+    {
+        $lease = $this->endedLease();
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'especes'])->assertCreated();
+        CashSession::query()->where('user_id', $this->accountant->id)->firstOrFail()
+            ->forceFill(['closed_at' => now()])->save();
+
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", ['reason' => 'Erreur'])->assertJsonValidationErrors('settlement');
+    }
+
+    public function test_an_issued_balance_invoice_blocks_the_cancellation(): void
+    {
+        $lease = $this->endedLease();
+        $id = $this->postJson("/api/leases/{$lease->id}/deposit", ['deductions' => [['label' => 'Carrelage', 'amount' => 600_000]]])
+            ->json('data.balance_invoice.id');
+        Billing::issue(Invoice::findOrFail($id), $this->accountant);
+
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", ['reason' => 'Erreur'])->assertJsonValidationErrors('settlement');
+    }
+
+    public function test_terminating_can_put_the_property_back_on_the_market(): void
+    {
+        $property = Property::factory()->forRent(450_000)->published()->create(['agent_id' => $this->agent->id]);
+        Sanctum::actingAs($this->agent);
+        $id = $this->postJson('/api/leases', [
+            'property_id' => $property->id, 'tenant_id' => Client::factory()->create()->id,
+            'start_date' => '2026-10-01', 'rent' => 450_000, 'due_day' => 5,
+        ])->json('data.id');
+        $this->assertSame('loue', $property->fresh()->status->value);
+
+        $this->postJson("/api/leases/{$id}/terminate", ['terminated_on' => '2026-12-31', 'reason' => 'Préavis reçu', 'relist' => true])->assertOk();
+
+        $this->assertSame('disponible', $property->fresh()->status->value);
+    }
+
+    public function test_a_retained_rent_already_paid_out_to_the_owner_blocks_the_cancellation(): void
+    {
+        $lease = $this->endedLease();
+        $this->postJson("/api/leases/{$lease->id}/deposit", ['refund_method' => 'wave', 'refund_reference' => 'WV-P'])->assertCreated();
+        app(RentService::class)->recordPayout($this->owner, CarbonImmutable::parse('2026-10-01'), ['method' => 'virement', 'reference' => 'VIR-1', 'paid_on' => '2026-10-10'], $this->accountant);
+
+        $this->postJson("/api/leases/{$lease->id}/deposit/cancel", ['reason' => 'Erreur'])
+            ->assertJsonValidationErrors('settlement');
+    }
 }

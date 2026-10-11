@@ -174,7 +174,11 @@ class RentService
         });
     }
 
-    public function terminate(Lease $lease, string $date, string $reason): Lease
+    /**
+     * Résilie le bail ; avec `$relist`, le bien loué redevient disponible (visible sur le site s'il
+     * est vérifié). Si la remise en location est impossible, rien n'est fait.
+     */
+    public function terminate(Lease $lease, string $date, string $reason, ?User $by = null, bool $relist = false): Lease
     {
         if (! $lease->isActive()) {
             throw ValidationException::withMessages(['lease' => 'Ce bail est déjà résilié.']);
@@ -183,9 +187,22 @@ class RentService
             throw ValidationException::withMessages(['terminated_on' => 'La date de fin ne peut pas précéder le début du bail.']);
         }
 
-        $lease->forceFill(['status' => LeaseStatus::Resilie, 'terminated_on' => $date, 'termination_reason' => $reason])->save();
+        return DB::transaction(function () use ($lease, $date, $reason, $by, $relist) {
+            $lease->forceFill(['status' => LeaseStatus::Resilie, 'terminated_on' => $date, 'termination_reason' => $reason])->save();
 
-        return $lease;
+            $property = $lease->property;
+            if ($relist && $by && $property->status === PropertyStatus::Loue) {
+                try {
+                    $this->statuses->transition($property, PropertyStatus::Disponible, "Fin du bail {$lease->reference}", $by);
+                } catch (ValidationException $e) {
+                    throw ValidationException::withMessages([
+                        'relist' => 'Remise en location impossible : '.($e->errors()['status'][0] ?? $e->getMessage()).' Décochez la remise en location ou complétez la vérification.',
+                    ]);
+                }
+            }
+
+            return $lease;
+        });
     }
 
     /**

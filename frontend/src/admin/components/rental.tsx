@@ -67,6 +67,7 @@ export function InspectionsPanel({ lease }: { lease: Lease }) {
 
 export function DepositPanel({ lease }: { lease: Lease }) {
   const [settling, setSettling] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const active = lease.status.value === "actif";
   const { data: info } = useQuery({
     queryKey: ["lease-deposit", lease.id],
@@ -100,6 +101,11 @@ export function DepositPanel({ lease }: { lease: Lease }) {
           <p className="mt-1 text-xs text-muted-foreground">
             {settlement.number} · {formatDate(settlement.settled_on)}{settlement.refund_method && ` · ${settlement.refund_method.label}`}{settlement.refund_reference && ` (${settlement.refund_reference})`}
           </p>
+          {info.can_cancel && (
+            <button type="button" className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline" onClick={() => setCancelling(true)}>
+              Annuler cette restitution
+            </button>
+          )}
         </>
       ) : (
         <>
@@ -114,7 +120,11 @@ export function DepositPanel({ lease }: { lease: Lease }) {
           {info.can_settle && <Button className="mt-3 w-full" onClick={() => setSettling(true)}><Undo2 className="h-4 w-4" /> Restituer la caution</Button>}
         </>
       )}
+      {info?.cancelled.map((c) => (
+        <p key={c.id} className="mt-2 border-t pt-2 text-xs text-muted-foreground">{c.number} annulée le {formatDate(c.cancelled_at)} : {c.cancel_reason}</p>
+      ))}
       {settling && info && <SettlementDialog lease={lease} info={info} onClose={() => setSettling(false)} />}
+      {cancelling && settlement && <CancelSettlementDialog lease={lease} number={settlement.number} onClose={() => setCancelling(false)} />}
     </Panel>
   );
 }
@@ -237,6 +247,36 @@ function SettlementDialog({ lease, info, onClose }: { lease: Lease; info: Deposi
             <Button type="submit" disabled={mutation.isPending}>{refund > 0 ? `Rendre ${cfa(refund)}` : "Enregistrer"}</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CancelSettlementDialog({ lease, number, onClose }: { lease: Lease; number: string; onClose: () => void }) {
+  const [reason, setReason] = useState("");
+  const mutation = useApiMutation(() => api(`/leases/${lease.id}/deposit/cancel`, { method: "POST", body: { reason } }), {
+    success: "Restitution annulée : la caution est de nouveau à restituer.",
+    invalidate: [["lease", String(lease.id)], ["lease-deposit", lease.id], ["leases"], ["cash-session"], ["invoices"]],
+    onSuccess: onClose,
+  });
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Annuler la restitution {number}</DialogTitle>
+          <DialogDescription>
+            Les loyers retenus redeviennent impayés, les espèces rendues reviennent dans la caisse (si elle n'est pas clôturée)
+            et la facture de reste dû en brouillon est supprimée. Vous pourrez ensuite refaire la restitution.
+          </DialogDescription>
+        </DialogHeader>
+        <FormError message={mutation.error?.field("settlement")} />
+        <Field label="Motif" htmlFor="cancel-reason" error={mutation.error?.field("reason")}>
+          <Textarea id="cancel-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex. mauvais montant de caution" />
+        </Field>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Revenir</Button>
+          <Button variant="destructive" disabled={mutation.isPending} onClick={() => mutation.mutate(undefined)}>Annuler la restitution</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

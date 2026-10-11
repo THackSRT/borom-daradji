@@ -42,6 +42,9 @@ class LeaseController extends Controller
         if ($request->boolean('arrears')) {
             $query->whereHas('rentCalls.invoice', fn ($q) => $q->overdue());
         }
+        if ($request->boolean('deposit_pending')) {
+            $query->depositPending();
+        }
 
         $overdue = Invoice::query()->overdue()->whereHas('rentCall');
 
@@ -51,6 +54,7 @@ class LeaseController extends Controller
                 'monthly_rent' => (int) Lease::query()->active()->sum(DB::raw('rent + charges')),
                 'arrears' => (int) (clone $overdue)->sum(DB::raw('total - credited_total - paid_total')),
                 'leases_in_arrears' => Lease::query()->whereHas('rentCalls.invoice', fn ($q) => $q->overdue())->count(),
+                'deposits_pending' => Lease::query()->depositPending()->count(),
             ]]);
     }
 
@@ -106,9 +110,10 @@ class LeaseController extends Controller
         $data = $request->validate([
             'terminated_on' => ['required', 'date'],
             'reason' => ['required', 'string', 'max:500'],
+            'relist' => ['sometimes', 'boolean'],
         ], [], ['terminated_on' => 'date de fin', 'reason' => 'motif']);
 
-        $this->rent->terminate($lease, $data['terminated_on'], $data['reason']);
+        $this->rent->terminate($lease, $data['terminated_on'], $data['reason'], $request->user(), $request->boolean('relist'));
 
         return new LeaseResource($this->loaded($lease));
     }

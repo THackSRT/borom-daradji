@@ -5,10 +5,10 @@
 ## État actuel
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
-- **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution (valeurs par défaut à valider, D-035, D-040, D-041). Reste la fusion et le déploiement.
+- **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`.
 - **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). L'environnement Docker est sur `lot-2-encaissements-location`. Pas de pull request.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 186 tests backend verts, sur SQLite et sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 198 tests backend verts, sur SQLite et sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
 - **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
 - **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
@@ -51,6 +51,14 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-10 (suite) — Lot 2 : finitions avant fusion
+
+- Demande de l'utilisateur : terminer le lot 2, en comblant les derniers manques puis en fusionnant les lots 1 et 2 dans `main`. D-042, D-043.
+- Relances : `ReminderService`, commandes `borom:remind-overdue` (07:10) et `borom:check-lease-ends` (07:05) ; colonnes `invoices.reminder_level`, `last_reminded_at`, `leases.end_alerted_at`.
+- Résiliation avec « Remettre le bien en location » ; filtre et compteur « Cautions à restituer » (liste des baux, accueil) ; annulation d'une restitution de caution (mouvement de caisse « annulation_caution »).
+- Corrigé : le bouton « Encaisser » de l'échéancier était coupé à 1280 px (colonne « Facture » masquée sous 1536 px, le mois mène à la facture). PostgreSQL a révélé une valeur trop longue pour sa colonne (`annulation_restitution`, 22 caractères pour 20) : SQLite ne contrôle pas les longueurs, d'où l'intérêt de `make test-pgsql`.
+- 12 tests (198), verts sur SQLite et PostgreSQL. Vérifié dans Chromium : accueil du comptable, filtre des cautions, restitution puis annulation, résiliation avec remise en location.
 
 ### 2026-10-10 (suite) — PostgreSQL, fin du lot 2 (états des lieux, caution)
 

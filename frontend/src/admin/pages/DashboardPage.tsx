@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { formatDate, fromNow } from "@/lib/format";
 import { useAuth } from "../auth";
-import type { Dashboard, Invoice, InvoiceSummary, Paginated } from "../types";
+import type { Dashboard, Invoice, InvoiceSummary, Lease, LeaseSummary, Paginated } from "../types";
 import { cfa } from "../components/billing";
 import { TaskItem } from "../components/TaskItem";
 import { useQuickCreate } from "../components/QuickCreate";
@@ -80,6 +80,8 @@ export default function DashboardPage() {
           </Panel>
 
           {can("invoices.view") && <OverdueInvoices />}
+
+          {can("deposits.settle") && <PendingDeposits />}
 
           {can("properties.update") && (
             <Panel title="Biens en attente de publication" description="Terminez la vérification foncière pour les mettre en ligne."
@@ -172,6 +174,32 @@ function OverdueInvoices() {
             </Link>
             <span className="shrink-0 text-sm font-semibold tabular-nums text-red-600">{cfa(inv.balance)}</span>
           </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/** Baux résiliés dont la caution reste à restituer. */
+function PendingDeposits() {
+  const { data } = useQuery({
+    queryKey: ["leases", { deposit_pending: 1, dashboard: true }],
+    queryFn: () => api<Paginated<Lease> & { summary: LeaseSummary }>("/leases", { query: { deposit_pending: 1, per_page: 5 } }),
+  });
+  if (!data?.data.length) return null;
+  return (
+    <Panel title={`Cautions à restituer · ${data.summary.deposits_pending}`} description="Baux résiliés : retenues éventuelles, puis remboursement du locataire."
+      action={<Button variant="ghost" size="sm" asChild><Link to="/admin/baux?filtre=cautions">Tout voir <ArrowRight className="h-4 w-4" /></Link></Button>}
+      bodyClassName="p-2">
+      <div className="divide-y">
+        {data.data.map((lease) => (
+          <Link key={lease.id} to={`/admin/baux/${lease.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{lease.tenant.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{lease.property.title} · parti le {formatDate(lease.terminated_on)}</span>
+            </span>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">{cfa(lease.deposit)}</span>
+          </Link>
         ))}
       </div>
     </Panel>

@@ -17,6 +17,7 @@ const filters = [
   { value: "actif", label: "En cours" },
   { value: "arrieres", label: "Avec arriérés" },
   { value: "resilie", label: "Résiliés" },
+  { value: "cautions", label: "Cautions à restituer" },
   { value: "all", label: "Tous" },
 ];
 
@@ -39,6 +40,7 @@ export default function LeasesPage() {
     page,
     status: filter === "actif" || filter === "resilie" ? filter : undefined,
     arrears: filter === "arrieres" ? 1 : undefined,
+    deposit_pending: filter === "cautions" ? 1 : undefined,
   };
   const { data, isLoading } = useQuery({
     queryKey: ["leases", query],
@@ -63,7 +65,8 @@ export default function LeasesPage() {
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <FilterChips value={filter} onChange={setFilter} options={filters} />
+        <FilterChips value={filter} onChange={setFilter}
+          options={filters.map((f) => (f.value === "cautions" && summary?.deposits_pending ? { ...f, label: `${f.label} (${summary.deposits_pending})` } : f))} />
         <div className="relative w-full lg:w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="bg-card pl-9" placeholder="Locataire, bien ou référence" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
@@ -71,7 +74,7 @@ export default function LeasesPage() {
       </div>
 
       {isLoading ? <LoadingBlock /> : !data?.data.length ? (
-        <EmptyState icon={Home} title={filter === "arrieres" ? "Aucun arriéré" : "Aucun bail ici"}
+        <EmptyState icon={Home} title={filter === "arrieres" ? "Aucun arriéré" : filter === "cautions" ? "Aucune caution à restituer" : "Aucun bail ici"}
           action={can("leases.manage") && filter !== "arrieres" && <Button asChild><Link to="/admin/baux/nouveau"><Plus className="h-4 w-4" /> Créer un bail</Link></Button>}>
           {filter === "arrieres" ? "Tous les loyers échus sont payés." : "Un bail se crée depuis un bien à louer et un locataire."}
         </EmptyState>

@@ -56,6 +56,16 @@ class Payment extends Model
     }
 
     /**
+     * Reversement au propriétaire qui inclut ce loyer (baux gérés).
+     *
+     * @return BelongsTo<OwnerPayout, $this>
+     */
+    public function ownerPayout(): BelongsTo
+    {
+        return $this->belongsTo(OwnerPayout::class);
+    }
+
+    /**
      * @return BelongsTo<CashSession, $this>
      */
     public function cashSession(): BelongsTo

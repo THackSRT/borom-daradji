@@ -36,6 +36,7 @@ class DepositSettlement extends Model
             'balance_due' => 'integer',
             'refund_method' => PaymentMethod::class,
             'settled_on' => 'immutable_date',
+            'cancelled_at' => 'immutable_datetime',
         ];
     }
 
@@ -71,6 +72,19 @@ class DepositSettlement extends Model
     public function retainedPayments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * @return BelongsTo<CashMovement, $this>
+     */
+    public function cashMovement(): BelongsTo
+    {
+        return $this->belongsTo(CashMovement::class);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
     }
 
     /**

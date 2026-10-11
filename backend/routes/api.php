@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('leases/{lease}/deposit', [DepositSettlementController::class, 'show']);
     Route::post('leases/{lease}/deposit', [DepositSettlementController::class, 'store']);
     Route::get('leases/{lease}/deposit/pdf', [DepositSettlementController::class, 'pdf']);
+    Route::post('leases/{lease}/deposit/cancel', [DepositSettlementController::class, 'cancel']);
     Route::get('owner-payouts', [OwnerPayoutController::class, 'index']);
     Route::get('owner-payouts/owners', [OwnerPayoutController::class, 'owners']);
     Route::get('owner-payouts/{ownerPayout}/pdf', [OwnerPayoutController::class, 'pdf']);

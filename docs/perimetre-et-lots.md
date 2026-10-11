@@ -127,7 +127,27 @@ Restitution de la caution (D-041, **à valider**) :
 - Ordre d'imputation : 1. loyers impayés, du plus ancien au plus récent (option désactivable), par des encaissements « retenue sur caution » sur les appels de loyer (le mois est payé, quittance possible, et pour un bail géré le loyer revient au propriétaire) ; 2. réparations et autres retenues saisies (libellé, montant) ; 3. le reste est rendu au locataire.
 - Remboursement : mode et référence comme un encaissement ; en espèces, sortie de la caisse du jour de la personne qui rend (mouvement « restitution de caution »), refusé si la caisse n'a pas assez d'espèces.
 - Retenues supérieures à la caution : le reste dû est facturé au locataire (brouillon pour le comptable).
-- Décompte PDF remis au locataire. Pas d'annulation dans cette version (vérifier le récapitulatif avant d'enregistrer) ; un encaissement « retenue sur caution » peut être annulé comme tout encaissement.
+- Décompte PDF remis au locataire.
+- Annulation avec motif (D-043) : les loyers retenus redeviennent impayés, les espèces rendues reviennent dans la caisse par un mouvement inverse, la facture de reste dû en brouillon est supprimée ; une nouvelle restitution est alors possible (nouveau numéro). Refusée si la caisse est clôturée, si la facture de reste dû est émise (avoir d'abord) ou si un loyer retenu a déjà été reversé au propriétaire.
+
+Relances et fin de bail (D-042, **à valider**) :
+- Chaque matin (`borom:remind-overdue`, 07:10), toute facture émise impayée (loyers compris) qui atteint un palier de retard (J+3, J+15, J+30 par défaut, `REMINDER_DAYS`) donne une tâche « Relancer … » : une par client et par personne, au palier le plus haut atteint, jamais deux fois pour le même palier. Elle va à l'agent du bail, sinon à celui du bien, sinon à la personne qui suit le client, sinon à un comptable. Rien n'est envoyé au client : la personne relance par téléphone ou WhatsApp.
+- Fin de bail prévue dans 60 jours (`LEASE_END_ALERT_DAYS`, `borom:check-lease-ends`, 07:05) : une tâche, une seule fois, pour l'agent (préavis, état des lieux de sortie, caution).
+- Résiliation : option « Remettre le bien en location » (cochée par défaut) : le bien loué redevient disponible et réapparaît sur le site ; refusée avec le motif si la vérification foncière n'est plus à jour.
+- « Cautions à restituer » : baux résiliés dont la caution n'est pas restituée, en filtre de la liste des baux et en encart de l'accueil (permission `deposits.settle`).
+
+### Critères d'acceptation du lot 2
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Billing`, `tests/Feature/Rental`).
+
+- Une facture émise reçoit un numéro continu, ne se modifie plus et se corrige par un avoir plafonné.
+- Un encaissement Wave ou Orange Money sans référence, ou avec une référence déjà saisie, est refusé ; les espèces alimentent la caisse du jour, qui se clôture avec un écart expliqué.
+- Un bail créé depuis un bien à louer émet les appels de loyer des mois payés d'avance et des mois déjà échus, puis un appel chaque mois, sans doublon, jusqu'à la fin du bail.
+- Un loyer entièrement payé donne une quittance ; un loyer impayé apparaît en arriéré et déclenche des relances à J+3, J+15 et J+30.
+- Le relevé d'un propriétaire liste les loyers encaissés sur ses baux gérés, moins la commission et sa TVA ; un loyer reversé ne l'est jamais deux fois.
+- Un état des lieux de sortie reprend les lignes de l'entrée et signale les dégradations ; validé, il ne se modifie plus.
+- La restitution de la caution solde les loyers impayés, retient les réparations, rend le reste (sortie de caisse en espèces) ou facture le reste dû ; elle s'annule avec un motif.
+- Chaque action est réservée aux permissions prévues (factures, encaissements, caisse, baux, reversements, cautions).
 
 Règles de la gestion locative (valeurs par défaut dans `config/borom.php`, modifiables bail par bail, **à valider** avec le client) :
 - Un seul bail en cours par bien ; le bien passe en « Loué » quand c'est permis par son statut. Seuls les biens « à louer » se louent. Un bail en gestion exige un propriétaire.

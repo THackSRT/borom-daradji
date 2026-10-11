@@ -47,6 +47,7 @@ class Lease extends Model
             'end_date' => 'immutable_date',
             'billing_start' => 'immutable_date',
             'terminated_on' => 'immutable_date',
+            'end_alerted_at' => 'datetime',
             'rent' => 'integer',
             'charges' => 'integer',
             'deposit' => 'integer',
@@ -115,11 +116,21 @@ class Lease extends Model
     }
 
     /**
+     * Restitution de la caution en vigueur (hors restitutions annulées).
+     *
      * @return HasOne<DepositSettlement, $this>
      */
     public function depositSettlement(): HasOne
     {
-        return $this->hasOne(DepositSettlement::class);
+        return $this->hasOne(DepositSettlement::class)->whereNull('cancelled_at');
+    }
+
+    /**
+     * @return HasMany<DepositSettlement, $this>
+     */
+    public function depositSettlements(): HasMany
+    {
+        return $this->hasMany(DepositSettlement::class)->latest('id');
     }
 
     public function isActive(): bool
@@ -184,6 +195,16 @@ class Lease extends Model
             ->filter(fn (RentCall $call) => ! $call->invoice->isDraft() && $call->invoice->balance() > 0)
             ->sortBy(fn (RentCall $call) => $call->period)
             ->values();
+    }
+
+    /**
+     * Baux résiliés dont la caution n'a pas encore été restituée.
+     *
+     * @param  Builder<Lease>  $query
+     */
+    public function scopeDepositPending(Builder $query): void
+    {
+        $query->where('status', LeaseStatus::Resilie)->where('deposit', '>', 0)->whereDoesntHave('depositSettlement');
     }
 
     /**

@@ -76,7 +76,7 @@ export default function LeaseDetailPage() {
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   <TableHead>Mois</TableHead>
-                  <TableHead className="hidden md:table-cell">Facture</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Facture</TableHead>
                   <TableHead className="hidden sm:table-cell">Échéance</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
                   <TableHead className="text-right">Reste</TableHead>
@@ -87,8 +87,10 @@ export default function LeaseDetailPage() {
               <TableBody>
                 {calls.map((call) => (
                   <TableRow key={call.id}>
-                    <TableCell className="font-medium first-letter:uppercase">{formatDate(call.period, "MMMM yyyy")}</TableCell>
-                    <TableCell className="hidden md:table-cell"><Link className="text-primary hover:underline" to={`/admin/factures/${call.invoice.id}`}>{call.invoice.number ?? "Brouillon"}</Link></TableCell>
+                    <TableCell className="font-medium first-letter:uppercase">
+                      <Link className="hover:underline" to={`/admin/factures/${call.invoice.id}`} title={call.invoice.number ?? "Brouillon"}>{formatDate(call.period, "MMMM yyyy")}</Link>
+                    </TableCell>
+                    <TableCell className="hidden 2xl:table-cell"><Link className="text-primary hover:underline" to={`/admin/factures/${call.invoice.id}`}>{call.invoice.number ?? "Brouillon"}</Link></TableCell>
                     <TableCell className={cn("hidden text-sm sm:table-cell", call.invoice.is_overdue ? "font-medium text-red-600" : "text-muted-foreground")}>{formatDate(call.invoice.due_date)}</TableCell>
                     <TableCell className="text-right tabular-nums">{cfa(call.invoice.total)}</TableCell>
                     <TableCell className="text-right tabular-nums">{call.invoice.balance > 0 ? cfa(call.invoice.balance) : <span className="text-muted-foreground">—</span>}</TableCell>
@@ -209,9 +211,10 @@ function EditLeaseDialog({ lease, onClose }: { lease: Lease; onClose: () => void
 function TerminateDialog({ lease, onClose }: { lease: Lease; onClose: () => void }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState("");
-  const mutation = useApiMutation(() => api(`/leases/${lease.id}/terminate`, { method: "POST", body: { terminated_on: date, reason } }), {
-    success: "Bail résilié. Pensez à l'état des lieux, à la caution et à remettre le bien en location.",
-    invalidate: [["lease", String(lease.id)], ["leases"]], onSuccess: onClose,
+  const [relist, setRelist] = useState(true);
+  const mutation = useApiMutation(() => api(`/leases/${lease.id}/terminate`, { method: "POST", body: { terminated_on: date, reason, relist } }), {
+    success: relist ? "Bail résilié, bien remis en location. Reste l'état des lieux de sortie et la caution." : "Bail résilié. Reste l'état des lieux de sortie et la caution.",
+    invalidate: [["lease", String(lease.id)], ["leases"], ["property", String(lease.property.id)], ["properties"]], onSuccess: onClose,
   });
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -227,6 +230,14 @@ function TerminateDialog({ lease, onClose }: { lease: Lease; onClose: () => void
         <Field label="Motif" htmlFor="term-reason" error={mutation.error?.field("reason")}>
           <Textarea id="term-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex. départ du locataire, préavis reçu le…" />
         </Field>
+        <label className="flex items-start justify-between gap-4 rounded-lg border px-3 py-2.5">
+          <span className="text-sm">
+            <span className="font-medium">Remettre le bien en location</span>
+            <span className="block text-xs text-muted-foreground">Il redevient « disponible » et réapparaît sur le site.</span>
+          </span>
+          <Switch checked={relist} onCheckedChange={setRelist} />
+        </label>
+        <FormError message={mutation.error?.field("relist")} />
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Annuler</Button>
           <Button variant="destructive" disabled={mutation.isPending} onClick={() => mutation.mutate(undefined)}>Résilier</Button>

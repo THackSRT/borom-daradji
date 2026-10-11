@@ -36,6 +36,8 @@ class Invoice extends Model
     protected function casts(): array
     {
         return [
+            'reminder_level' => 'integer',
+            'last_reminded_at' => 'datetime',
             'type' => InvoiceType::class,
             'status' => InvoiceStatus::class,
             'activity' => Activity::class,

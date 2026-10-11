@@ -35,6 +35,8 @@ class DepositSettlementResource extends JsonResource
             'settled_on' => $this->settled_on->toDateString(),
             'exit_inspection_id' => $this->exit_inspection_id,
             'note' => $this->note,
+            'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'cancel_reason' => $this->cancel_reason,
             'creator' => $this->whenLoaded('creator', fn () => ['id' => $this->creator->id, 'name' => $this->creator->name]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

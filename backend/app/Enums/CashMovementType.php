@@ -16,6 +16,7 @@ enum CashMovementType: string
     case Depense = 'depense';
     case Retrait = 'retrait';
     case RestitutionCaution = 'restitution_caution';
+    case AnnulationCaution = 'annulation_caution';
 
     public function label(): string
     {
@@ -25,12 +26,19 @@ enum CashMovementType: string
             self::Depense => 'Dépense payée en espèces',
             self::Retrait => 'Remise au dirigeant',
             self::RestitutionCaution => 'Restitution de caution',
+            self::AnnulationCaution => 'Annulation d\'une restitution de caution',
         };
     }
 
     /** +1 pour une entrée d'argent dans la caisse, -1 pour une sortie. */
     public function sign(): int
     {
-        return $this === self::Apport ? 1 : -1;
+        return in_array($this, [self::Apport, self::AnnulationCaution], true) ? 1 : -1;
+    }
+
+    /** Créés automatiquement par la restitution de caution, jamais saisis à la main. */
+    public function isAutomatic(): bool
+    {
+        return in_array($this, [self::RestitutionCaution, self::AnnulationCaution], true);
     }
 }

@@ -28,6 +28,51 @@ class DepositService
     public function __construct(private readonly InspectionService $inspections) {}
 
     /**
+     * Annule une restitution saisie par erreur (motif obligatoire) : les loyers retenus redeviennent
+     * impayés, les espèces rendues reviennent dans la caisse (mouvement inverse, caisse ouverte
+     * seulement), la facture de reste dû en brouillon est supprimée. Une nouvelle restitution est
+     * ensuite possible.
+     */
+    public function cancel(DepositSettlement $settlement, string $reason, User $by): DepositSettlement
+    {
+        if ($settlement->isCancelled()) {
+            throw ValidationException::withMessages(['settlement' => 'Cette restitution est déjà annulée.']);
+        }
+        $invoice = $settlement->balanceInvoice;
+        if ($invoice && ! $invoice->isDraft() && $invoice->balance() + $invoice->paid_total > 0) {
+            throw ValidationException::withMessages(['settlement' => "La facture de reste dû {$invoice->number} est émise : annulez-la d'abord par un avoir."]);
+        }
+        $paidOut = $settlement->retainedPayments()->valid()->whereNotNull('owner_payout_id')->with('ownerPayout')->first();
+        if ($paidOut) {
+            throw ValidationException::withMessages(['settlement' => "Un loyer retenu a déjà été reversé au propriétaire ({$paidOut->ownerPayout->number}) : annulez d'abord ce reversement."]);
+        }
+        $session = $settlement->cashMovement?->session;
+        if ($session?->isClosed()) {
+            throw ValidationException::withMessages(['settlement' => 'La caisse du '.$session->date->format('d/m/Y').' est clôturée : les espèces rendues ne peuvent plus y revenir.']);
+        }
+
+        return DB::transaction(function () use ($settlement, $reason, $by, $invoice, $session) {
+            foreach ($settlement->retainedPayments()->valid()->get() as $payment) {
+                Billing::cancelPayment($payment, "Annulation de la restitution {$settlement->number} : {$reason}", $by);
+            }
+            if ($invoice?->isDraft()) {
+                $invoice->delete();
+            }
+            if ($session) {
+                $session->movements()->create([
+                    'type' => CashMovementType::AnnulationCaution,
+                    'amount' => $settlement->refund,
+                    'label' => "Annulation de la restitution {$settlement->number}",
+                    'created_by' => $by->id,
+                ]);
+            }
+            $settlement->forceFill(['cancelled_at' => now(), 'cancelled_by' => $by->id, 'cancel_reason' => $reason])->save();
+
+            return $settlement;
+        });
+    }
+
+    /**
      * Ce qu'il faut savoir pour préparer la restitution : caution, impayés, dégradations relevées.
      *
      * @return array<string, mixed>

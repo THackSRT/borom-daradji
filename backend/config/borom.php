@@ -58,4 +58,12 @@ return [
         ['room' => 'Extérieur', 'elements' => ['Cour ou terrasse', 'Portail', 'Citerne et surpresseur']],
     ],
     'inspection_max_photos' => (int) env('INSPECTION_MAX_PHOTOS', 150),
+
+    /*
+    | Relances des factures impayées (loyers compris) : une tâche pour la personne qui suit le
+    | client, à chaque palier de retard en jours. Fin de bail : alerte tant de jours avant la fin
+    | prévue (préavis, état des lieux de sortie, caution). À valider avec l'agence.
+    */
+    'reminder_days' => array_map('intval', explode(',', (string) env('REMINDER_DAYS', '3,15,30'))),
+    'lease_end_alert_days' => (int) env('LEASE_END_ALERT_DAYS', 60),
 ];

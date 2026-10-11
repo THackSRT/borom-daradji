@@ -468,6 +468,8 @@ export interface DepositSettlement {
   settled_on: string;
   exit_inspection_id: number | null;
   note: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
   creator?: Ref;
 }
 
@@ -478,7 +480,9 @@ export interface DepositInfo {
   arrears_total: number;
   exit_inspection: { id: number; inspected_on: string; validated: boolean; degradations: { room: string; element: string; condition: string; comment: string | null }[] } | null;
   settlement: DepositSettlement | null;
+  cancelled: DepositSettlement[];
   can_settle: boolean;
+  can_cancel: boolean;
 }
 
 export interface LeaseSummary {
@@ -486,6 +490,7 @@ export interface LeaseSummary {
   monthly_rent: number;
   arrears: number;
   leases_in_arrears: number;
+  deposits_pending: number;
 }
 
 export interface OwnerPayoutRow {

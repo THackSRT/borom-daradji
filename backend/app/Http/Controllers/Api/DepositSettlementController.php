@@ -30,6 +30,8 @@ class DepositSettlementController extends Controller
         return response()->json(['data' => [
             ...$this->deposits->preview($lease),
             'settlement' => $settlement ? new DepositSettlementResource($settlement) : null,
+            'cancelled' => DepositSettlementResource::collection($lease->depositSettlements()->whereNotNull('cancelled_at')->get()),
+            'can_cancel' => $settlement !== null && $request->user()->can('settleDeposit', $lease),
             'can_settle' => ! $settlement && ! $lease->isActive() && $request->user()->can('settleDeposit', $lease),
         ]]);
     }
@@ -55,6 +57,17 @@ class DepositSettlementController extends Controller
         $settlement = $this->deposits->settle($lease, $data, $request->user());
 
         return (new DepositSettlementResource($settlement->fresh(['balanceInvoice', 'creator'])))->response()->setStatusCode(201);
+    }
+
+    public function cancel(Request $request, Lease $lease): JsonResponse
+    {
+        Gate::authorize('settleDeposit', $lease);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']], [], ['reason' => 'motif']);
+        $settlement = $lease->depositSettlement()->firstOrFail();
+
+        $this->deposits->cancel($settlement, $data['reason'], $request->user());
+
+        return (new DepositSettlementResource($settlement->fresh(['balanceInvoice', 'creator'])))->response();
     }
 
     public function pdf(Lease $lease): Response
