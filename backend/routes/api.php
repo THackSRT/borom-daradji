@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\CounterSaleController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepositSettlementController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\InteractionController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -69,6 +70,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('meta', MetaController::class);
     Route::get('dashboard', DashboardController::class);
     Route::get('reports/overview', [ReportController::class, 'overview']);
+    Route::get('reports/exports/{type}', [ExportController::class, 'download']);
+    Route::get('settings/accounting', [ExportController::class, 'accounts']);
+    Route::put('settings/accounting', [ExportController::class, 'updateAccounts']);
     Route::get('settings/company', [CompanySettingsController::class, 'show']);
 
     // Biens (droits détaillés dans PropertyPolicy).

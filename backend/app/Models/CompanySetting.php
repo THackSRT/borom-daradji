@@ -34,6 +34,7 @@ class CompanySetting extends Model
         return [
             'vat_rate' => 'decimal:2',
             'site' => 'array',
+            'accounting' => 'array',
         ];
     }
 
