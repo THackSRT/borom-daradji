@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, CalendarDays, ClipboardList, LayoutDashboard, Plus, User as UserIcon } from "lucide-react";
+import { Boxes, Building2, CalendarDays, ClipboardList, FileSignature, HardHat, LayoutDashboard, Plus, Receipt, ShoppingCart, User as UserIcon } from "lucide-react";
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
-import type { Client, Paginated, Property } from "../types";
+import type { Option } from "../types";
 import { useQuickCreate } from "./QuickCreate";
 import { StatusBadge } from "./ui";
+
+type GroupKey = "clients" | "properties" | "worksites" | "quotes" | "invoices" | "articles" | "purchases";
+interface SearchItem { id: number; title: string; subtitle: string | null; url: string; status: Option | null }
+
+const GROUPS: Record<GroupKey, { label: string; icon: typeof UserIcon }> = {
+  clients: { label: "Clients", icon: UserIcon },
+  properties: { label: "Biens", icon: Building2 },
+  worksites: { label: "Chantiers", icon: HardHat },
+  quotes: { label: "Devis", icon: FileSignature },
+  invoices: { label: "Factures", icon: Receipt },
+  articles: { label: "Articles du stock", icon: Boxes },
+  purchases: { label: "Achats", icon: ShoppingCart },
+};
 
 function useDebounced<T>(value: T, delay = 250): T {
   const [debounced, setDebounced] = useState(value);
@@ -19,7 +31,7 @@ function useDebounced<T>(value: T, delay = 250): T {
   return debounced;
 }
 
-/** Recherche globale (Ctrl+K) : clients par nom ou téléphone, biens par titre ou référence, raccourcis. */
+/** Recherche globale (Ctrl+K) : clients, biens, chantiers, devis, factures, articles, achats (selon les droits), raccourcis. */
 export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const navigate = useNavigate();
   const quickCreate = useQuickCreate();
@@ -39,15 +51,10 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
 
   const { data } = useQuery({
     queryKey: ["global-search", term],
-    queryFn: async () => {
-      const [clients, properties] = await Promise.all([
-        api<Paginated<Client>>("/clients", { query: { search: term, per_page: 5 } }),
-        api<Paginated<Property>>("/properties", { query: { search: term, per_page: 5 } }),
-      ]);
-      return { clients: clients.data, properties: properties.data };
-    },
+    queryFn: () => api<{ data: Partial<Record<GroupKey, SearchItem[]>> }>("/search", { query: { q: term } }).then((r) => r.data),
     enabled: open && term.length >= 2,
   });
+  const groups = (Object.keys(GROUPS) as GroupKey[]).filter((k) => data?.[k]?.length);
 
   const go = (path: string) => { onOpenChange(false); setSearch(""); navigate(path); };
   const create = (kind: "property" | "client" | "task") => { onOpenChange(false); quickCreate.open(kind); };
@@ -58,34 +65,28 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
         <DialogTitle className="sr-only">Recherche</DialogTitle>
         {/* Filtrage fait par l'API (un numéro « 77 123 » doit trouver « +22177123… ») : cmdk ne filtre pas. */}
         <Command shouldFilter={false} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:gap-2 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
-      <CommandInput placeholder="Rechercher un client, un numéro, un bien, une référence…" value={search} onValueChange={setSearch} />
+      <CommandInput placeholder="Client, numéro, bien, chantier, facture, article…" value={search} onValueChange={setSearch} />
       <CommandList>
-        {term.length >= 2 && data && !data.clients.length && !data.properties.length && (
-          <p className="py-6 text-center text-sm text-muted-foreground">Aucun client ni bien pour « {term} ».</p>
+        {term.length >= 2 && data && !groups.length && (
+          <p className="py-6 text-center text-sm text-muted-foreground">Aucun résultat pour « {term} ».</p>
         )}
-        {!!data?.clients.length && (
-          <CommandGroup heading="Clients">
-            {data.clients.map((c) => (
-              <CommandItem key={`c${c.id}`} value={`client-${c.id}-${c.name}-${c.phone}`} onSelect={() => go(`/admin/clients/${c.id}`)}>
-                <UserIcon className="text-muted-foreground" />
-                <span className="flex-1">{c.name}</span>
-                <span className="text-xs text-muted-foreground">{c.phone}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-        {!!data?.properties.length && (
-          <CommandGroup heading="Biens">
-            {data.properties.map((p) => (
-              <CommandItem key={`p${p.id}`} value={`bien-${p.id}-${p.reference}-${p.title}`} onSelect={() => go(`/admin/biens/${p.id}`)}>
-                <Building2 className="text-muted-foreground" />
-                <span className="flex-1 truncate">{p.title}</span>
-                <span className="hidden text-xs text-muted-foreground sm:inline">{formatPrice(p.price, p.transaction.value === "location")}</span>
-                <StatusBadge option={p.status} />
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
+        {groups.map((key) => {
+          const { label, icon: Icon } = GROUPS[key];
+          return (
+            <CommandGroup key={key} heading={label}>
+              {data![key]!.map((item) => (
+                <CommandItem key={`${key}-${item.id}`} value={`${key}-${item.id}-${item.title}`} onSelect={() => go(item.url)}>
+                  <Icon className="text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{item.title}</span>
+                    {item.subtitle && <span className="block truncate text-xs text-muted-foreground">{item.subtitle}</span>}
+                  </span>
+                  {item.status && <StatusBadge option={item.status} />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          );
+        })}
         <CommandSeparator />
         <CommandGroup heading="Actions">
           <CommandItem value="action-nouveau-client" onSelect={() => create("client")}><Plus className="text-muted-foreground" /> Nouveau client</CommandItem>

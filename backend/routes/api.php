@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
@@ -69,6 +70,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('meta', MetaController::class);
     Route::get('dashboard', DashboardController::class);
+    Route::get('search', SearchController::class);
     Route::get('reports/overview', [ReportController::class, 'overview']);
     Route::get('reports/exports/{type}', [ExportController::class, 'download']);
     Route::get('settings/accounting', [ExportController::class, 'accounts']);
