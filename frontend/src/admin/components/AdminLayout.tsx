@@ -27,6 +27,10 @@ import {
   type LucideIcon,
   UsersRound,
   Smartphone,
+  Boxes,
+  Store,
+  ShoppingCart,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +83,15 @@ const sections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/devis", label: "Devis", icon: FileSignature, permissions: ["works.view", "works.quotes"] },
       { to: "/admin/tacherons", label: "Tâcherons", icon: UsersRound, permissions: ["works.team", "works.payments"] },
       { to: "/admin/catalogue", label: "Catalogue", icon: BookOpen, permissions: ["works.catalog"] },
+    ],
+  },
+  {
+    title: "Stock et négoce",
+    items: [
+      { to: "/admin/stock", label: "Stock", icon: Boxes, permissions: ["stock.view", "stock.sell", "stock.purchases"] },
+      { to: "/admin/comptoir", label: "Comptoir", icon: Store, permissions: ["stock.sell"] },
+      { to: "/admin/achats", label: "Achats", icon: ShoppingCart, permissions: ["stock.purchases"] },
+      { to: "/admin/inventaires", label: "Inventaires", icon: ClipboardCheck, permissions: ["stock.inventory"] },
     ],
   },
 

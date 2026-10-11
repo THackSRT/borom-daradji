@@ -34,6 +34,14 @@ const WorksitesPage = lazy(() => import("./pages/WorksitesPage"));
 const WorksiteDetailPage = lazy(() => import("./pages/WorksiteDetailPage"));
 const WorkersPage = lazy(() => import("./pages/WorkersPage"));
 const TerrainPage = lazy(() => import("./pages/TerrainPage"));
+const StockPage = lazy(() => import("./pages/StockPage"));
+const ArticleDetailPage = lazy(() => import("./pages/ArticleDetailPage"));
+const PurchasesPage = lazy(() => import("./pages/PurchasesPage"));
+const PurchaseEditorPage = lazy(() => import("./pages/PurchaseEditorPage"));
+const PurchaseDetailPage = lazy(() => import("./pages/PurchaseDetailPage"));
+const CounterPage = lazy(() => import("./pages/CounterPage"));
+const InventoriesPage = lazy(() => import("./pages/InventoriesPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const WorkerDetailPage = lazy(() => import("./pages/WorkerDetailPage"));
 
 /**
@@ -74,6 +82,14 @@ export default function AdminApp() {
             <Route path="catalogue" element={<RequireAuth permissions={["works.catalog"]}><CatalogPage /></RequireAuth>} />
             <Route path="chantiers" element={<RequireAuth permissions={["works.view"]}><WorksitesPage /></RequireAuth>} />
             <Route path="chantiers/:id" element={<RequireAuth permissions={["works.view"]}><WorksiteDetailPage /></RequireAuth>} />
+            <Route path="stock" element={<RequireAuth permissions={["stock.view", "stock.sell", "stock.purchases"]}><StockPage /></RequireAuth>} />
+            <Route path="stock/:id" element={<RequireAuth permissions={["stock.view", "stock.sell", "stock.purchases"]}><ArticleDetailPage /></RequireAuth>} />
+            <Route path="achats" element={<RequireAuth permissions={["stock.purchases"]}><PurchasesPage /></RequireAuth>} />
+            <Route path="achats/nouveau" element={<RequireAuth permissions={["stock.purchases"]}><PurchaseEditorPage /></RequireAuth>} />
+            <Route path="achats/:id" element={<RequireAuth permissions={["stock.purchases"]}><PurchaseDetailPage /></RequireAuth>} />
+            <Route path="comptoir" element={<RequireAuth permissions={["stock.sell"]}><CounterPage /></RequireAuth>} />
+            <Route path="inventaires" element={<RequireAuth permissions={["stock.inventory"]}><InventoriesPage /></RequireAuth>} />
+            <Route path="inventaires/:id" element={<RequireAuth permissions={["stock.inventory"]}><InventoryPage /></RequireAuth>} />
             <Route path="terrain" element={<RequireAuth permissions={["works.manage", "works.team", "works.cash"]}><TerrainPage /></RequireAuth>} />
             <Route path="tacherons" element={<RequireAuth permissions={["works.view", "works.team", "works.payments"]}><WorkersPage /></RequireAuth>} />
             <Route path="tacherons/:id" element={<RequireAuth permissions={["works.team", "works.payments"]}><WorkerDetailPage /></RequireAuth>} />
