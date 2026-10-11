@@ -33,6 +33,7 @@ const CatalogPage = lazy(() => import("./pages/CatalogPage"));
 const WorksitesPage = lazy(() => import("./pages/WorksitesPage"));
 const WorksiteDetailPage = lazy(() => import("./pages/WorksiteDetailPage"));
 const WorkersPage = lazy(() => import("./pages/WorkersPage"));
+const TerrainPage = lazy(() => import("./pages/TerrainPage"));
 const WorkerDetailPage = lazy(() => import("./pages/WorkerDetailPage"));
 
 /**
@@ -73,6 +74,7 @@ export default function AdminApp() {
             <Route path="catalogue" element={<RequireAuth permissions={["works.catalog"]}><CatalogPage /></RequireAuth>} />
             <Route path="chantiers" element={<RequireAuth permissions={["works.view"]}><WorksitesPage /></RequireAuth>} />
             <Route path="chantiers/:id" element={<RequireAuth permissions={["works.view"]}><WorksiteDetailPage /></RequireAuth>} />
+            <Route path="terrain" element={<RequireAuth permissions={["works.manage", "works.team", "works.cash"]}><TerrainPage /></RequireAuth>} />
             <Route path="tacherons" element={<RequireAuth permissions={["works.view", "works.team", "works.payments"]}><WorkersPage /></RequireAuth>} />
             <Route path="tacherons/:id" element={<RequireAuth permissions={["works.team", "works.payments"]}><WorkerDetailPage /></RequireAuth>} />
             <Route path="reversements" element={<RequireAuth permissions={["payouts.view", "payouts.manage"]}><PayoutsPage /></RequireAuth>} />
