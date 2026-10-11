@@ -4,9 +4,9 @@
 
 ## État actuel
 
-- **Lot 1** (biens et prospects, site vitrine paramétrable) : fonctionnellement terminé, reste la fusion dans `main` et le déploiement.
-- **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`.
-- **Branches** : `main` (= lot 0, API seule) ; `lot-1-biens-prospects` (lot 1), pas encore fusionnée ; `lot-2-encaissements-location`, partie de `lot-1-biens-prospects` (D-030). L'environnement Docker est sur `lot-2-encaissements-location`. Pas de pull request.
+- **Lot 1** (biens et prospects, site vitrine paramétrable) : terminé, **fusionné dans `main`** (PR #1, 2026-10-11).
+- **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`. **Fusionné dans `main`** (PR #2, 2026-10-11).
+- **Branches** : `main` contient les lots 0, 1 et 2 (PR #1 et #2 fusionnées le 2026-10-11). Les branches `lot-0-socle`, `lot-1-biens-prospects` et `lot-2-encaissements-location` sont conservées pour l'historique. Prochaine branche : `lot-3-travaux`, depuis `main`. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
 - **Tests** : 198 tests backend verts, sur SQLite et sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
@@ -15,11 +15,10 @@
 
 ## Prochaines actions, dans l'ordre
 
-1. Faire relire et fusionner `lot-1-biens-prospects` dans `main`, puis `lot-2-encaissements-location` (pull requests à ouvrir sur demande de l'utilisateur).
-2. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl, pdo_pgsql…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
-3. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
-4. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
-5. Lot 3 (travaux) : devis, chantiers, tâcherons, caisse de chantier, suivi client, saisie hors ligne.
+1. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl, pdo_pgsql…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
+2. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
+3. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
+4. Lot 3 (travaux), sur la branche `lot-3-travaux` : devis, chantiers, tâcherons, caisse de chantier, suivi client, saisie hors ligne.
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -51,6 +50,11 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-11 — Fusion des lots 1 et 2
+
+- Demande de l'utilisateur : terminer le lot 2, puis fusionner. Tests du lot 1 relancés sur sa branche (108 verts), PR #1 `lot-1-biens-prospects` → `main` fusionnée ; PR #2 `lot-2-encaissements-location` → `main` fusionnée. `main` vérifiée : 198 tests verts, Pint propre.
+- GitGuardian (application installée sur le dépôt) a signalé les mots de passe de la base de développement dans `compose.yaml` : faux positif (valeurs locales, jamais utilisées en production, où tout vient de `.env.prod`), fusion décidée par l'utilisateur.
 
 ### 2026-10-10 (suite) — Lot 2 : finitions avant fusion
 
