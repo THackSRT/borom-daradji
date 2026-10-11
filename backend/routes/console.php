@@ -17,3 +17,6 @@ Schedule::command('borom:check-lease-ends')->dailyAt('07:05');
 
 // Relances des impayés : tâches à J+3, J+15, J+30, avant l'arrivée des équipes.
 Schedule::command('borom:remind-overdue')->dailyAt('07:10');
+
+// Devis envoyés dont la validité est dépassée : « expiré ».
+Schedule::command('borom:expire-quotes')->dailyAt('00:15');

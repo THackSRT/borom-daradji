@@ -26,6 +26,12 @@ const LeaseFormPage = lazy(() => import("./pages/LeaseFormPage"));
 const LeaseDetailPage = lazy(() => import("./pages/LeaseDetailPage"));
 const PayoutsPage = lazy(() => import("./pages/PayoutsPage"));
 const InspectionPage = lazy(() => import("./pages/InspectionPage"));
+const QuotesPage = lazy(() => import("./pages/QuotesPage"));
+const QuoteEditorPage = lazy(() => import("./pages/QuoteEditorPage"));
+const QuoteDetailPage = lazy(() => import("./pages/QuoteDetailPage"));
+const CatalogPage = lazy(() => import("./pages/CatalogPage"));
+const WorksitesPage = lazy(() => import("./pages/WorksitesPage"));
+const WorksiteDetailPage = lazy(() => import("./pages/WorksiteDetailPage"));
 
 /**
  * Back-office, monté sous /admin. Chargé à la demande : le site vitrine ne télécharge pas ce code.
@@ -58,6 +64,13 @@ export default function AdminApp() {
             <Route path="baux/nouveau" element={<RequireAuth permissions={["leases.manage"]}><LeaseFormPage /></RequireAuth>} />
             <Route path="baux/:id" element={<RequireAuth permissions={["leases.view"]}><LeaseDetailPage /></RequireAuth>} />
             <Route path="etats-des-lieux/:id" element={<RequireAuth permissions={["leases.view"]}><InspectionPage /></RequireAuth>} />
+            <Route path="devis" element={<RequireAuth permissions={["works.view", "works.quotes"]}><QuotesPage /></RequireAuth>} />
+            <Route path="devis/nouveau" element={<RequireAuth permissions={["works.quotes", "works.catalog"]}><QuoteEditorPage /></RequireAuth>} />
+            <Route path="devis/:id" element={<RequireAuth permissions={["works.view", "works.quotes"]}><QuoteDetailPage /></RequireAuth>} />
+            <Route path="devis/:id/modifier" element={<RequireAuth permissions={["works.quotes", "works.catalog"]}><QuoteEditorPage /></RequireAuth>} />
+            <Route path="catalogue" element={<RequireAuth permissions={["works.catalog"]}><CatalogPage /></RequireAuth>} />
+            <Route path="chantiers" element={<RequireAuth permissions={["works.view"]}><WorksitesPage /></RequireAuth>} />
+            <Route path="chantiers/:id" element={<RequireAuth permissions={["works.view"]}><WorksiteDetailPage /></RequireAuth>} />
             <Route path="reversements" element={<RequireAuth permissions={["payouts.view", "payouts.manage"]}><PayoutsPage /></RequireAuth>} />
             <Route path="caisse" element={<RequireAuth permissions={["payments.create", "payments.view_all", "cash.view_all"]}><CashPage /></RequireAuth>} />
             <Route path="comptes" element={<RequireAuth permissions={["users.view", "users.manage"]}><UsersPage /></RequireAuth>} />

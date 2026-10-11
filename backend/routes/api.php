@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CashSessionController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
@@ -23,12 +24,14 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
+use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\WorksiteController;
 use App\Support\SiteContent;
 use Illuminate\Support\Facades\Route;
 
@@ -127,6 +130,31 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('owners/{client}/statement', [OwnerPayoutController::class, 'statement']);
     Route::post('owners/{client}/payouts', [OwnerPayoutController::class, 'store']);
 
+    // Travaux : catalogue, devis, chantiers.
+    Route::get('trades', [CatalogController::class, 'trades']);
+    Route::post('trades', [CatalogController::class, 'storeTrade']);
+    Route::put('trades/{trade}', [CatalogController::class, 'updateTrade']);
+    Route::get('catalog-items', [CatalogController::class, 'items']);
+    Route::post('catalog-items', [CatalogController::class, 'storeItem']);
+    Route::put('catalog-items/{item}', [CatalogController::class, 'updateItem']);
+    Route::apiResource('quotes', QuoteController::class);
+    Route::post('quotes/{quote}/send', [QuoteController::class, 'send']);
+    Route::post('quotes/{quote}/accept', [QuoteController::class, 'accept']);
+    Route::post('quotes/{quote}/refuse', [QuoteController::class, 'refuse']);
+    Route::post('quotes/{quote}/reopen', [QuoteController::class, 'reopen']);
+    Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf']);
+    Route::apiResource('worksites', WorksiteController::class)->except(['destroy']);
+    Route::post('worksites/{worksite}/status', [WorksiteController::class, 'transition']);
+    Route::put('worksites/{worksite}/lots/{lot}/progress', [WorksiteController::class, 'progress']);
+    Route::post('worksites/{worksite}/logs', [WorksiteController::class, 'storeLog']);
+    Route::delete('worksites/{worksite}/logs/{log}', [WorksiteController::class, 'destroyLog']);
+    Route::post('worksites/{worksite}/photos', [WorksiteController::class, 'storePhoto']);
+    Route::get('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'photo']);
+    Route::put('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'updatePhoto']);
+    Route::delete('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'destroyPhoto']);
+    Route::post('worksites/{worksite}/tracking', [WorksiteController::class, 'enableTracking']);
+    Route::delete('worksites/{worksite}/tracking', [WorksiteController::class, 'revokeTracking']);
+
     // Caisse journalière.
     Route::get('cash-sessions', [CashSessionController::class, 'index']);
     Route::get('cash-sessions/current', [CashSessionController::class, 'current']);
@@ -136,6 +164,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
 
     // Administration (RBAC) : comptes, rôles, paramètres, site, journal.
+    Route::get('team', [UserController::class, 'team']);
     Route::apiResource('users', UserController::class);
     Route::get('roles', [RoleController::class, 'index']);
     Route::get('roles/{role}', [RoleController::class, 'show']);

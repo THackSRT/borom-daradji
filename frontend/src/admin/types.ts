@@ -243,7 +243,9 @@ export type MetaKey =
   | "cash_movement_types"
   | "lease_statuses"
   | "inspection_types"
-  | "item_conditions";
+  | "item_conditions"
+  | "quote_statuses"
+  | "worksite_statuses";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -520,3 +522,123 @@ export interface OwnerStatement {
   commission_vat: number;
   net_before_expenses: number;
 }
+
+/* ---------- Travaux (lot 3) ---------- */
+
+export interface Trade {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  items_count?: number;
+}
+
+export interface CatalogItem {
+  id: number;
+  trade: { id: number; name: string } | null;
+  designation: string;
+  unit: string;
+  unit_price: number;
+  vat_rate: number | null;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface QuoteLine {
+  id?: number;
+  catalog_item_id: number | null;
+  designation: string;
+  unit: string | null;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  amount?: number;
+  net_amount?: number;
+  vat_amount?: number;
+}
+
+export interface QuoteLot {
+  id?: number;
+  title: string;
+  trade_id: number | null;
+  total_ht?: number;
+  lines: QuoteLine[];
+}
+
+export interface Quote {
+  id: number;
+  number: string | null;
+  is_template: boolean;
+  template_name: string | null;
+  status: Option<"brouillon" | "envoye" | "accepte" | "refuse" | "expire">;
+  title: string;
+  site_address: string | null;
+  client: { id: number; name: string; phone: string | null } | null;
+  property: { id: number; reference: string; title: string } | null;
+  worksite: { id: number; reference: string; status: Option } | null;
+  issue_date: string | null;
+  valid_until: string | null;
+  discount_rate: number;
+  deposit_rate: number;
+  deposit_amount: number;
+  subtotal: number;
+  discount_amount: number;
+  total_ht: number;
+  vat_total: number;
+  total: number;
+  conditions: string | null;
+  notes: string | null;
+  sent_at: string | null;
+  decided_at: string | null;
+  refusal_reason: string | null;
+  lots?: QuoteLot[];
+  lots_count?: number;
+  whatsapp_url?: string | null;
+  creator?: Ref | null;
+  can: { update: boolean; decide: boolean; delete: boolean } | null;
+  created_at: string;
+}
+
+export interface QuoteSummary {
+  drafts: number;
+  pending: number;
+  pending_total: number;
+  accepted_this_year: number;
+}
+
+export interface Worksite {
+  id: number;
+  reference: string;
+  title: string;
+  status: Option<"devis" | "planifie" | "en_cours" | "suspendu" | "termine" | "facture">;
+  allowed_transitions: Option[];
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  client: { id: number; name: string; phone: string | null };
+  property?: { id: number; reference: string; title: string } | null;
+  quote?: { id: number; number: string | null } | null;
+  manager: Ref | null;
+  start_date: string | null;
+  planned_end_date: string | null;
+  actual_end_date: string | null;
+  is_late: boolean;
+  progress?: number;
+  contract_ht: number;
+  contract_total: number;
+  budget?: { materials: number; labor: number; other: number; total: number };
+  notes: string | null;
+  lots?: { id: number; title: string; trade_id: number | null; amount_ht: number; progress: number }[];
+  logs?: { id: number; kind: string; logged_on: string; body: string; is_public: boolean; user: Ref | null; created_at: string }[];
+  photos?: { id: number; lot_id: number | null; caption: string | null; taken_at: string; latitude: number | null; longitude: number | null; is_public: boolean; url: string }[];
+  tracking_token?: string | null;
+  can: { update: boolean; costs: boolean } | null;
+  created_at: string;
+}
+
+export interface WorksiteSummary {
+  open: number;
+  in_progress: number;
+  late: number;
+}
+
