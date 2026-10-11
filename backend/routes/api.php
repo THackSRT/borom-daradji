@@ -31,7 +31,9 @@ use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\WorkerController;
 use App\Http\Controllers\Api\WorksiteController;
+use App\Http\Controllers\Api\WorksiteCostController;
 use App\Support\SiteContent;
 use Illuminate\Support\Facades\Route;
 
@@ -157,6 +159,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('worksites/{worksite}/invoices', [WorksiteController::class, 'storeInvoice']);
     Route::post('worksites/{worksite}/tracking', [WorksiteController::class, 'enableTracking']);
     Route::delete('worksites/{worksite}/tracking', [WorksiteController::class, 'revokeTracking']);
+    Route::get('worksites/{worksite}/team', [WorksiteCostController::class, 'team']);
+    Route::post('worksites/{worksite}/attendances', [WorksiteCostController::class, 'storeAttendance']);
+    Route::delete('worksites/{worksite}/attendances/{attendance}', [WorksiteCostController::class, 'destroyAttendance']);
+    Route::post('worksites/{worksite}/tasks', [WorksiteCostController::class, 'storeTask']);
+    Route::put('worksites/{worksite}/tasks/{task}', [WorksiteCostController::class, 'updateTask']);
+    Route::get('worksites/{worksite}/cash', [WorksiteCostController::class, 'cash']);
+    Route::post('worksites/{worksite}/cash', [WorksiteCostController::class, 'storeCashEntry']);
+    Route::post('worksites/{worksite}/cash/{entry}/receipt', [WorksiteCostController::class, 'attachReceipt']);
+    Route::get('worksites/{worksite}/cash/{entry}/receipt', [WorksiteCostController::class, 'receipt']);
+    Route::post('worksites/{worksite}/cash/{entry}/cancel', [WorksiteCostController::class, 'cancelCashEntry']);
+    Route::get('worksites/{worksite}/budget', [WorksiteCostController::class, 'budget']);
+    Route::apiResource('workers', WorkerController::class)->except(['destroy']);
+    Route::post('workers/{worker}/payments', [WorkerController::class, 'storePayment']);
+    Route::post('workers/{worker}/payments/{payment}/cancel', [WorkerController::class, 'cancelPayment']);
 
     // Caisse journalière.
     Route::get('cash-sessions', [CashSessionController::class, 'index']);

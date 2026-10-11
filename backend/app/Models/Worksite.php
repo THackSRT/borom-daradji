@@ -122,6 +122,30 @@ class Worksite extends Model
     }
 
     /**
+     * @return HasMany<WorksiteAttendance, $this>
+     */
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(WorksiteAttendance::class);
+    }
+
+    /**
+     * @return HasMany<WorkerTask, $this>
+     */
+    public function workerTasks(): HasMany
+    {
+        return $this->hasMany(WorkerTask::class);
+    }
+
+    /**
+     * @return HasMany<SiteCashEntry, $this>
+     */
+    public function cashEntries(): HasMany
+    {
+        return $this->hasMany(SiteCashEntry::class);
+    }
+
+    /**
      * Devis acceptés rattachés au chantier (le marché).
      *
      * @return HasMany<Quote, $this>

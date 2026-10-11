@@ -24,11 +24,16 @@ use App\Models\PropertyDocument;
 use App\Models\Quote;
 use App\Models\Role;
 use App\Models\SearchCriterion;
+use App\Models\SiteCashEntry;
 use App\Models\Task;
 use App\Models\Trade;
 use App\Models\User;
 use App\Models\Visit;
+use App\Models\Worker;
+use App\Models\WorkerPayment;
+use App\Models\WorkerTask;
 use App\Models\Worksite;
+use App\Models\WorksiteAttendance;
 use App\Models\WorksitePhoto;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
@@ -79,6 +84,11 @@ class AppServiceProvider extends ServiceProvider
             'quote' => Quote::class,
             'worksite' => Worksite::class,
             'worksite_photo' => WorksitePhoto::class,
+            'worker' => Worker::class,
+            'worksite_attendance' => WorksiteAttendance::class,
+            'worker_task' => WorkerTask::class,
+            'worker_payment' => WorkerPayment::class,
+            'site_cash_entry' => SiteCashEntry::class,
             'permission' => Permission::class,
         ]);
 

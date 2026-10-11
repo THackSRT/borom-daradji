@@ -10,6 +10,7 @@ use App\Models\WorksiteLog;
 use App\Models\WorksiteLot;
 use App\Models\WorksitePhoto;
 use App\Services\WorksBilling;
+use App\Services\WorksiteCosts;
 use App\Services\WorksiteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,10 +87,14 @@ class WorksiteController extends Controller
             'budget_labor' => ['sometimes', 'integer', 'min:0'],
             'budget_other' => ['sometimes', 'integer', 'min:0'],
         ], [], $this->attributes());
-        if (array_intersect_key($data, array_flip(['budget_materials', 'budget_labor', 'budget_other']))) {
+        $budget = array_intersect_key($data, array_flip(['budget_materials', 'budget_labor', 'budget_other']));
+        if ($budget) {
             Gate::authorize('viewCosts', $worksite);
         }
         $worksite->update($data);
+        if ($budget && $worksite->wasChanged(array_keys($budget))) {
+            app(WorksiteCosts::class)->budgetChanged($worksite);
+        }
 
         return new WorksiteResource($this->loaded($worksite));
     }

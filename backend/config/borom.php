@@ -83,4 +83,10 @@ return [
         'Peinture et décoration', 'Étanchéité', 'Plâtrerie et faux plafonds', 'Climatisation et ventilation',
         'Charpente et couverture', 'Assainissement et VRD', 'Aménagement extérieur',
     ],
+
+    /*
+    | Chantiers : alerte (une tâche au chef de chantier) quand le coût réel dépasse le budget prévu
+    | de plus de ce pourcentage. Le cahier des charges dit 10 %.
+    */
+    'budget_alert_tolerance' => (float) env('BUDGET_ALERT_TOLERANCE', 10),
 ];
