@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\Public\PublicPropertyController;
 use App\Http\Controllers\Api\Public\WorksiteTrackingController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\QuoteController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
@@ -67,6 +68,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('meta', MetaController::class);
     Route::get('dashboard', DashboardController::class);
+    Route::get('reports/overview', [ReportController::class, 'overview']);
     Route::get('settings/company', [CompanySettingsController::class, 'show']);
 
     // Biens (droits détaillés dans PropertyPolicy).
