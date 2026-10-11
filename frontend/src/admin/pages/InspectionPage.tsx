@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Camera, CheckCircle2, Download, ImageIcon, Lock, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, Download, Lock, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { api, ApiError, downloadFile, fetchBlobUrl } from "@/lib/api";
+import { api, ApiError, downloadFile } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useApiMutation, useOptions } from "../hooks";
 import type { InspectionItem, LeaseInspection, Option } from "../types";
 import { EmptyState, Field, FormError, LoadingBlock, Panel, ProgressBar, StatusBadge } from "../components/ui";
+import { ProtectedImage } from "../components/ProtectedImage";
 
 /** États du meilleur au pire, avec un libellé court pour les boutons (même ordre que App\Enums\ItemCondition). */
 const conditionStyles: Record<string, { short: string; active: string }> = {
@@ -304,9 +305,11 @@ function PhotoStrip({ inspectionId, itemId, photos, editable, onUploaded, compac
   const [uploading, setUploading] = useState(0);
   const [open, setOpen] = useState<LeaseInspection["photos"][number] | null>(null);
 
-  const upload = async (files: FileList | null) => {
-    if (!files?.length) return;
-    for (const file of Array.from(files)) {
+  const upload = async (fileList: FileList | null) => {
+    // Copie immédiate : la liste du champ est vidée juste après l'appel.
+    const files = Array.from(fileList ?? []);
+    if (!files.length) return;
+    for (const file of files) {
       setUploading((n) => n + 1);
       const body = new FormData();
       body.append("photo", file);
@@ -362,15 +365,6 @@ function PhotoDialog({ inspectionId, photo, editable, onClose, onDeleted }: {
       </DialogContent>
     </Dialog>
   );
-}
-
-/** Photo privée : chargée avec le jeton de connexion. */
-function ProtectedImage({ url, className }: { url: string; className?: string }) {
-  const { data, isError } = useQuery({ queryKey: ["blob", url], queryFn: () => fetchBlobUrl(url), staleTime: Infinity, gcTime: 10 * 60 * 1000 });
-  if (!data) {
-    return <span className={cn("flex items-center justify-center bg-muted text-muted-foreground", className)}><ImageIcon className={cn("h-4 w-4", !isError && "animate-pulse")} /></span>;
-  }
-  return <img src={data} alt="" className={cn("object-cover", className)} />;
 }
 
 function AddElement({ onAdd }: { onAdd: (element: string) => void }) {

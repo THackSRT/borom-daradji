@@ -38,6 +38,6 @@ class DatabaseSeeder extends Seeder
             User::factory()->withRoles(...$roles)->create(['name' => $name, 'email' => $email]);
         }
 
-        $this->call([DemoCrmSeeder::class, DemoBillingSeeder::class, DemoInspectionSeeder::class]);
+        $this->call([DemoCrmSeeder::class, DemoBillingSeeder::class, DemoInspectionSeeder::class, DemoWorksSeeder::class]);
     }
 }

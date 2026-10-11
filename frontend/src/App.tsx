@@ -15,6 +15,7 @@ import LegalPage from "./pages/LegalPage";
 import NotFound from "./pages/NotFound";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
+const TrackingPage = lazy(() => import("./pages/TrackingPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,14 @@ const App = () => (
               element={
                 <Suspense fallback={null}>
                   <AdminApp />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/suivi/:token"
+              element={
+                <Suspense fallback={null}>
+                  <TrackingPage />
                 </Suspense>
               }
             />

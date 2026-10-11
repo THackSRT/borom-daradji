@@ -14,6 +14,14 @@ export default defineConfig({
       "/storage": backend,
     },
   },
+  // `npm run preview` (build de production, service worker compris) : mêmes relais.
+  preview: {
+    port: 4173,
+    proxy: {
+      "/api": backend,
+      "/storage": backend,
+    },
+  },
   plugins: [react()],
   resolve: {
     alias: {

@@ -133,6 +133,19 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - `invoices.paid_total` et `credited_total` sont des cumuls recalculés par le service ; le reste à payer se calcule (`Invoice::balance()`, scopes `outstanding()` et `overdue()`).
 - PDF : dompdf (`barryvdh/laravel-dompdf`), modèles `resources/views/pdf/*.blade.php`, police DejaVu Sans en sous-ensemble, logo intégré en base64, couleur principale du site ; montant en lettres si l'extension `intl` est présente.
 
+### Travaux (lot 3)
+- Services : `QuoteService` (devis, modèles, envoi, acceptation, expiration), `WorksiteService` (chantiers, statuts, avancement, journal, photos, lien de suivi), `WorksBilling` (acompte, situations, solde, par `Billing`), `WorksiteTeam` (pointage, tâches, paiements des tâcherons), `SiteCash` (caisse de chantier), `WorksiteCosts` (budget prévu/réel, alerte). Les contrôleurs valident et appellent ces services ; les règles sont dans les services.
+- Tout ce qui fait monter le coût d'un chantier (pointage, tâche terminée, dépense) appelle `WorksiteCosts::checkAlert()` ; une modification du budget appelle `budgetChanged()` (alerte réarmée).
+- Mouvements automatiques de la caisse du jour (`CashMovementType::isAutomatic()` : caution, avance et retour de chantier) : jamais saisis à la main, exclus de la validation et de l'écran Caisse ; annulés par un mouvement inverse tant que la caisse n'est pas clôturée.
+- Saisies du terrain idempotentes : `client_uuid` unique sur `worksite_photos`, `worksite_attendances` et `site_cash_entries` ; une saisie déjà reçue renvoie l'existante (200 au lieu de 201).
+- Lien de suivi : `Api\Public\WorksiteTrackingController` (`/api/public/worksites/{jeton}`, limité à 60 appels/minute), page `frontend/src/pages/TrackingPage.tsx` chargée à la demande. N'y ajouter que des données que le client peut voir.
+
+### Appli terrain hors ligne (lot 3)
+- `frontend/src/admin/offline/` : `db.ts` (IndexedDB : `outbox` et `cache`), `outbox.ts` (file d'attente, envoi dans l'ordre, `useOutbox()`, `useOutboxAutoSync()` monté dans `AdminLayout`), `cachedQuery.ts` (lecture réseau d'abord, sinon dernière valeur gardée), `image.ts` (réduction des photos), `session.ts` (profil gardé pour l'usage hors ligne).
+- Erreurs à l'envoi : pas de réseau, 429 ou 5xx → nouvel essai plus tard, dans le même ordre ; 401 → attente de la reconnexion ; autre refus (422, 403, 404) → saisie marquée en erreur avec le motif, les suivantes continuent.
+- `frontend/public/sw.js` (enregistré en production seulement, `src/main.tsx`) : pages en « réseau d'abord » avec repli sur la dernière page d'accueil, `/assets/` gardés à la première lecture (80 au plus), `/api/` et `/storage/` jamais interceptés. Caddy sert `sw.js`, `index.html` et le manifeste en `no-cache`. Changer le nom des caches (`borom-shell-v1`…) pour forcer un nettoyage.
+- Tester : `npm run build && npx vite preview` (relais `/api` vers l'API comme en dev) puis, dans Playwright, `context.setOffline(true)`.
+
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
 

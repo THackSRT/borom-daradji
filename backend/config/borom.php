@@ -66,4 +66,27 @@ return [
     */
     'reminder_days' => array_map('intval', explode(',', (string) env('REMINDER_DAYS', '3,15,30'))),
     'lease_end_alert_days' => (int) env('LEASE_END_ALERT_DAYS', 60),
+
+    /*
+    | Travaux : validité d'un devis envoyé (jours) et acompte demandé à la commande (% du TTC,
+    | modifiable devis par devis). À valider avec l'agence.
+    */
+    'quote_validity_days' => (int) env('QUOTE_VALIDITY_DAYS', 30),
+    'quote_deposit_rate' => (float) env('QUOTE_DEPOSIT_RATE', 30),
+    // Conditions proposées sur un nouveau devis (modifiables devis par devis).
+    'quote_conditions' => "Validité : 30 jours. Acompte à la commande, solde à la réception des travaux.\nDélai d'exécution à convenir à la signature. Les travaux non prévus au devis feront l'objet d'un avenant.",
+    // Corps de métier créés à l'installation (le cahier des charges v2.0 en liste 14, plus la peinture
+    // proposée sur le site) ; liste à valider, modifiable dans le catalogue.
+    'default_trades' => [
+        'Maçonnerie et gros œuvre', 'Terrassement et fondations', 'Béton armé et ferraillage', 'Plomberie sanitaire',
+        'Électricité', 'Menuiserie bois', 'Menuiserie aluminium et ferronnerie', 'Carrelage et revêtements',
+        'Peinture et décoration', 'Étanchéité', 'Plâtrerie et faux plafonds', 'Climatisation et ventilation',
+        'Charpente et couverture', 'Assainissement et VRD', 'Aménagement extérieur',
+    ],
+
+    /*
+    | Chantiers : alerte (une tâche au chef de chantier) quand le coût réel dépasse le budget prévu
+    | de plus de ce pourcentage. Le cahier des charges dit 10 %.
+    */
+    'budget_alert_tolerance' => (float) env('BUDGET_ALERT_TOLERANCE', 10),
 ];

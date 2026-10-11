@@ -175,15 +175,55 @@ Règles en place :
 
 ## Lot 3 — Travaux
 
-- Catalogue de prestations par corps de métier (désignation, unité, prix unitaire) ; **14 corps listés dans la v2.0** (le document en annonce 15) plus la peinture, proposée sur le site actuel.
-- Devis par lots tirés du catalogue, remise, modèles réutilisables, PDF, suivi `brouillon → envoye → accepte|refuse|expire` (validité 30 jours).
-- Chantiers : statuts `devis → planifie → en_cours → suspendu → termine → facture`, lots avec % d'avancement, journal, photos géolocalisées et datées.
-- Factures d'acompte, de situation (cumul des situations précédentes) et de solde à partir du devis.
-- Équipes et **tâcherons** : pointage journalier, paiements à la tâche ou à la journée, avances.
-- **Caisse de chantier** : avances au chef de chantier, dépenses avec photo du reçu.
-- Budget prévu et réel (matériaux + main-d'œuvre + caisse), alerte au-delà de 10 % de dépassement.
-- **Lien de suivi client** : URL signée et révocable, en lecture seule (avancement, photos, paiements d'un chantier).
-- **Appli terrain hors ligne** : photos, pointage et dépenses stockés sur le téléphone puis synchronisés.
+**Fait** (branche `lot-3-travaux`) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation des travaux, tâcherons et pointage, caisse de chantier, budget et alerte de dépassement, lien de suivi du client, appli terrain hors ligne. Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Catalogue et devis (D-044) :
+- Corps de métier (15 créés à l'installation : les 14 de la v2.0 et la peinture) et prestations (désignation, unité, prix HT, TVA), modifiables et désactivables (`works.catalog`). Les prix de la démo sont indicatifs.
+- Devis = lots (un par corps de métier ou par étape) de lignes tirées du catalogue ou saisies ; remise globale en %, appliquée ligne par ligne ; TVA par ligne ; montants arrondis au franc par ligne. Numéro `DEV-AAAA-0001` à la création (un devis n'est pas une pièce comptable).
+- Suivi `brouillon → envoye → accepte | refuse | expire`. À l'envoi : date et validité (30 jours, `QUOTE_VALIDITY_DAYS`) ; chaque nuit (`borom:expire-quotes`, 00:15) les devis échus passent en « expiré ». Un devis envoyé ne se modifie plus : on le reprend en brouillon ou on le duplique. Refus avec motif. Un devis expiré se renvoie avant d'être accepté.
+- Modèles réutilisables (devis sans client ni numéro) ; dupliquer un devis ou un modèle. PDF avec conditions (modifiables) et acompte demandé (30 % par défaut, `QUOTE_DEPOSIT_RATE`).
+
+Chantiers (D-045) :
+- Créés à l'acceptation d'un devis (lots et montants repris), ou à la main au stade « devis » ; un devis accepté peut compléter un chantier ouvert du même client (avenant). Le client reçoit la catégorie « client travaux ». Référence `CH-AAAA-0001`.
+- Statuts `devis → planifie → en_cours ⇄ suspendu → termine → facture` (un chantier terminé peut reprendre). Avancement en % par lot ; avancement global pondéré par le montant des lots.
+- Journal : changements de statut et d'avancement inscrits d'office et visibles du client ; notes visibles ou internes. Photos datées et géolocalisées par le téléphone, rattachables à un lot, visibles du client ou non, sur le disque privé.
+
+Facturation des travaux (D-046) :
+- Acompte : % du marché HT, avant la première situation, sans dépasser le marché.
+- Situation : travaux réalisés depuis la précédente (avancement × montant de chaque lot, cumulé, moins ce qui est déjà facturé), acompte déduit au prorata ; un avancement inférieur à ce qui est déjà facturé est refusé.
+- Solde : quand le chantier est terminé ; tout le marché est alors facturé au franc près et le chantier passe en « facturé ».
+- Factures ordinaires du lot 2 (activité « travaux », brouillon à vérifier puis émis, encaissements, relances), TVA ventilée selon les taux des lignes du devis. Une seule facture du chantier en brouillon à la fois ; une facture annulée par avoir ne compte plus.
+
+Tâcherons, caisse de chantier, budget (D-047, D-048) :
+- Tâcherons : artisans et ouvriers sans compte, payés à la journée (tarif journalier) ou à la tâche ; téléphone unique ; désactivés plutôt que supprimés (`works.team`).
+- Pointage du jour (journée ou demi-journée) au tarif du jour figé dans la ligne ; pas de journée à venir ; chantier ouvert seulement ; un tâcheron pointé deux fois le même jour sur le même chantier voit sa ligne mise à jour.
+- Travaux à la tâche (prix convenu) : dus une fois marqués terminés ; une tâche terminée ne s'annule plus.
+- Avances et paiements (`works.payments`) : dû = journées + tâches terminées ; solde = dû − versé, tous chantiers confondus ; un paiement ne dépasse pas le reste dû (au-delà, c'est une avance) ; référence obligatoire hors espèces ; payé ou non avec la caisse du chantier ; jamais supprimé, annulé avec motif.
+- Caisse du chantier, tenue par le chef de chantier : approvisionnement par l'agence (`works.payments`), pris dans la caisse du jour (sortie automatique « avance à un chef de chantier ») ou versé autrement ; dépenses sur place par catégorie avec photo du reçu (`works.cash`), reçu ajoutable après coup, dépenses sans reçu signalées ; paiements de tâcherons ; reliquat rendu (éventuellement remis dans la caisse du jour). Solde négatif admis : le chef a avancé de sa poche. Annulation avec motif ; les espèces de la caisse du jour font le chemin inverse tant qu'elle n'est pas clôturée.
+- Budget prévu (matériaux, main-d'œuvre, autres) et coût réel (`works.costs`) : main-d'œuvre des tâcherons (dû, payé ou non) + dépenses de la caisse par poste ; marge = marché HT − coût réel. Au-delà de +10 % (`BUDGET_ALERT_TOLERANCE`), une tâche « budget dépassé » au chef de chantier, une seule fois tant que le budget ne change pas. Les sorties de stock vers le chantier s'ajouteront avec le lot 4.
+
+Lien de suivi du client (D-049) :
+- Adresse `/suivi/{jeton}` (jeton aléatoire de 48 caractères) créée, renouvelée ou révoquée depuis la fiche du chantier (`works.manage`) et envoyée par WhatsApp ; l'ancien lien cesse de fonctionner.
+- Lecture seule, sans compte, non indexé : avancement global et par lot, photos et journal marqués visibles du client, factures émises avec leur PDF, payé et reste à régler. Rien d'interne (budget, coûts, tâcherons, caisse, notes internes, brouillons).
+
+Appli terrain hors ligne (D-050) :
+- Écran « Terrain » (`/admin/terrain`, installable sur le téléphone) : photo (réduite à 1 920 px, géolocalisée), pointage du jour, dépense avec reçu, pour le chantier choisi.
+- Chaque saisie est gardée sur le téléphone (IndexedDB) avec un identifiant unique, puis envoyée dans l'ordre dès que le réseau revient (et chaque minute) ; le serveur ignore une saisie déjà reçue. Une saisie refusée (droit, chantier fermé…) reste affichée avec le motif jusqu'à ce qu'on l'abandonne.
+- L'application s'ouvre sans réseau (service worker) avec les dernières données lues (chantiers, tâcherons, lots) ; le profil reste connecté hors ligne ; sur un téléphone partagé, seules les saisies de la personne connectée partent avec sa session.
+
+### Critères d'acceptation du lot 3
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Works`), sauf le hors-ligne, vérifié dans Chromium (coupure réseau simulée).
+
+- Un devis calcule remise, TVA et totaux au franc près, s'envoie, expire après sa validité, se refuse avec un motif ; accepté, il crée le chantier avec ses lots.
+- L'avancement d'un lot met à jour l'avancement global et s'inscrit au journal visible du client.
+- Acompte, situations et solde additionnés égalent le marché HT au franc près ; l'acompte est déduit au prorata ; une seule facture en brouillon à la fois.
+- Le pointage applique le tarif du jour du tâcheron et n'est pas compté deux fois par une synchronisation relancée ; une tâche n'est due qu'une fois terminée ; un paiement ne dépasse pas le reste dû.
+- La caisse du chantier suit approvisionnements, dépenses, paiements et retours ; un approvisionnement pris dans la caisse du jour en sort, et y revient s'il est annulé.
+- Un dépassement du budget au-delà de 10 % crée une seule alerte, de nouveau possible après une modification du budget.
+- Le lien de suivi montre avancement, photos et journal publics et paiements, rien d'interne ; renouvelé ou révoqué, l'ancien lien ne fonctionne plus.
+- Photos, pointage et dépenses saisis sans réseau sont envoyés au retour du réseau, sans doublon.
+- Chaque action est réservée aux permissions prévues (`works.*`, factures).
 
 ## Lot 4 — Stock et négoce
 

@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { api, getToken, setToken } from "@/lib/api";
 import type { User } from "./types";
+import { cachedUser, storeUser } from "./offline/session";
 
 interface AuthContextValue {
   user: User | null;
@@ -27,11 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: hasToken,
     retry: false,
     staleTime: 5 * 60_000,
+    // Profil gardé sur le téléphone : affiché aussitôt, rafraîchi dès que le réseau répond. Sans
+    // réseau, la requête échoue mais le profil reste (seul un 401 déconnecte).
+    initialData: hasToken ? cachedUser() : undefined,
+    initialDataUpdatedAt: 0,
   });
+
+  useEffect(() => {
+    if (hasToken && user) storeUser(user);
+  }, [hasToken, user]);
 
   // Jeton expiré ou compte désactivé : l'API renvoie 401, le client nous prévient.
   useEffect(() => {
     const onLogout = () => {
+      storeUser(null);
       setHasToken(false);
       queryClient.clear();
     };
@@ -57,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api("/auth/logout", { method: "POST" });
     } finally {
       setToken(null);
+      storeUser(null);
       setHasToken(false);
       queryClient.clear();
     }

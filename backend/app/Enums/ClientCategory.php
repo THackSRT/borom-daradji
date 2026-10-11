@@ -13,6 +13,7 @@ enum ClientCategory: string
     case Proprietaire = 'proprietaire';
     case Fournisseur = 'fournisseur';
     case SousTraitant = 'sous_traitant';
+    case ClientTravaux = 'client_travaux';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum ClientCategory: string
             self::Proprietaire => 'Propriétaire',
             self::Fournisseur => 'Fournisseur',
             self::SousTraitant => 'Sous-traitant',
+            self::ClientTravaux => 'Client travaux',
         };
     }
 }

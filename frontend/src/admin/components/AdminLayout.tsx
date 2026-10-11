@@ -7,6 +7,9 @@ import {
   CalendarDays,
   Globe,
   ChevronsUpDown,
+  BookOpen,
+  FileSignature,
+  HardHat,
   ClipboardList,
   HandCoins,
   History,
@@ -22,6 +25,8 @@ import {
   UserCog,
   Users,
   type LucideIcon,
+  UsersRound,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +41,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { initials, useSite } from "@/lib/site";
 import { useAuth } from "../auth";
+import { useOutboxAutoSync } from "../offline/outbox";
 import { GlobalSearch } from "./GlobalSearch";
 import { PasswordDialog } from "./PasswordDialog";
 import { QuickCreateProvider, useQuickCreate } from "./QuickCreate";
@@ -65,7 +71,17 @@ const sections: { title: string; items: NavItem[] }[] = [
       { to: "/admin/clients", label: "Clients", icon: Users, permissions: ["clients.view"] },
       { to: "/admin/baux", label: "Baux et loyers", icon: KeyRound, permissions: ["leases.view"] },
     ],
+  },  {
+    title: "Travaux",
+    items: [
+      { to: "/admin/chantiers", label: "Chantiers", icon: HardHat, permissions: ["works.view"] },
+      { to: "/admin/terrain", label: "Terrain", icon: Smartphone, permissions: ["works.manage", "works.team", "works.cash"] },
+      { to: "/admin/devis", label: "Devis", icon: FileSignature, permissions: ["works.view", "works.quotes"] },
+      { to: "/admin/tacherons", label: "Tâcherons", icon: UsersRound, permissions: ["works.team", "works.payments"] },
+      { to: "/admin/catalogue", label: "Catalogue", icon: BookOpen, permissions: ["works.catalog"] },
+    ],
   },
+
   {
     title: "Finances",
     items: [
@@ -203,7 +219,10 @@ function BottomNav({ onMore }: { onMore: () => void }) {
   // Les deux écrans les plus utiles selon les droits : factures et caisse pour qui prépare les
   // factures, sinon biens et clients.
   const finance = can("invoices.manage") && !isSuperAdmin;
+  // Sur le chantier : l'appli terrain (photos, pointage, dépenses hors ligne) et les chantiers.
+  const works = can("works.manage", "works.team", "works.cash") && !isSuperAdmin;
   const candidates = [
+    ...(works ? [{ to: "/admin/terrain", label: "Terrain", icon: Smartphone, ok: true }, { to: "/admin/chantiers", label: "Chantiers", icon: HardHat, ok: can("works.view") }] : []),
     ...(finance ? [{ to: "/admin/factures", label: "Factures", icon: Receipt, ok: true }, { to: "/admin/caisse", label: "Caisse", icon: Banknote, ok: true }] : []),
     { to: "/admin/biens", label: "Biens", icon: Building2, ok: can("properties.view") },
     { to: "/admin/clients", label: "Clients", icon: Users, ok: can("clients.view") },
@@ -233,6 +252,8 @@ function BottomNav({ onMore }: { onMore: () => void }) {
 
 function Shell() {
   const location = useLocation();
+  // Saisies de terrain gardées sur le téléphone : envoyées au retour du réseau, sur tous les écrans.
+  useOutboxAutoSync();
   const siteName = useSite().data?.company.trade_name ?? "Borom Daradji";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);

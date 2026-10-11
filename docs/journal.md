@@ -6,11 +6,12 @@
 
 - **Lot 1** (biens et prospects, site vitrine paramétrable) : terminé, **fusionné dans `main`** (PR #1, 2026-10-11).
 - **Lot 2** (encaissements et location) : **fonctionnellement terminé** : facturation, avoirs, encaissements, reçus, caisse du jour, baux, appels de loyer automatiques, arriérés, quittances, reversements, états des lieux et restitution de la caution, relances automatiques des impayés, alerte de fin de bail, remise en location, cautions à restituer (valeurs par défaut à valider, D-035, D-040 à D-043). Critères d'acceptation dans `perimetre-et-lots.md`. **Fusionné dans `main`** (PR #2, 2026-10-11).
-- **Branches** : `main` contient les lots 0, 1 et 2 (PR #1 et #2 fusionnées le 2026-10-11). Les branches `lot-0-socle`, `lot-1-biens-prospects` et `lot-2-encaissements-location` sont conservées pour l'historique. Prochaine branche : `lot-3-travaux`, depuis `main`. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
+- **Lot 3** (travaux) : **fonctionnellement terminé** sur la branche `lot-3-travaux` (poussée, **pas encore de PR ni de fusion**, à faire sur demande de l'utilisateur) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation acompte/situations/solde, tâcherons et pointage, caisse de chantier, budget et alerte à +10 %, lien de suivi du client (`/suivi/{jeton}`), appli terrain hors ligne (`/admin/terrain`). Règles et critères d'acceptation dans `perimetre-et-lots.md`, décisions D-044 à D-050 (valeurs par défaut à valider).
+- **Branches** : `main` contient les lots 0, 1 et 2 (PR #1 et #2 fusionnées le 2026-10-11). Les branches `lot-0-socle`, `lot-1-biens-prospects` et `lot-2-encaissements-location` sont conservées pour l'historique. Lot 3 sur `lot-3-travaux` (depuis `main`), non fusionné. GitGuardian signale sur la PR #2 les identifiants de la base de **développement** (`borom`/`borom` dans `compose.yaml`) : faux positif accepté par l'utilisateur, à marquer comme tel dans GitGuardian.
 - **Droits** : RBAC complet (D-034), écran « Rôles et droits » et droits par compte ; après un déploiement, lancer `php artisan borom:sync-permissions`.
-- **Tests** : 198 tests backend verts, sur SQLite et sur PostgreSQL ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
+- **Tests** : 239 tests backend verts sur `lot-3-travaux`, sur SQLite **et** sur PostgreSQL (198 sur `main`) ; front : `typecheck`, `lint` (0 erreur, 19 avertissements « fast refresh » sans gravité) et `build` propres ; parcours vérifié dans Chromium (dirigeant, agent, téléphone 390 px sans débordement).
 - **Docker** (D-037, D-039) : `make up` lance tout l'environnement de dev (API, planificateur, Vite, PostgreSQL 17) ; `compose.prod.yaml` (Caddy avec HTTPS automatique, PHP-FPM, planificateur, PostgreSQL) est prêt pour un serveur. Pas de GitHub Actions (D-038) : `make check` avant chaque commit.
-- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
+- **Données de démo** : `php artisan migrate:fresh --seed` charge 4 comptes, le catalogue des travaux, des devis à chaque étape, le chantier en cours de Ngor (avancement, journal, lien de suivi, acompte payé et situation émise, 7 tâcherons, deux semaines de pointage, caisse du chef de chantier), les 12 biens de l'ancien site (9 publiés, 1 loué par la démo de gestion locative), des clients à chaque étape, des factures, le bail en gestion de Mermoz (état des lieux d'entrée validé) et le bail du studio du Point E résilié (dernier loyer impayé, états des lieux d'entrée et de sortie validés avec deux dégradations) : sa caution est prête à être restituée.
 - **Déploiement** : aucun serveur pour l'instant ; il suffira d'un VPS Linux avec Docker (`make prod-up`).
 
 ## Prochaines actions, dans l'ordre
@@ -18,7 +19,8 @@
 1. Choisir le serveur (VPS avec Docker) et le nom de domaine, puis déployer avec `make prod-up` (voir `README.md`). Lancer une fois `make up` et `make prod-up` sur une vraie machine : l'image PHP réelle (extensions gd, intl, pdo_pgsql…) n'a pas pu être construite dans le bac à sable (dépôt Alpine bloqué), tout le reste a été testé. Planifier `make prod-backup` dans le cron du serveur.
 2. Faire valider par le comptable du client les règles de facturation (TVA par activité, mentions, délai de paiement) et les droits par défaut.
 3. Ajuster les valeurs par défaut de la gestion locative selon les réponses du client (conditions de location, modèle de pièces des états des lieux, règles de la caution).
-4. Lot 3 (travaux), sur la branche `lot-3-travaux` : devis, chantiers, tâcherons, caisse de chantier, suivi client, saisie hors ligne.
+4. Lot 3 : relecture par l'utilisateur, puis PR `lot-3-travaux` → `main` et fusion **sur sa demande**. Tester l'appli terrain sur un vrai téléphone Android en HTTPS (installation, appareil photo, coupure réseau).
+5. Lot 4 (stock et négoce), sur une branche `lot-4-stock-negoce` depuis `main` une fois le lot 3 fusionné : les sorties de stock vers un chantier s'ajouteront au coût réel (`WorksiteCosts`).
 
 Manques connus du back-office : pas de « mot de passe oublié » (le dirigeant réinitialise depuis Comptes), pas de carte des biens, pas de changement d'agent assigné depuis la fiche client, pipeline sans glisser-déposer (menu « Déplacer vers »), photos de démo externes non modifiables.
 
@@ -38,6 +40,10 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Coordonnées bancaires à saisir dans Paramètres : elles s'impriment sur les factures (virement).
 - [ ] Logiciel du cabinet comptable (Sage, Ciel, autre) pour le format des exports.
 - [ ] Nombre d'utilisateurs et rôles cumulés.
+- [ ] Travaux : validité des devis (30 jours) et acompte demandé (30 %) ; conditions imprimées sur les devis ; liste des corps de métier et prix du catalogue (ceux de la démo sont indicatifs).
+- [ ] Chef de chantier : a-t-il un compte ? Proposition : un rôle « Chef de chantier » (consulter les chantiers, photos et journal, pointage, caisse du chantier) à créer dans « Rôles et droits » ; qui approvisionne sa caisse et paie les tâcherons (comptable par défaut) ?
+- [ ] Tâcherons : demi-journée acceptée ? paiement chaque samedi, à la quinzaine, en fin de tâche ? Photo du reçu obligatoire au-delà d'un montant ?
+- [ ] Alerte de budget au-delà de 10 % : bon seuil ? qui la reçoit (chef de chantier, sinon responsable travaux) ?
 - [ ] Données existantes à reprendre (Excel, cahiers).
 - [ ] Hébergement et nom de domaine : qui paie, qui administre. *Base : PostgreSQL 17, choisi par l'utilisateur le 2026-10-10 (D-039).*
 - [ ] Caution : qui la garde (l'agence par défaut, sur sa facture d'entrée), et pour un bail géré, les retenues pour réparations reviennent-elles au propriétaire ? Faut-il un délai de restitution (souvent un ou deux mois après la sortie) ?
@@ -50,6 +56,19 @@ Les trois premières bloquent le lot 2. Noter la réponse et la date ici quand e
 - [ ] Mentions légales : hébergeur du site, et faut-il afficher le NINEA et le RCCM (option désactivée par défaut) ? Texte de la politique de confidentialité à faire relire.
 
 ## Historique des sessions
+
+### 2026-10-11 (suite) — Lot 3 : travaux
+
+- Demande de l'utilisateur : passer à l'étape suivante (lot 3), puis « continue l'implémentation ». Branche `lot-3-travaux` depuis `main`, poussée après chaque étape. D-044 à D-050.
+- A. Catalogue (corps de métier, prestations) et devis par lots (remise, TVA par ligne, modèles, PDF, envoi WhatsApp, expiration la nuit).
+- B. Chantiers : création à l'acceptation du devis, statuts, avancement par lot pondéré, journal, photos géolocalisées privées, lien de suivi.
+- C. Facturation : acompte, situations cumulées avec déduction de l'acompte, solde, par le socle du lot 2.
+- D. Tâcherons, pointage, tâches, avances et paiements, caisse de chantier (liée à la caisse du jour par des mouvements automatiques `avance_chantier` / `retour_chantier`), budget prévu/réel et alerte ; onglets Équipe, Caisse, Budget, page Tâcherons.
+- E. Page publique `/suivi/{jeton}` (avancement, photos et journal publics, factures émises avec PDF, paiements).
+- F. Appli terrain hors ligne : écran Terrain, file d'attente IndexedDB, service worker, manifeste et icônes, profil gardé hors ligne.
+- Corrigé en route : débordement à 390 px des grilles sans `grid-cols-1` (onglets Caisse, Budget, Factures) ; recherche du pointage existant par `whereDate` (la date est stockée avec l'heure sous SQLite).
+- 239 tests verts sur SQLite et PostgreSQL ; démo chargée sur PostgreSQL ; front : typecheck, lint (0 erreur), build. Vérifié dans Chromium (bureau et 390 px) : onglets Équipe, Caisse (dépense avec reçu), Budget, Tâcherons, page de suivi ; hors ligne avec le build de production : rechargement sans réseau, pointage, dépense et photo gardés puis envoyés au retour du réseau.
+- Limite : l'image PHP réelle (gd, intl, pdo_pgsql) ne se construit toujours pas dans le bac à sable ; PostgreSQL testé avec le PHP de la machine contre le conteneur `db`.
 
 ### 2026-10-11 — Fusion des lots 1 et 2
 

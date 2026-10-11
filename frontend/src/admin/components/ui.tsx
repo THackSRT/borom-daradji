@@ -37,7 +37,7 @@ export function Panel({
   return (
     <section className={cn("rounded-xl border bg-card shadow-sm", className)}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 border-b px-5 py-4">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
           <div>
             {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
             {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
@@ -162,6 +162,16 @@ const tones: Record<string, string> = {
   partielle: "bg-sky-50 text-sky-700 [--dot:theme(colors.sky.500)]",
   payee: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
   en_retard: "bg-red-50 text-red-700 [--dot:theme(colors.red.500)]",
+  envoye: "bg-blue-50 text-blue-700 [--dot:theme(colors.blue.500)]",
+  accepte: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
+  refuse: "bg-slate-100 text-slate-500 [--dot:theme(colors.slate.400)]",
+  devis: "bg-slate-100 text-slate-600 [--dot:theme(colors.slate.400)]",
+  planifie: "bg-blue-50 text-blue-700 [--dot:theme(colors.blue.500)]",
+  en_cours: "bg-amber-50 text-amber-700 [--dot:theme(colors.amber.500)]",
+  suspendu: "bg-orange-50 text-orange-700 [--dot:theme(colors.orange.500)]",
+  termine: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
+  facture: "bg-indigo-50 text-indigo-700 [--dot:theme(colors.indigo.500)]",
+  terminee: "bg-emerald-50 text-emerald-700 [--dot:theme(colors.emerald.500)]",
 };
 
 /** Pastille de statut : point de couleur + libellé. */
