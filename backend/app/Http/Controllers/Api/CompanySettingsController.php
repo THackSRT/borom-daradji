@@ -48,4 +48,17 @@ class CompanySettingsController extends Controller
 
         return new CompanySettingsResource($settings);
     }
+
+    public function destroyLogo(): CompanySettingsResource
+    {
+        $settings = CompanySetting::current();
+
+        if ($settings->logo_path) {
+            Storage::disk('public')->delete($settings->logo_path);
+            $settings->logo_path = null;
+            $settings->save();
+        }
+
+        return new CompanySettingsResource($settings);
+    }
 }

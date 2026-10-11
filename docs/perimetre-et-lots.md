@@ -5,7 +5,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | Lot | Contenu | Semaines | Heures | État |
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
-| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | À faire |
+| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
 | 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | À faire |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
@@ -50,13 +50,15 @@ Livré sur la branche `lot-0-socle`. Détail de l'API dans [`backend/README.md`]
 - Journal d'activité automatique (trait `LogsActivity`) : création, modification avant/après, suppression, connexion, déconnexion ; mots de passe jamais copiés ; purge après 365 jours.
 - Commande `borom:create-director` pour créer le premier compte en production.
 
-**Reste à faire pour clore le lot 0** : écrans de connexion, de gestion des comptes et des paramètres dans le back-office (le dossier `frontend/` n'existe pas encore) ; traduction française des messages de validation génériques de Laravel ; déploiement sur un serveur.
+**Reste à faire pour clore le lot 0** : écrans de connexion, de gestion des comptes et des paramètres dans le back-office (le dossier `frontend/` n'existe pas encore) ; déploiement sur un serveur. Les messages de validation sont traduits (`lang/fr/validation.php`).
 
 ---
 
-## Lot 1 — Biens et prospects (prochain lot)
+## Lot 1 — Biens et prospects (API faite)
 
 Objectif : publier un bien vérifié sur le site et suivre chaque prospect jusqu'à la visite.
+
+**État** : API livrée sur la branche `lot-1-biens-prospects` (86 tests). Écarts avec la spécification ci-dessous, décidés pendant l'implémentation : client avec un seul champ `name` (D-021) ; critères de recherche sans équipements ; site vitrine montrant aussi les biens `en_negociation` (D-020) ; `GET /api/public/places` (villes et quartiers) au lieu de `/neighborhoods` ; photos de démonstration en URL externes. Reste : les écrans (front).
 
 ### Modèle de données proposé
 

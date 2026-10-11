@@ -18,14 +18,14 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | Dossier | Contenu |
 | --- | --- |
 | `backend/` | API Laravel : un module par métier, droits vérifiés côté serveur |
-| `frontend/` | *(à venir)* site vitrine, back-office et appli terrain en React |
+| `frontend/` | Site vitrine et back-office React (`/admin`) ; voir [`frontend/README.md`](frontend/README.md) |
 
 ## Avancement par lot
 
 | Lot | Contenu | État |
 | --- | --- | --- |
-| 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | API faite, écrans à faire |
-| 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | À faire |
+| 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
+| 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
 | 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | À faire |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
 | 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir | À faire |
@@ -41,7 +41,7 @@ composer install
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
-php artisan migrate --seed   # comptes de démo, mot de passe « password »
+php artisan migrate --seed   # comptes de démo (mot de passe « password »), 12 biens et quelques prospects
 php artisan serve
 ```
 
