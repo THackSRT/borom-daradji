@@ -6,15 +6,16 @@ import { AlertTriangle, ArrowRight, Building2, CalendarDays, ClipboardList, Home
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { fromNow } from "@/lib/format";
+import { formatDate, fromNow } from "@/lib/format";
 import { useAuth } from "../auth";
-import type { Dashboard } from "../types";
+import type { Dashboard, Invoice, InvoiceSummary, Lease, LeaseSummary, Paginated } from "../types";
+import { cfa } from "../components/billing";
 import { TaskItem } from "../components/TaskItem";
 import { useQuickCreate } from "../components/QuickCreate";
 import { Avatar, EmptyState, Panel, ProgressBar, StatCard, WhatsAppLink } from "../components/ui";
 
 export default function DashboardPage() {
-  const { user, hasRole, isDirigeant } = useAuth();
+  const { user, can } = useAuth();
   const navigate = useNavigate();
   const quickCreate = useQuickCreate();
   const { data, isLoading } = useQuery({
@@ -33,7 +34,7 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground first-letter:uppercase">{format(new Date(), "EEEE d MMMM", { locale: fr })}</p>
         <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">{greeting} {user?.name.split(" ")[0]}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isDirigeant ? "Voici l'activité de toute l'agence." : "Voici ce qui vous attend aujourd'hui."}
+          {can("dashboard.view_all") ? "Voici l'activité de toute l'agence." : "Voici ce qui vous attend aujourd'hui."}
         </p>
       </div>
 
@@ -45,7 +46,7 @@ export default function DashboardPage() {
             hint={k.tasks_overdue ? `dont ${k.tasks_overdue} en retard` : "Rien en retard"} tone={k.tasks_overdue ? "danger" : "default"}
             onClick={() => navigate("/admin/taches")} />
           <StatCard icon={CalendarDays} label="Visites aujourd'hui" value={k.visits_today} hint={`${k.visits_week} cette semaine`}
-            onClick={hasRole("agent", "commercial") ? () => navigate("/admin/visites") : undefined} />
+            onClick={can("visits.view", "visits.manage") ? () => navigate("/admin/visites") : undefined} />
           <StatCard icon={UserPlus} label="Prospects à contacter" value={k.new_leads} hint={`${k.leads_this_week} nouveaux en 7 jours`}
             tone={k.new_leads ? "warning" : "default"} onClick={() => navigate("/admin/clients?etape=nouveau")} />
           <StatCard icon={Building2} label="Biens en ligne" value={k.published} hint={k.drafts ? `${k.drafts} en attente de vérification` : "Aucun brouillon"}
@@ -78,7 +79,11 @@ export default function DashboardPage() {
             )}
           </Panel>
 
-          {hasRole("agent") && (
+          {can("invoices.view") && <OverdueInvoices />}
+
+          {can("deposits.settle") && <PendingDeposits />}
+
+          {can("properties.update") && (
             <Panel title="Biens en attente de publication" description="Terminez la vérification foncière pour les mettre en ligne."
               action={<Button variant="ghost" size="sm" asChild><Link to="/admin/biens?statut=brouillon">Voir <ArrowRight className="h-4 w-4" /></Link></Button>}
               bodyClassName="p-2">
@@ -146,5 +151,57 @@ export default function DashboardPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Factures en retard : relance WhatsApp en un geste depuis l'accueil. */
+function OverdueInvoices() {
+  const { data } = useQuery({
+    queryKey: ["invoices", { state: "en_retard", dashboard: true }],
+    queryFn: () => api<Paginated<Invoice> & { summary: InvoiceSummary }>("/invoices", { query: { state: "en_retard", per_page: 5 } }),
+  });
+  if (!data?.data.length) return null;
+  return (
+    <Panel title={`Factures en retard · ${cfa(data.summary.overdue)}`} description="À relancer par téléphone ou WhatsApp."
+      action={<Button variant="ghost" size="sm" asChild><Link to="/admin/factures?filtre=en_retard">Tout voir <ArrowRight className="h-4 w-4" /></Link></Button>}
+      bodyClassName="p-2">
+      <div className="divide-y">
+        {data.data.map((inv) => (
+          <div key={inv.id} className="flex items-center gap-3 px-3 py-2.5">
+            <Link to={`/admin/factures/${inv.id}`} className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{inv.client.name}</p>
+              <p className="text-xs text-muted-foreground">{inv.number} · échue le {formatDate(inv.due_date)}</p>
+            </Link>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-red-600">{cfa(inv.balance)}</span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/** Baux résiliés dont la caution reste à restituer. */
+function PendingDeposits() {
+  const { data } = useQuery({
+    queryKey: ["leases", { deposit_pending: 1, dashboard: true }],
+    queryFn: () => api<Paginated<Lease> & { summary: LeaseSummary }>("/leases", { query: { deposit_pending: 1, per_page: 5 } }),
+  });
+  if (!data?.data.length) return null;
+  return (
+    <Panel title={`Cautions à restituer · ${data.summary.deposits_pending}`} description="Baux résiliés : retenues éventuelles, puis remboursement du locataire."
+      action={<Button variant="ghost" size="sm" asChild><Link to="/admin/baux?filtre=cautions">Tout voir <ArrowRight className="h-4 w-4" /></Link></Button>}
+      bodyClassName="p-2">
+      <div className="divide-y">
+        {data.data.map((lease) => (
+          <Link key={lease.id} to={`/admin/baux/${lease.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{lease.tenant.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{lease.property.title} · parti le {formatDate(lease.terminated_on)}</span>
+            </span>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">{cfa(lease.deposit)}</span>
+          </Link>
+        ))}
+      </div>
+    </Panel>
   );
 }

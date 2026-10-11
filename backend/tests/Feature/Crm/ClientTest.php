@@ -70,6 +70,19 @@ class ClientTest extends TestCase
             ->assertJsonPath('data.0.name', 'Khady Ndiaye');
     }
 
+    public function test_search_by_name_ignores_case(): void
+    {
+        // PostgreSQL : « like » distingue les majuscules, la recherche doit les ignorer.
+        Client::factory()->create(['name' => 'Fatou Sow']);
+        Client::factory()->create(['name' => 'Moussa Ba']);
+        Sanctum::actingAs(User::factory()->withRoles(Role::Agent)->create());
+
+        $this->getJson('/api/clients?search=fatou')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Fatou Sow');
+    }
+
     public function test_private_notes_are_only_visible_to_the_assigned_user_and_the_dirigeant(): void
     {
         $assigned = User::factory()->withRoles(Role::Agent)->create();

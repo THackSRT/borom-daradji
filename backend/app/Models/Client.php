@@ -134,4 +134,24 @@ class Client extends Model
             $this->last_contact_at = $at;
         }
     }
+
+    /**
+     * Baux où ce client est locataire.
+     *
+     * @return HasMany<Lease, $this>
+     */
+    public function leases(): HasMany
+    {
+        return $this->hasMany(Lease::class, 'tenant_id')->latest('start_date');
+    }
+
+    /**
+     * Baux des biens dont ce client est propriétaire.
+     *
+     * @return HasMany<Lease, $this>
+     */
+    public function ownedLeases(): HasMany
+    {
+        return $this->hasMany(Lease::class, 'owner_id');
+    }
 }

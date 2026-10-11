@@ -39,4 +39,11 @@ class PhoneNumberTest extends TestCase
     {
         $this->assertSame($expected, PhoneNumber::normalize($input));
     }
+
+    public function test_format_for_display(): void
+    {
+        $this->assertSame('77 123 45 67', PhoneNumber::format('+221771234567'));
+        $this->assertSame('+33612345678', PhoneNumber::format('+33612345678'));
+        $this->assertSame('', PhoneNumber::format(null));
+    }
 }

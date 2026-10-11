@@ -17,13 +17,24 @@ Logiciel de gestion de **Borom Daradji**, une agence de Dakar qui fait de l'immo
 
 ## Commandes
 
+Avec Docker (environnement de référence, D-037 ; détail dans `README.md`) :
+
+```sh
+make up                     # dev : http://localhost:8080 (site, /admin), API sur :8000, PostgreSQL
+make check                  # avant chaque commit : tests, Pint, typecheck, lint, build
+make test-pgsql             # tests de l'API sur PostgreSQL (base borom_test séparée)
+make prod-up                # production (Caddy + PHP-FPM + PostgreSQL), variables dans .env.prod
+```
+
+Sans Docker :
+
 ```sh
 cd backend
 composer install
 cp .env.example .env && php artisan key:generate
 touch database/database.sqlite && php artisan migrate --seed
 php artisan test            # toute la suite doit passer avant chaque commit
-vendor/bin/pint             # formatage (la CI lance pint --test)
+vendor/bin/pint             # formatage (pint --test doit passer)
 php artisan serve           # http://localhost:8000/api/...
 ```
 
@@ -38,7 +49,7 @@ Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigean
 
 ## Règles de travail
 
-- **Une branche par lot** (`lot-1-biens-prospects`…), une pull request vers `main`, CI verte avant fusion.
+- **Une branche par lot** (`lot-1-biens-prospects`…), une pull request vers `main`. Pas d'intégration continue (D-038) : `make check` (ou les commandes sans Docker) doit passer avant chaque commit.
 - **Tests obligatoires** : chaque règle métier a son test de fonctionnalité (`tests/Feature`). Écrire les tests en français dans les noms de données, en anglais dans les noms de méthodes (`test_dirigeant_cannot_lock_themself_out`), comme l'existant.
 - **Mettre à jour `docs/journal.md` à la fin de chaque session** : ce qui a été fait, ce qui reste, les questions en suspens. C'est ce qui permet le relais.
 - **Nouvelle décision structurante** → une entrée dans `docs/decisions.md`.
@@ -51,7 +62,7 @@ Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigean
 - Montants en **francs CFA entiers** (`bigInteger`, pas de centimes, pas de float).
 - Téléphones toujours passés par `App\Support\PhoneNumber::normalize()` → format `+221XXXXXXXXX`.
 - Tout modèle métier utilise le trait `LogsActivity` **et** reçoit un alias dans `Relation::enforceMorphMap()` (`AppServiceProvider`). Oublier l'alias fait planter la journalisation.
-- Droits vérifiés côté serveur (gates/policies), jamais seulement dans l'interface.
+- Droits vérifiés côté serveur, jamais seulement dans l'interface : RBAC (D-034). Une nouvelle fonction = ses permissions dans `App\Support\PermissionCatalog`, vérifiées dans une policy (`$user->hasPermission()`) ou par `can:` ; côté écran, `can()` de `useAuth()`. Après déploiement : `php artisan borom:sync-permissions`.
 - Rien n'est supprimé physiquement quand il y a un historique : archivage (`SoftDeletes`) ou désactivation.
 
 ## Pièges connus de l'environnement
@@ -59,6 +70,9 @@ Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigean
 - `composer install` peut couper à cause du proxy de l'environnement cloud : relancer avec `COMPOSER_PROCESS_TIMEOUT=900`, les paquets déjà téléchargés sont en cache.
 - Le modèle de projet Laravel 13 proposait d'installer **Laravel Boost** via un `CLAUDE.md` généré : retiré volontairement, ne pas le réinstaller sans accord.
 - `php artisan test` affiche un résumé JSON (paquet `laravel/pao` du modèle de projet) : c'est normal.
-- **La CI GitHub ne s'exécute pas** : le workflow existe, mais GitHub ne démarre pas les tâches (blocage côté compte, voir `docs/journal.md`). Lancer soi-même `php artisan test`, `vendor/bin/pint --test` et, côté front, `npm run typecheck && npm run lint && npm run build` avant chaque commit.
+- **Pas de GitHub Actions** (D-038) : l'utilisateur ne s'en sert pas, ne pas recréer de workflow. Lancer soi-même les vérifications avant chaque commit.
+- **Docker** : ne pas retirer `--no-reload` de `artisan serve` dans l'image de dev (sans lui, l'API perd les variables du conteneur et retombe sur SQLite) ni les lignes `<server>` de `phpunit.xml` (sans elles, les tests vident la base PostgreSQL de dev).
+- **PostgreSQL** (D-039) : base de production ; les tests tournent sur SQLite, donc lancer aussi `make test-pgsql` quand on touche aux requêtes. Pièges déjà rencontrés : `like` y distingue les majuscules (utiliser `whereLike`/`orWhereLike`) ; comparer une colonne entière à un nombre décimal plante (arrondir en PHP avant) ; une valeur plus longue que sa colonne (`string('type', 20)`) plante, alors que SQLite l'accepte ; ne pas tester l'ordre des clés JSON.
+- **Docker dans le bac à sable cloud** : lancer `dockerd` soi-même ; Docker Hub limite les téléchargements (passer par `mirror.gcr.io/library/…` puis `docker tag`) ; le dépôt de paquets Alpine est bloqué, donc l'image PHP réelle (extensions gd, intl…) ne s'y construit pas. Pour tester, une variante Debian sans gd/intl construite à part a suffi (les 8 tests d'images échouent alors, c'est attendu) ; elle n'a pas non plus `pdo_pgsql` : tester PostgreSQL avec le PHP de la machine contre le conteneur `db` (port publié par un fichier compose d'appoint hors dépôt).
 - Vérifier les écrans dans un vrai navigateur : Playwright est disponible (`/opt/pw-browsers`) ; les photos de démo (Unsplash) sont bloquées par le bac à sable, c'est normal.
 - Pour arrêter les serveurs de développement, ne pas lancer `pkill -f "artisan serve"` depuis un shell dont la commande contient ce texte : il se tue lui-même. Passer par `ps aux | grep … | awk '{print $2}' | xargs kill`.

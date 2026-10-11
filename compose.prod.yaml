@@ -1,0 +1,78 @@
+# Production : make prod-up
+# (équivaut à docker compose -f compose.prod.yaml --env-file .env.prod up -d --build)
+# Variables dans .env.prod, à créer depuis .env.prod.example. Détail dans README.md.
+name: borom
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/backend/Dockerfile
+    target: prod
+  image: borom-daradji/app:latest
+  restart: unless-stopped
+  env_file: .env.prod
+  environment:
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: 5432
+  volumes:
+    - storage:/var/www/html/storage
+    - storage_public:/var/www/html/storage/app/public
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  # API Laravel (PHP-FPM) : met la configuration en cache, applique les
+  # migrations et synchronise les permissions à chaque démarrage.
+  app:
+    <<: *app
+
+  # Tâches planifiées : appels de loyer (06:00), mandats (07:00), purge du journal.
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  # Caddy : site et back-office, relais de l'API, photos, HTTPS automatique.
+  web:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: prod
+    image: borom-daradji/web:latest
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS manquant dans .env.prod}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - storage_public:/srv/storage:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?DB_DATABASE manquant dans .env.prod}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME manquant dans .env.prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans .env.prod}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  db:
+  storage:
+  storage_public:
+  caddy_data:
+  caddy_config:

@@ -26,7 +26,7 @@ function readView(): ViewMode {
 }
 
 export default function PropertiesPage() {
-  const { hasRole } = useAuth();
+  const { can } = useAuth();
   const quickCreate = useQuickCreate();
   const navigate = useNavigate();
   const statuses = useOptions("property_statuses");
@@ -79,7 +79,7 @@ export default function PropertiesPage() {
       <PageHeader
         title="Biens"
         description="Un bien n'apparaît sur le site qu'une fois sa vérification foncière terminée."
-        actions={hasRole("agent") && <Button onClick={() => quickCreate.open("property")}><Plus className="h-4 w-4" /> Nouveau bien</Button>}
+        actions={can("properties.create") && <Button onClick={() => quickCreate.open("property")}><Plus className="h-4 w-4" /> Nouveau bien</Button>}
       />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -109,7 +109,7 @@ export default function PropertiesPage() {
 
       {isLoading ? <SkeletonGrid /> : !data?.data.length ? (
         <EmptyState icon={Building2} title="Aucun bien ne correspond"
-          action={hasRole("agent") && !archived ? <Button onClick={() => quickCreate.open("property")}><Plus className="h-4 w-4" /> Ajouter un bien</Button> : undefined}>
+          action={can("properties.create") && !archived ? <Button onClick={() => quickCreate.open("property")}><Plus className="h-4 w-4" /> Ajouter un bien</Button> : undefined}>
           Modifiez les filtres ou ajoutez un nouveau bien.
         </EmptyState>
       ) : view === "grid" ? (

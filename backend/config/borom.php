@@ -28,4 +28,42 @@ return [
     */
     'mandate_alert_days' => 7,
 
+    /*
+    | Factures : délai de paiement par défaut, en jours après la date d'émission. À valider.
+    */
+    'invoice_due_days' => (int) env('INVOICE_DUE_DAYS', 15),
+
+    /*
+    | Gestion locative : valeurs par défaut proposées à la création d'un bail, toutes modifiables
+    | bail par bail. À valider avec le dirigeant (questions ouvertes du journal).
+    */
+    'rent_due_day' => (int) env('RENT_DUE_DAY', 5),
+    'rent_vat_rate' => (float) env('RENT_VAT_RATE', 0),
+    'management_commission_rate' => (float) env('MANAGEMENT_COMMISSION_RATE', 10),
+    // TVA sur la commission de gestion (prestation de l'agence).
+    'management_fee_vat_rate' => (float) env('MANAGEMENT_FEE_VAT_RATE', 18),
+    // Appels de loyer émis automatiquement (sinon laissés en brouillon pour le comptable).
+    'rent_calls_auto_issue' => (bool) env('RENT_CALLS_AUTO_ISSUE', true),
+
+    /*
+    | États des lieux : pièces et éléments proposés pour un nouvel état des lieux d'entrée (la sortie
+    | reprend les lignes de l'entrée). « {n} » : une pièce par chambre ou salle de bain du bien.
+    | Lignes modifiables état des lieux par état des lieux. À valider avec l'agence.
+    */
+    'inspection_template' => [
+        ['room' => 'Entrée et séjour', 'elements' => ['Porte d\'entrée et serrure', 'Murs et peinture', 'Sol', 'Plafond', 'Fenêtres et vitres', 'Prises et interrupteurs', 'Éclairage']],
+        ['room' => 'Cuisine', 'elements' => ['Murs et carrelage', 'Sol', 'Évier et robinetterie', 'Plan de travail et placards', 'Prises et interrupteurs', 'Fenêtre']],
+        ['room' => 'Chambre {n}', 'per' => 'bedrooms', 'elements' => ['Porte et serrure', 'Murs et peinture', 'Sol', 'Fenêtres et vitres', 'Placard', 'Prises et interrupteurs', 'Climatiseur']],
+        ['room' => 'Salle de bain {n}', 'per' => 'bathrooms', 'elements' => ['Murs et carrelage', 'Sol', 'Lavabo et robinetterie', 'Douche ou baignoire', 'WC', 'Chauffe-eau']],
+        ['room' => 'Extérieur', 'elements' => ['Cour ou terrasse', 'Portail', 'Citerne et surpresseur']],
+    ],
+    'inspection_max_photos' => (int) env('INSPECTION_MAX_PHOTOS', 150),
+
+    /*
+    | Relances des factures impayées (loyers compris) : une tâche pour la personne qui suit le
+    | client, à chaque palier de retard en jours. Fin de bail : alerte tant de jours avant la fin
+    | prévue (préavis, état des lieux de sortie, caution). À valider avec l'agence.
+    */
+    'reminder_days' => array_map('intval', explode(',', (string) env('REMINDER_DAYS', '3,15,30'))),
+    'lease_end_alert_days' => (int) env('LEASE_END_ALERT_DAYS', 60),
 ];

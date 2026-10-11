@@ -32,7 +32,7 @@ flowchart TB
     T --> AT
     D --> S
     V & BO & AT & S -->|HTTPS| API
-    API --> DB[(MySQL ou PostgreSQL)]
+    API --> DB[(PostgreSQL)]
     API --> F[(Fichiers S3<br/>photos, PDF)]
     DB & F -.->|copie chaque nuit| SV[(Sauvegardes hors serveur)]
     API --> X[WhatsApp wa.me, SMS,<br/>email, OpenStreetMap]
@@ -46,14 +46,15 @@ Un monolithe modulaire plutôt que des microservices : 2 développeurs et un ser
 | --- | --- | --- |
 | Serveur | Laravel 13, PHP 8.3+ | En place |
 | Authentification | Laravel Sanctum, jetons Bearer | En place |
-| Base de données | SQLite en local et en test ; MySQL ou PostgreSQL en production | À choisir avec l'hébergement |
+| Base de données | PostgreSQL 17 avec Docker (dev et production) ; SQLite en mémoire pour les tests, SQLite fichier possible sans Docker | En place (D-039) |
 | Écrans | React + Vite + TypeScript + Tailwind + shadcn/ui, repris du dépôt `borom-daradji-properties` ; TanStack Query pour les appels | Back-office et site vitrine branchés sur l'API ; contenu du site paramétrable |
 | Terrain | PWA installable, file de synchronisation hors ligne | Lot 3 |
 | PDF | Génération côté serveur depuis des modèles HTML | Lot 2 |
 | Exports | Laravel Excel | Lot 5 |
-| Fichiers | Disque `public` en local, stockage compatible S3 en production ; photos en WebP | Lot 1 |
+| Fichiers | Disques `public` et `local` (privé) ; en production, volumes Docker `storage` et `storage_public` (S3 possible plus tard) ; photos en WebP | Lot 1 |
 | Carte | Leaflet + OpenStreetMap | Lot 1 |
 | Envois | Files Laravel (`jobs`) ; liens `wa.me` ; SMS par fournisseur local | Lots 1-2 |
+| Environnement | Docker Compose : `compose.yaml` (dev), `compose.prod.yaml` (production, Caddy + PHP-FPM + PostgreSQL) ; raccourcis dans le `Makefile` | En place (D-037) |
 
 Pourquoi Laravel plutôt que Spring Boot ou Node : voir [`decisions.md`](decisions.md) (D-002).
 
@@ -64,7 +65,10 @@ borom-daradji/
 ├── CLAUDE.md                 point d'entrée pour une session Claude
 ├── README.md                 installation et avancement
 ├── docs/                     contexte, périmètre, architecture, décisions, journal
-├── .github/workflows/        CI : Pint + tests du backend (ne s'exécute pas pour l'instant)
+├── compose.yaml              Docker, développement (API, planificateur, Vite, PostgreSQL)
+├── compose.prod.yaml         Docker, production (Caddy, PHP-FPM, planificateur, PostgreSQL)
+├── Makefile                  raccourcis : make up, make check, make prod-up…
+├── docker/                   Dockerfiles, Caddyfile, réglages PHP, scripts de démarrage
 ├── frontend/                 site vitrine (src/pages, src/components) et back-office (src/admin)
 │   └── src/
 │       ├── lib/api.ts        client de l'API : jeton, erreurs 422 par champ, téléchargements protégés
@@ -83,8 +87,8 @@ borom-daradji/
     │   │   └── Concerns/     traits partagés (LogsActivity)
     │   ├── Policies/         droits par modèle (Property, Client, Visit, Task)
     │   ├── Rules/            règles de validation (SenegalPhone)
-    │   ├── Services/         règles métier à plusieurs étapes (statut d'un bien, rapprochement, demandes du site)
-    │   └── Support/          outils sans état (PhoneNumber, ActivityLogger, Sequence, WhatsApp, ImageOptimizer)
+    │   ├── Services/         règles métier à plusieurs étapes (statut d'un bien, rapprochement, demandes du site, Billing)
+    │   └── Support/          outils sans état (PhoneNumber, ActivityLogger, Sequence, WhatsApp, ImageOptimizer, SiteContent, InvoicePdf)
     ├── config/borom.php      paramètres propres au projet
     ├── routes/api.php        toutes les routes de l'API
     ├── routes/console.php    tâches planifiées
@@ -98,9 +102,13 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 ### Authentification et droits
 - `POST /api/auth/login` accepte `login` = email ou téléphone, `password`, `device_name` ; renvoie un jeton Sanctum (expiration : `SANCTUM_EXPIRATION` minutes, 30 jours par défaut).
 - Toutes les routes protégées passent par `auth:sanctum` **et** `active` (`EnsureUserIsActive`).
-- Rôles : `App\Enums\Role`, stockés en tableau JSON dans `users.roles` (cast `AsEnumCollection`). Méthodes `hasRole(Role ...$roles)`, `isDirigeant()`, scope `withRole()`.
-- `Gate::before` accorde tout au dirigeant ; gate `administrate` pour les comptes, paramètres et journal.
-- Modules métier : une policy par modèle (`PropertyPolicy`, `ClientPolicy`…) qui applique la matrice de droits de [`perimetre-et-lots.md`](perimetre-et-lots.md). Écritures : contrôle dans `authorize()` de la Form Request (403 avant la validation). Lectures : `Gate::authorize()` dans le contrôleur.
+- **RBAC** (D-034) avec `spatie/laravel-permission` : tables `roles` (+ `label`, `description`, `is_system`), `permissions`, `role_has_permissions`, `model_has_roles`, `model_has_permissions` (droits individuels). Modèles `App\Models\Role` et `App\Models\Permission` (journalisés, garde `web` : les jetons Sanctum utilisent le même fournisseur).
+- **Catalogue** : `App\Support\PermissionCatalog` fait foi (permissions par module, libellés, rôles par défaut). `php artisan borom:sync-permissions` met la base en accord (à lancer après chaque déploiement ; la migration RBAC l'appelle). Les rôles modifiés par le dirigeant ne sont jamais écrasés.
+- **Super-administrateur** : le rôle `dirigeant` (`PermissionCatalog::SUPER_ADMIN`) a tout, y compris les permissions futures (`Gate::before`) ; il ne se modifie pas.
+- Vérifier un droit : dans une policy, `$user->hasPermission('invoices.issue')` ; ailleurs `$user->can('invoices.issue')` ou le middleware `can:settings.manage`. Une portée « les siens / toute l'équipe » = une permission `*.view_all` combinée à un test de propriété dans la policy (ex. pièces d'identité : client suivi OU `clients.documents.view_all`).
+- **Ajouter une fonction** : déclarer ses permissions dans le catalogue (et, si besoin, à quels rôles par défaut les donner dans `newPermissionDefaults()`), les vérifier côté serveur, puis côté écran avec `can()` de `useAuth()` (le front reçoit `permissions` dans `/api/auth/me`).
+- **Garde-fous** (`App\Support\AccessGuard`, `ValidatesAccess`) : pas d'escalade (on ne donne que les droits qu'on a), rôle dirigeant attribué ou retiré par un dirigeant seulement, on ne modifie pas ses propres droits, il reste toujours un dirigeant actif. Chaque changement de droits est journalisé avec avant/après (`permissions_changed`, `access_changed`).
+- Modules métier : une policy par modèle (`PropertyPolicy`, `ClientPolicy`, `InvoicePolicy`…) traduit les actions en permissions. Écritures : contrôle dans `authorize()` de la Form Request (403 avant la validation). Lectures : `Gate::authorize()` dans le contrôleur.
 - Listes fermées : chaque enum (`app/Enums`) a un `label()` français ; `GET /api/meta` les expose toutes pour le front.
 
 ### Journal d'activité
@@ -118,6 +126,12 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 ### Téléphones
 - `PhoneNumber::normalize()` accepte « 77 123 45 67 », « 00221… », « +221… » et renvoie `+221XXXXXXXXX`, ou `null` si ce n'est pas un numéro sénégalais à 9 chiffres commençant par 3 ou 7.
 - Normaliser dans `prepareForValidation()` des Form Requests, puis valider avec `new SenegalPhone` et `unique`. Le mutateur du modèle normalise aussi, en filet de sécurité.
+
+### Facturation (lot 2, réutilisée aux lots 3 et 4)
+- Toute écriture passe par `App\Services\Billing` : `saveDraft()` (lignes + totaux), `issue()` (numéro sans trou), `prepareCreditNote()`, `recordPayment()`, `cancelPayment()`. Les travaux et le négoce créeront leurs factures avec ces mêmes méthodes, en choisissant l'`activity`.
+- Numéros : `Sequence::next('facture' | 'avoir' | 'recu')`, appelé à l'intérieur de la transaction d'émission (un échec annule aussi l'incrément).
+- `invoices.paid_total` et `credited_total` sont des cumuls recalculés par le service ; le reste à payer se calcule (`Invoice::balance()`, scopes `outstanding()` et `overdue()`).
+- PDF : dompdf (`barryvdh/laravel-dompdf`), modèles `resources/views/pdf/*.blade.php`, police DejaVu Sans en sous-ensemble, logo intégré en base64, couleur principale du site ; montant en lettres si l'extension `intl` est présente.
 
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
@@ -138,4 +152,14 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - **Suppression** : `SoftDeletes` (archivage) pour les données métier ; désactivation pour les comptes.
 - **Routes** : `routes/api.php`, groupes par niveau d'accès ; routes publiques préfixées `public/`.
 - **Tests** : un test de fonctionnalité par règle métier et par restriction de droit ; `RefreshDatabase` ; `Sanctum::actingAs()` sauf quand le test a besoin d'un vrai jeton (déconnexion, changement de mot de passe).
-- **Style** : Laravel Pint (preset par défaut) ; la CI échoue si `pint --test` échoue.
+- **Style** : Laravel Pint (preset par défaut) ; `pint --test` doit passer avant chaque commit (`make check`, pas de CI, D-038).
+
+## Environnement Docker (D-037)
+
+Mode d'emploi dans le [`README.md`](../README.md). Ce qu'il faut savoir pour le modifier :
+
+- **Images** : `docker/backend/Dockerfile` (cibles `dev`, `vendor`, `prod`) et `docker/frontend/Dockerfile` (cibles `dev`, `build`, `prod`). Contexte de construction : la racine du dépôt, filtré par `.dockerignore`.
+- **Développement** (`compose.yaml`) : `./backend` et `./frontend` montés dans les conteneurs ; `php artisan serve --no-reload` (sans `--no-reload`, le serveur PHP perd les variables du conteneur et retombe sur `backend/.env`, donc sur SQLite) ; Vite relaie `/api` et `/storage` vers le conteneur `backend`. Les conteneurs tournent avec l'UID de la machine (`make` le transmet) pour que les fichiers créés lui appartiennent. Premier démarrage : `composer install`, `npm ci`, migrations et données de démo.
+- **Tests** : `phpunit.xml` impose SQLite en mémoire par des lignes `<server>` (Laravel lit `$_SERVER` avant `$_ENV`) ; sans elles, les tests lancés dans le conteneur vidaient la base de développement. `make test-pgsql` les fait tourner sur PostgreSQL, dans la base séparée `borom_test` (créée par `docker/postgres/init-test-database.sql`). Recherches en `whereLike` (insensible à la casse sur PostgreSQL) ; ne pas comparer l'ordre des clés JSON dans les tests.
+- **Production** (`compose.prod.yaml`) : `web` (Caddy : fichiers React construits, `/api` et `/up` vers PHP-FPM, `/storage` lu dans le volume `storage_public`, HTTPS automatique selon `SITE_ADDRESS`), `app` (PHP-FPM sans droits root ; au démarrage : caches de configuration, migrations, `borom:sync-permissions`), `scheduler` (`schedule:work`), `db` (PostgreSQL 17). Variables dans `.env.prod` (modèle `.env.prod.example`), journaux sur la sortie standard (`make prod-logs`).
+- **Mise à jour en production** : `git pull` puis `make prod-up` (reconstruit les images ; migrations et permissions appliquées au démarrage de `app`). Sauvegarde avant : `make prod-backup`.

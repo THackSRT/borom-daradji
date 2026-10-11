@@ -6,7 +6,7 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
 | 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | À faire |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait** (valeurs par défaut à valider), à fusionner |
 | 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
 | 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
@@ -24,7 +24,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 
 | v2.0 | Retenu |
 | --- | --- |
-| Permissions granulaires par module, action et donnée (6.2) | 5 rôles fixes, cumulables |
+| Permissions granulaires par module, action et donnée (6.2) | RBAC : rôles paramétrables par le dirigeant, permissions par action, droits individuels (D-034 ; 5 rôles fixes au départ, D-005) |
 | Valorisation FIFO (4.16) | CMUP (la v2.0 mélangeait FIFO et moyenne pondérée) |
 | ElasticSearch, PostGIS (1.5, 1.6, 6.9, 6.10) | Recherche SQL ; latitude/longitude simples ; carte Leaflet + OpenStreetMap |
 | Lead scoring automatique (2.5) | Statut choisi par l'agent + date du dernier contact |
@@ -44,13 +44,13 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 Livré sur la branche `lot-0-socle`. Détail de l'API dans [`backend/README.md`](../backend/README.md).
 
 - Connexion par jeton Sanctum, par email **ou** téléphone ; 5 échecs → blocage 60 s ; jeton valable 30 jours.
-- 5 rôles cumulables (`App\Enums\Role`) ; la gate `administrate` réserve comptes, paramètres et journal au dirigeant.
+- Rôles cumulables ; depuis D-034, RBAC complet (rôles paramétrables, permissions par module, droits individuels), voir `architecture.md`.
 - Comptes désactivés, jamais supprimés ; un compte désactivé perd l'accès immédiatement (middleware `active`) ; le dirigeant connecté ne peut ni se désactiver ni retirer son rôle de dirigeant.
 - Paramètres de l'entreprise (une ligne : NINEA, RCCM, TVA 18 %, XOF, WhatsApp, logo, coordonnées bancaires) + version publique sans données fiscales ni bancaires.
 - Journal d'activité automatique (trait `LogsActivity`) : création, modification avant/après, suppression, connexion, déconnexion ; mots de passe jamais copiés ; purge après 365 jours.
 - Commande `borom:create-director` pour créer le premier compte en production.
 
-**Reste à faire pour clore le lot 0** : écrans de connexion, de gestion des comptes et des paramètres dans le back-office (le dossier `frontend/` n'existe pas encore) ; déploiement sur un serveur. Les messages de validation sont traduits (`lang/fr/validation.php`).
+**Écrans** de connexion, de gestion des comptes, des rôles et des paramètres : faits dans le back-office. **Déploiement** : environnement Docker de production prêt (D-037) ; reste à choisir le serveur et le nom de domaine.
 
 ---
 
@@ -112,11 +112,64 @@ Reprendre le code du dépôt `borom-daradji-properties` (Vite, React, TypeScript
 
 ## Lot 2 — Encaissements et location
 
+**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse ; baux, appels de loyer automatiques, arriérés et relances, quittances, relevés de gérance et reversements ; états des lieux d'entrée et de sortie avec photos ; restitution de la caution.
+
+États des lieux (D-040, **à valider**) :
+- Un état des lieux d'entrée et un de sortie au plus par bail (`leases.manage` pour les faire, `leases.view` pour les consulter). L'entrée propose les pièces de `config/borom.php` (`inspection_template`), une chambre et une salle de bain par chambre et salle de bain du bien ; la sortie reprend les lignes de l'entrée. Lignes, pièces et éléments modifiables.
+- Chaque élément : état parmi neuf, bon, usure normale, dégradé, hors service ou manquant ; commentaire ; photos. Relevés des compteurs d'électricité et d'eau, nombre de clés, présence du locataire, observations.
+- Dégradation = à la sortie, pire qu'à l'entrée **et** au-delà de l'usure normale (l'usure due à l'usage normal ne se retient pas). Les dégradations sont proposées comme retenues à la restitution de la caution.
+- Validation : chaque élément doit avoir un état ; ensuite plus aucune modification ni photo (pièce opposable). PDF à signer par l'agence et le locataire (les photos restent dans le logiciel, comptées sur le PDF).
+- Photos converties en WebP sur le disque privé, servies par une route contrôlée ; 150 par état des lieux (`INSPECTION_MAX_PHOTOS`).
+
+Restitution de la caution (D-041, **à valider**) :
+- Après la résiliation, une seule fois par bail, avec la permission `deposits.settle` (comptable par défaut). Numéro `CAU-AAAA-0001`.
+- Caution encaissée proposée : avec facture d'entrée, ses encaissements couvrent d'abord la caution ; sans facture d'entrée (bail saisi après coup), la caution du bail est réputée reçue. Montant modifiable.
+- Ordre d'imputation : 1. loyers impayés, du plus ancien au plus récent (option désactivable), par des encaissements « retenue sur caution » sur les appels de loyer (le mois est payé, quittance possible, et pour un bail géré le loyer revient au propriétaire) ; 2. réparations et autres retenues saisies (libellé, montant) ; 3. le reste est rendu au locataire.
+- Remboursement : mode et référence comme un encaissement ; en espèces, sortie de la caisse du jour de la personne qui rend (mouvement « restitution de caution »), refusé si la caisse n'a pas assez d'espèces.
+- Retenues supérieures à la caution : le reste dû est facturé au locataire (brouillon pour le comptable).
+- Décompte PDF remis au locataire.
+- Annulation avec motif (D-043) : les loyers retenus redeviennent impayés, les espèces rendues reviennent dans la caisse par un mouvement inverse, la facture de reste dû en brouillon est supprimée ; une nouvelle restitution est alors possible (nouveau numéro). Refusée si la caisse est clôturée, si la facture de reste dû est émise (avoir d'abord) ou si un loyer retenu a déjà été reversé au propriétaire.
+
+Relances et fin de bail (D-042, **à valider**) :
+- Chaque matin (`borom:remind-overdue`, 07:10), toute facture émise impayée (loyers compris) qui atteint un palier de retard (J+3, J+15, J+30 par défaut, `REMINDER_DAYS`) donne une tâche « Relancer … » : une par client et par personne, au palier le plus haut atteint, jamais deux fois pour le même palier. Elle va à l'agent du bail, sinon à celui du bien, sinon à la personne qui suit le client, sinon à un comptable. Rien n'est envoyé au client : la personne relance par téléphone ou WhatsApp.
+- Fin de bail prévue dans 60 jours (`LEASE_END_ALERT_DAYS`, `borom:check-lease-ends`, 07:05) : une tâche, une seule fois, pour l'agent (préavis, état des lieux de sortie, caution).
+- Résiliation : option « Remettre le bien en location » (cochée par défaut) : le bien loué redevient disponible et réapparaît sur le site ; refusée avec le motif si la vérification foncière n'est plus à jour.
+- « Cautions à restituer » : baux résiliés dont la caution n'est pas restituée, en filtre de la liste des baux et en encart de l'accueil (permission `deposits.settle`).
+
+### Critères d'acceptation du lot 2
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Billing`, `tests/Feature/Rental`).
+
+- Une facture émise reçoit un numéro continu, ne se modifie plus et se corrige par un avoir plafonné.
+- Un encaissement Wave ou Orange Money sans référence, ou avec une référence déjà saisie, est refusé ; les espèces alimentent la caisse du jour, qui se clôture avec un écart expliqué.
+- Un bail créé depuis un bien à louer émet les appels de loyer des mois payés d'avance et des mois déjà échus, puis un appel chaque mois, sans doublon, jusqu'à la fin du bail.
+- Un loyer entièrement payé donne une quittance ; un loyer impayé apparaît en arriéré et déclenche des relances à J+3, J+15 et J+30.
+- Le relevé d'un propriétaire liste les loyers encaissés sur ses baux gérés, moins la commission et sa TVA ; un loyer reversé ne l'est jamais deux fois.
+- Un état des lieux de sortie reprend les lignes de l'entrée et signale les dégradations ; validé, il ne se modifie plus.
+- La restitution de la caution solde les loyers impayés, retient les réparations, rend le reste (sortie de caisse en espèces) ou facture le reste dû ; elle s'annule avec un motif.
+- Chaque action est réservée aux permissions prévues (factures, encaissements, caisse, baux, reversements, cautions).
+
+Règles de la gestion locative (valeurs par défaut dans `config/borom.php`, modifiables bail par bail, **à valider** avec le client) :
+- Un seul bail en cours par bien ; le bien passe en « Loué » quand c'est permis par son statut. Seuls les biens « à louer » se louent. Un bail en gestion exige un propriétaire.
+- Un appel de loyer par mois = une facture (activité « location », loyer + charges, TVA du bail : 0 % par défaut), échéance le jour choisi (5 par défaut), émise automatiquement chaque matin (`borom:generate-rent-calls`, 06:00), sans doublon. Les mois payés d'avance et les mois déjà échus (bail saisi après coup) sont appelés à la signature. Plus d'appel après la fin prévue ou la résiliation.
+- Facture d'entrée en brouillon : caution (TVA 0) et frais d'agence (TVA de l'entreprise).
+- Arriérés = reste à payer des appels dont l'échéance est passée ; relance WhatsApp listant les mois dus. Quittance PDF seulement quand le mois est entièrement payé.
+- Reversement : loyers encaissés sur les baux gérés, pas encore reversés, jusqu'à la fin du mois choisi ; commission du bail (10 % par défaut) calculée sur le montant encaissé, TVA sur la commission (18 % par défaut), frais déduits saisis à la main ; un loyer reversé ne compte plus ; annuler un reversement remet ses loyers à reverser. Numéros `BAIL-AAAA-0001`, `REV-AAAA-0001`.
+
+Règles en place :
+- Brouillon modifiable et supprimable, sans numéro. À l'émission : numéro `FAC-AAAA-00001` (avoir `AV-AAAA-00001`) attribué dans la même transaction que le changement de statut, date d'émission, échéance (15 jours par défaut, `INVOICE_DUE_DAYS`). Une facture émise ne se modifie ni ne se supprime.
+- Totaux toujours recalculés côté serveur ; montant HT et TVA arrondis au franc **par ligne** ; TVA choisie par ligne (taux de l'entreprise par défaut).
+- Avoir préparé depuis une facture émise (reprend ses lignes, à ajuster), même client, plafonné à ce qui reste à créditer. Facture entièrement créditée et non payée = « annulée par avoir ».
+- Reste à payer = total − avoirs − encaissements valides. Encaissement refusé s'il dépasse le reste, si la facture est un brouillon, si la date est future ; référence obligatoire hors espèces, refusée si déjà enregistrée pour le même mode (double saisie). Reçu `REC-AAAA-00001`, justificatif sur le disque privé, consultation journalisée.
+- Espèces rattachées à la caisse du jour de la personne qui encaisse (créée d'office). Mouvements : apport, dépôt en banque, dépense, remise au dirigeant ; une sortie ne peut pas dépasser les espèces présentes. Clôture : montant compté, écart avec le théorique, explication obligatoire si écart. Caisse clôturée : plus d'espèces, plus d'annulation de ses encaissements.
+- Encaissement jamais supprimé : annulation avec motif (comptable ou dirigeant).
+- Droits (RBAC, D-034) : permissions `invoices.view|manage|issue|credit`, `payments.create|cancel|view_all`, `cash.view_all`. Par défaut, le comptable prépare, émet, fait les avoirs et annule ; agents et commerciaux consultent et encaissent ; chacun voit sa caisse ; le dirigeant ajuste dans « Rôles et droits ».
+
 - **Socle de facturation** réutilisé par les lots 3 et 4 : factures (lignes, HT, TVA, TTC), avoirs, numérotation `FAC-AAAA-00001` **continue et sans trou** (compteur verrouillé en transaction, jamais de suppression d'une facture émise), PDF depuis un modèle HTML, reçus.
 - **Encaissements** : modes `especes`, `wave`, `orange_money`, `free_money`, `cheque`, `virement` ; référence de transaction ; capture d'écran ; paiement partiel ; reste dû recalculé ; caisse journalière par utilisateur avec clôture.
 - **Baux** : bien, locataire, propriétaire, loyer, charges, caution et avance en mois, jour d'échéance, durée, commission de gestion (% du loyer), statut.
 - **Appels de loyer** générés automatiquement chaque mois (tâche planifiée) ; quittance PDF à l'encaissement complet ; arriérés par locataire ; rappels par lien WhatsApp ou SMS.
-- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution.
+- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution (fait, voir plus haut).
 - **Reversements** : relevé mensuel par propriétaire (loyers encaissés − commission − frais) et enregistrement du versement.
 - Questions bloquantes avant de commencer : voir « Questions ouvertes » dans [`journal.md`](journal.md).
 

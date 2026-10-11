@@ -19,21 +19,70 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | --- | --- |
 | `backend/` | API Laravel : un module par métier, droits vérifiés côté serveur |
 | `frontend/` | Site vitrine et back-office React (`/admin`) ; voir [`frontend/README.md`](frontend/README.md) |
+| `docker/`, `compose.yaml`, `compose.prod.yaml`, `Makefile` | Environnement Docker de développement et de production |
 
 ## Avancement par lot
 
 | Lot | Contenu | État |
 | --- | --- | --- |
-| 0. Socle | Comptes, 5 rôles cumulables, paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
+| 0. Socle | Comptes, rôles et droits (RBAC), paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
-| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | À faire |
+| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | Fait (états des lieux et restitution de la caution compris), à fusionner |
 | 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
 | 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir | À faire |
 | 5. Pilotage | Tableau de bord, exports comptables | À faire |
 
-## Démarrer le backend en local
+## Démarrer avec Docker (recommandé)
 
-Prérequis : PHP 8.3+ et Composer.
+Prérequis : Docker avec Docker Compose (Docker Desktop sous Windows et macOS), et `make` si possible.
+
+```sh
+make up        # ou : docker compose up -d --build
+```
+
+- Site et back-office : http://localhost:8080 (back-office sous `/admin`)
+- API : http://localhost:8000/api/…
+
+Le premier démarrage prend quelques minutes (`composer install`, `npm ci`, migrations et données de démo) : `make logs` pour suivre. Les dossiers `backend/` et `frontend/` sont montés dans les conteneurs, les modifications sont prises en compte sans reconstruire. Après une modification de `backend/.env` : `docker compose restart backend`.
+
+Comptes de démo : `dirigeant@boromdaradji.test`, `agent@boromdaradji.test`,
+`travaux@boromdaradji.test`, `comptable@boromdaradji.test`, mot de passe `password`.
+
+| Commande | Effet |
+| --- | --- |
+| `make up` / `make down` | Démarrer / arrêter (les données restent dans le volume PostgreSQL) |
+| `make logs` | Journaux des conteneurs |
+| `make artisan c="route:list"` | Commande artisan dans le conteneur de l'API |
+| `make fresh` | Recréer la base avec les données de démo |
+| `make check` | **Avant chaque commit** : tests et formatage de l'API, typecheck, lint et build du front |
+| `make test-pgsql` | Tests de l'API sur PostgreSQL (base `borom_test`, séparée des données de dev) |
+| `make psql` | Console PostgreSQL de la base de dev |
+| `make help` | Toutes les commandes |
+
+Sans `make` : chaque cible du `Makefile` est une commande `docker compose` à recopier. Sous Linux, mettre `UID` et `GID` dans un fichier `.env` à la racine (`echo "UID=$(id -u)" > .env && echo "GID=$(id -g)" >> .env`) pour que les fichiers créés par les conteneurs vous appartiennent ; `make` s'en charge.
+
+Services : `backend` (API, `php artisan serve`), `scheduler` (tâches planifiées), `frontend` (Vite), `db` (PostgreSQL 17).
+
+## Mettre en production avec Docker
+
+Sur un serveur Linux avec Docker, un nom de domaine qui pointe vers lui et les ports 80 et 443 ouverts :
+
+```sh
+cp .env.prod.example .env.prod
+make prod-key              # copier la ligne APP_KEY=… dans .env.prod
+# remplir SITE_ADDRESS, APP_URL et DB_PASSWORD dans .env.prod
+make prod-up               # construit les images et démarre ; HTTPS obtenu automatiquement
+make prod-director         # crée le premier compte dirigeant (pas de données de démo)
+```
+
+- Services : `web` (Caddy : site, back-office, relais de l'API, photos, HTTPS), `app` (API, PHP-FPM), `scheduler` (tâches planifiées), `db` (PostgreSQL 17). Au démarrage, `app` applique les migrations et `borom:sync-permissions`.
+- Mise à jour : `git pull` puis `make prod-up`.
+- Sauvegarde : `make prod-backup` (base et fichiers dans `backups/`, à copier hors du serveur ; à planifier dans le cron du serveur, par exemple chaque nuit). Restauration de la base : `gunzip < backups/base-….sql.gz | docker compose -f compose.prod.yaml --env-file .env.prod exec -T db sh -c 'psql -q -U "$POSTGRES_USER" "$POSTGRES_DB"'`.
+- Journaux : `make prod-logs`. Essai sur sa machine : `SITE_ADDRESS=http://localhost` et `APP_URL=http://localhost` dans `.env.prod`.
+
+## Sans Docker
+
+Prérequis : PHP 8.3+ (extensions gd, intl, pdo_sqlite), Composer, Node 22.
 
 ```sh
 cd backend
@@ -45,21 +94,15 @@ php artisan migrate --seed   # comptes de démo (mot de passe « password »), 1
 php artisan serve
 ```
 
-Comptes de démo : `dirigeant@boromdaradji.test`, `agent@boromdaradji.test`,
-`travaux@boromdaradji.test`, `comptable@boromdaradji.test`.
+Front : `cd frontend && npm ci && npm run dev` (http://localhost:8080, `/api` relayé vers http://localhost:8000).
 
-En production, ne pas lancer le seeder ; créer le premier compte avec :
-
-```sh
-php artisan borom:create-director
-```
-
-Tâches planifiées : ajouter `* * * * * php /chemin/backend/artisan schedule:run` au cron du serveur.
+En production sans Docker, ne pas lancer le seeder ; créer le premier compte avec `php artisan borom:create-director` et ajouter `* * * * * php /chemin/backend/artisan schedule:run` au cron du serveur.
 
 ## Tests
 
+Pas d'intégration continue (D-038) : lancer `make check` avant chaque commit. Sans Docker :
+
 ```sh
-cd backend
-php artisan test
-vendor/bin/pint --test
+cd backend && php artisan test && vendor/bin/pint --test
+cd frontend && npm run typecheck && npm run lint && npm run build
 ```

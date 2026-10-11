@@ -16,7 +16,9 @@ import { api, downloadFile } from "@/lib/api";
 import { formatDate, formatDateTime, formatPrice, fromNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useApiMutation, useOptions } from "../hooks";
-import type { DocumentItem, Mandate, Option, Property, PropertyCheck } from "../types";
+import type { DocumentItem, Lease, Mandate, Option, Paginated, Property, PropertyCheck } from "../types";
+import { useAuth } from "../auth";
+import { cfa } from "../components/billing";
 import { PropertyForm } from "../components/PropertyForm";
 import { Avatar, EmptyState, Field, FormError, LoadingBlock, Panel, ProgressBar, StatusBadge, WhatsAppLink } from "../components/ui";
 
@@ -133,6 +135,7 @@ export default function PropertyDetailPage() {
 
         <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
           <PublicationCard property={property} cleared={cleared} onStatus={setStatusTarget} onShowChecks={() => setTab("verification")} />
+          {property.transaction.value === "location" && <RentalPanel property={property} />}
 
           <Panel title="En bref">
             <p className="mb-4 text-2xl font-semibold tabular-nums">{formatPrice(property.price, property.transaction.value === "location")}</p>
@@ -558,6 +561,34 @@ function HistoryTab({ property }: { property: Property }) {
             </li>
           ))}
         </ol>
+      )}
+    </Panel>
+  );
+}
+
+/** Bien à louer : bail en cours (locataire, arriérés) ou création d'un bail. */
+function RentalPanel({ property }: { property: Property }) {
+  const { can } = useAuth();
+  const { data } = useQuery({
+    queryKey: ["leases", { property_id: property.id }],
+    queryFn: () => api<Paginated<Lease>>("/leases", { query: { property_id: property.id, status: "actif" } }),
+    enabled: can("leases.view"),
+  });
+  if (!can("leases.view")) return null;
+  const lease = data?.data[0];
+  return (
+    <Panel title="Location">
+      {lease ? (
+        <Link to={`/admin/baux/${lease.id}`} className="block rounded-lg border p-3 transition hover:border-primary/40">
+          <p className="font-medium">{lease.tenant.name}</p>
+          <p className="text-xs text-muted-foreground">{lease.reference} · depuis le {formatDate(lease.start_date)}</p>
+          <p className={cn("mt-1 text-sm", lease.arrears ? "font-medium text-red-600" : "text-emerald-700")}>{lease.arrears ? `Arriérés : ${cfa(lease.arrears)}` : "Loyers à jour"}</p>
+        </Link>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Aucun bail en cours.</p>
+          {can("leases.manage") && <Button asChild size="sm" className="w-full"><Link to={`/admin/baux/nouveau?bien=${property.id}`}>Créer le bail</Link></Button>}
+        </div>
       )}
     </Panel>
   );

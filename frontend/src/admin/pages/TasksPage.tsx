@@ -36,14 +36,15 @@ function group(tasks: Task[]) {
 }
 
 export default function TasksPage() {
-  const { isDirigeant } = useAuth();
+  const { can } = useAuth();
+  const teamAccess = can("tasks.manage_all");
   const quickCreate = useQuickCreate();
   const [view, setView] = useState<View>("open");
   const [team, setTeam] = useState(false);
   const [title, setTitle] = useState("");
   const [preset, setPreset] = useState<(typeof presets)[number]["key"]>("today");
 
-  const query = { state: view, all: isDirigeant && team };
+  const query = { state: view, all: teamAccess && team };
   const { data, isLoading } = useQuery({ queryKey: ["tasks", query], queryFn: () => api<Paginated<Task>>("/tasks", { query }) });
   const sections = useMemo(() => (data ? group(data.data) : []), [data]);
 
@@ -80,7 +81,7 @@ export default function TasksPage() {
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <FilterChips<View> value={view} onChange={setView} options={[{ value: "open", label: "À faire", count: view === "open" ? data?.meta.total : undefined }, { value: "done", label: "Terminées" }]} />
-        {isDirigeant && (
+        {teamAccess && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Switch checked={team} onCheckedChange={setTeam} /> Toute l'équipe
           </label>

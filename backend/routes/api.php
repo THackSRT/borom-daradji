@@ -2,13 +2,20 @@
 
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CashSessionController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DepositSettlementController;
 use App\Http\Controllers\Api\InteractionController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LeaseController;
+use App\Http\Controllers\Api\LeaseInspectionController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\OwnerPayoutController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PropertyCheckController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\PropertyDocumentController;
@@ -16,6 +23,7 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
@@ -81,16 +89,72 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::apiResource('visits', VisitController::class)->only(['index', 'store', 'update']);
     Route::apiResource('tasks', TaskController::class)->except(['show']);
 
-    // Administration : réservée au dirigeant.
-    Route::middleware('can:administrate')->group(function () {
-        Route::apiResource('users', UserController::class);
+    // Facturation et encaissements (droits dans InvoicePolicy).
+    Route::apiResource('invoices', InvoiceController::class);
+    Route::post('invoices/{invoice}/issue', [InvoiceController::class, 'issue']);
+    Route::post('invoices/{invoice}/credit-notes', [InvoiceController::class, 'creditNote']);
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+    Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store']);
+    Route::get('payments', [PaymentController::class, 'index']);
+    Route::post('payments/{payment}/cancel', [PaymentController::class, 'cancel']);
+    Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt']);
+    Route::get('payments/{payment}/proof', [PaymentController::class, 'proof']);
+
+    // Gestion locative : baux, appels de loyer, quittances, reversements.
+    Route::get('leases/defaults', [LeaseController::class, 'defaults']);
+    Route::apiResource('leases', LeaseController::class)->except(['destroy']);
+    Route::post('leases/{lease}/terminate', [LeaseController::class, 'terminate']);
+    Route::post('leases/{lease}/rent-calls', [LeaseController::class, 'generate']);
+    Route::get('leases/{lease}/rent-calls/{rentCall}/quittance', [LeaseController::class, 'quittance']);
+    // États des lieux d'entrée et de sortie, restitution de la caution.
+    Route::post('leases/{lease}/inspections', [LeaseInspectionController::class, 'store']);
+    Route::get('inspections/{inspection}', [LeaseInspectionController::class, 'show']);
+    Route::put('inspections/{inspection}', [LeaseInspectionController::class, 'update']);
+    Route::delete('inspections/{inspection}', [LeaseInspectionController::class, 'destroy']);
+    Route::post('inspections/{inspection}/validate', [LeaseInspectionController::class, 'validateInspection']);
+    Route::get('inspections/{inspection}/pdf', [LeaseInspectionController::class, 'pdf']);
+    Route::post('inspections/{inspection}/photos', [LeaseInspectionController::class, 'storePhoto']);
+    Route::get('inspections/{inspection}/photos/{photo}', [LeaseInspectionController::class, 'photo']);
+    Route::delete('inspections/{inspection}/photos/{photo}', [LeaseInspectionController::class, 'destroyPhoto']);
+    Route::get('leases/{lease}/deposit', [DepositSettlementController::class, 'show']);
+    Route::post('leases/{lease}/deposit', [DepositSettlementController::class, 'store']);
+    Route::get('leases/{lease}/deposit/pdf', [DepositSettlementController::class, 'pdf']);
+    Route::post('leases/{lease}/deposit/cancel', [DepositSettlementController::class, 'cancel']);
+    Route::get('owner-payouts', [OwnerPayoutController::class, 'index']);
+    Route::get('owner-payouts/owners', [OwnerPayoutController::class, 'owners']);
+    Route::get('owner-payouts/{ownerPayout}/pdf', [OwnerPayoutController::class, 'pdf']);
+    Route::post('owner-payouts/{ownerPayout}/cancel', [OwnerPayoutController::class, 'cancel']);
+    Route::get('owners/{client}/statement', [OwnerPayoutController::class, 'statement']);
+    Route::post('owners/{client}/payouts', [OwnerPayoutController::class, 'store']);
+
+    // Caisse journalière.
+    Route::get('cash-sessions', [CashSessionController::class, 'index']);
+    Route::get('cash-sessions/current', [CashSessionController::class, 'current']);
+    Route::put('cash-sessions/current', [CashSessionController::class, 'open']);
+    Route::post('cash-sessions/current/movements', [CashSessionController::class, 'storeMovement']);
+    Route::get('cash-sessions/{cashSession}', [CashSessionController::class, 'show']);
+    Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
+
+    // Administration (RBAC) : comptes, rôles, paramètres, site, journal.
+    Route::apiResource('users', UserController::class);
+    Route::get('roles', [RoleController::class, 'index']);
+    Route::get('roles/{role}', [RoleController::class, 'show']);
+    Route::get('permissions', [RoleController::class, 'permissions']);
+    Route::post('roles', [RoleController::class, 'store']);
+    Route::put('roles/{role}', [RoleController::class, 'update']);
+    Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate']);
+    Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+
+    Route::middleware('can:settings.manage')->group(function () {
         Route::put('settings/company', [CompanySettingsController::class, 'update']);
         Route::post('settings/company/logo', [CompanySettingsController::class, 'updateLogo']);
         Route::delete('settings/company/logo', [CompanySettingsController::class, 'destroyLogo']);
+    });
+    Route::middleware('can:site.manage')->group(function () {
         Route::get('settings/site', [SiteSettingsController::class, 'show']);
         Route::post('settings/site/images', [SiteSettingsController::class, 'storeImage']);
         Route::put('settings/site/{section}', [SiteSettingsController::class, 'update'])->whereIn('section', SiteContent::SECTIONS);
         Route::delete('settings/site/{section}', [SiteSettingsController::class, 'reset'])->whereIn('section', SiteContent::SECTIONS);
-        Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity.view');
 });

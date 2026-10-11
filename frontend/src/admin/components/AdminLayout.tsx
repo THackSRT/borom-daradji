@@ -2,19 +2,23 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
+  Banknote,
   Building2,
   CalendarDays,
   Globe,
   ChevronsUpDown,
   ClipboardList,
+  HandCoins,
   History,
   KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
   Plus,
+  Receipt,
   Search,
   Settings,
+  ShieldCheck,
   UserCog,
   Users,
   type LucideIcon,
@@ -32,7 +36,6 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { initials, useSite } from "@/lib/site";
 import { useAuth } from "../auth";
-import type { RoleValue } from "../types";
 import { GlobalSearch } from "./GlobalSearch";
 import { PasswordDialog } from "./PasswordDialog";
 import { QuickCreateProvider, useQuickCreate } from "./QuickCreate";
@@ -42,8 +45,8 @@ interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  roles?: RoleValue[];
-  dirigeantOnly?: boolean;
+  /** Affiché si le compte a au moins une de ces permissions (aucune : pour tous). */
+  permissions?: string[];
 }
 
 const sections: { title: string; items: NavItem[] }[] = [
@@ -52,31 +55,41 @@ const sections: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin", label: "Accueil", icon: LayoutDashboard },
       { to: "/admin/taches", label: "Tâches", icon: ClipboardList },
-      { to: "/admin/visites", label: "Visites", icon: CalendarDays, roles: ["agent", "commercial"] },
+      { to: "/admin/visites", label: "Visites", icon: CalendarDays, permissions: ["visits.view", "visits.manage"] },
     ],
   },
   {
     title: "Portefeuille",
     items: [
-      { to: "/admin/biens", label: "Biens", icon: Building2 },
-      { to: "/admin/clients", label: "Clients", icon: Users },
+      { to: "/admin/biens", label: "Biens", icon: Building2, permissions: ["properties.view"] },
+      { to: "/admin/clients", label: "Clients", icon: Users, permissions: ["clients.view"] },
+      { to: "/admin/baux", label: "Baux et loyers", icon: KeyRound, permissions: ["leases.view"] },
+    ],
+  },
+  {
+    title: "Finances",
+    items: [
+      { to: "/admin/factures", label: "Factures", icon: Receipt, permissions: ["invoices.view"] },
+      { to: "/admin/caisse", label: "Caisse", icon: Banknote, permissions: ["payments.create", "payments.view_all", "cash.view_all"] },
+      { to: "/admin/reversements", label: "Reversements", icon: HandCoins, permissions: ["payouts.view", "payouts.manage"] },
     ],
   },
   {
     title: "Administration",
     items: [
-      { to: "/admin/comptes", label: "Comptes", icon: UserCog, dirigeantOnly: true },
-      { to: "/admin/site", label: "Site internet", icon: Globe, dirigeantOnly: true },
-      { to: "/admin/parametres", label: "Paramètres", icon: Settings, dirigeantOnly: true },
-      { to: "/admin/journal", label: "Journal d'activité", icon: History, dirigeantOnly: true },
+      { to: "/admin/comptes", label: "Comptes", icon: UserCog, permissions: ["users.view", "users.manage"] },
+      { to: "/admin/roles", label: "Rôles et droits", icon: ShieldCheck, permissions: ["roles.manage", "users.view", "users.manage"] },
+      { to: "/admin/site", label: "Site internet", icon: Globe, permissions: ["site.manage"] },
+      { to: "/admin/parametres", label: "Paramètres", icon: Settings, permissions: ["settings.manage"] },
+      { to: "/admin/journal", label: "Journal d'activité", icon: History, permissions: ["activity.view"] },
     ],
   },
 ];
 
 function useVisibleSections() {
-  const { hasRole, isDirigeant } = useAuth();
+  const { can } = useAuth();
   return sections
-    .map((s) => ({ ...s, items: s.items.filter((i) => (i.dirigeantOnly ? isDirigeant : !i.roles || hasRole(...i.roles))) }))
+    .map((s) => ({ ...s, items: s.items.filter((i) => !i.permissions || can(...i.permissions)) }))
     .filter((s) => s.items.length);
 }
 
@@ -164,7 +177,8 @@ function UserMenu({ onPassword }: { onPassword: () => void }) {
 
 function CreateMenu({ compact = false }: { compact?: boolean }) {
   const { open } = useQuickCreate();
-  const { hasRole } = useAuth();
+  const { can } = useAuth();
+  const navigate = useNavigate();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -175,8 +189,9 @@ function CreateMenu({ compact = false }: { compact?: boolean }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => open("client")}><Users className="mr-2 h-4 w-4" /> Un client</DropdownMenuItem>
-        {hasRole("agent") && <DropdownMenuItem onClick={() => open("property")}><Building2 className="mr-2 h-4 w-4" /> Un bien</DropdownMenuItem>}
+        {can("properties.create") && <DropdownMenuItem onClick={() => open("property")}><Building2 className="mr-2 h-4 w-4" /> Un bien</DropdownMenuItem>}
         <DropdownMenuItem onClick={() => open("task")}><ClipboardList className="mr-2 h-4 w-4" /> Une tâche</DropdownMenuItem>
+        {can("invoices.manage") && <DropdownMenuItem onClick={() => navigate("/admin/factures/nouvelle")}><Receipt className="mr-2 h-4 w-4" /> Une facture</DropdownMenuItem>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -184,11 +199,21 @@ function CreateMenu({ compact = false }: { compact?: boolean }) {
 
 /** Barre de navigation en bas de l'écran sur téléphone : les 4 écrans les plus utilisés à une main. */
 function BottomNav({ onMore }: { onMore: () => void }) {
+  const { can, isSuperAdmin } = useAuth();
+  // Les deux écrans les plus utiles selon les droits : factures et caisse pour qui prépare les
+  // factures, sinon biens et clients.
+  const finance = can("invoices.manage") && !isSuperAdmin;
+  const candidates = [
+    ...(finance ? [{ to: "/admin/factures", label: "Factures", icon: Receipt, ok: true }, { to: "/admin/caisse", label: "Caisse", icon: Banknote, ok: true }] : []),
+    { to: "/admin/biens", label: "Biens", icon: Building2, ok: can("properties.view") },
+    { to: "/admin/clients", label: "Clients", icon: Users, ok: can("clients.view") },
+    { to: "/admin/factures", label: "Factures", icon: Receipt, ok: can("invoices.view") },
+    { to: "/admin/caisse", label: "Caisse", icon: Banknote, ok: can("payments.create", "cash.view_all") },
+  ].filter((c, i, all) => c.ok && all.findIndex((x) => x.to === c.to && x.ok) === i);
   const items = [
     { to: "/admin", label: "Accueil", icon: LayoutDashboard },
     { to: "/admin/taches", label: "Tâches", icon: ClipboardList },
-    { to: "/admin/biens", label: "Biens", icon: Building2 },
-    { to: "/admin/clients", label: "Clients", icon: Users },
+    ...candidates.slice(0, 2),
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">

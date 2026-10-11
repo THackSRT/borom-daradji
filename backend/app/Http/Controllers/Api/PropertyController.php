@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
-use App\Enums\Role;
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PropertyRequest;
@@ -20,6 +19,8 @@ class PropertyController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', Property::class);
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'type' => ['nullable', Rule::enum(PropertyType::class)],
@@ -37,8 +38,8 @@ class PropertyController extends Controller
         $base = Property::query()
             ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
             ->when($filters['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('reference', 'like', "%{$search}%")))
+                ->whereLike('title', "%{$search}%")
+                ->orWhereLike('reference', "%{$search}%")))
             ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['transaction'] ?? null, fn ($q, $v) => $q->where('transaction', $v))
             ->when($filters['city'] ?? null, fn ($q, $v) => $q->where('city', $v))
@@ -68,7 +69,8 @@ class PropertyController extends Controller
         $user = $request->user();
         $property = new Property($request->validated());
         // Par défaut, l'agent qui saisit le bien en est responsable.
-        $property->agent_id ??= $user->hasRole(Role::Agent) ? $user->id : null;
+        // Le créateur devient l'agent du bien, sauf le dirigeant qui l'attribue lui-même.
+        $property->agent_id ??= $user->isSuperAdmin() ? null : $user->id;
         $property->save();
 
         return new PropertyResource($property->load(['checks', 'photos', 'agent', 'owner']));

@@ -5,7 +5,8 @@ export interface Option<V extends string = string> {
   label: string;
 }
 
-export type RoleValue = "dirigeant" | "agent" | "responsable_travaux" | "comptable" | "commercial";
+/** Rôles fournis par défaut ; le dirigeant peut en créer d'autres (RBAC). */
+export type RoleValue = string;
 
 export interface Paginated<T> {
   data: T[];
@@ -18,7 +19,12 @@ export interface User {
   name: string;
   email: string;
   phone: string | null;
-  roles: Option<RoleValue>[];
+  roles: (Option<RoleValue> & { id: number; is_super_admin: boolean })[];
+  is_super_admin: boolean;
+  /** Permissions données en plus des rôles. */
+  direct_permissions: string[];
+  /** Toutes les permissions du compte (rôles + individuelles). */
+  permissions: string[];
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
@@ -228,7 +234,16 @@ export type MetaKey =
   | "mandate_types"
   | "mandate_statuses"
   | "commission_types"
-  | "task_priorities";
+  | "task_priorities"
+  | "invoice_types"
+  | "invoice_statuses"
+  | "payment_states"
+  | "activities"
+  | "payment_methods"
+  | "cash_movement_types"
+  | "lease_statuses"
+  | "inspection_types"
+  | "item_conditions";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -248,4 +263,260 @@ export interface Dashboard {
   new_leads: Client[];
   drafts: (Property & { checks_progress?: { cleared: number; total: number } })[];
   tasks: Task[];
+}
+
+export interface InvoiceLine {
+  id?: number;
+  description: string;
+  quantity: number;
+  unit: string | null;
+  unit_price: number;
+  vat_rate: number;
+  amount?: number;
+  vat_amount?: number;
+}
+
+export interface Payment {
+  id: number;
+  number: string;
+  invoice?: { id: number; number: string };
+  client?: Ref;
+  method: Option;
+  amount: number;
+  paid_on: string;
+  reference: string | null;
+  has_proof: boolean;
+  note: string | null;
+  received_by?: Ref;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: number;
+  type: Option<"facture" | "avoir">;
+  number: string | null;
+  status: Option<"brouillon" | "emise">;
+  payment_state: Option<"non_payee" | "partielle" | "payee" | "annulee"> | null;
+  is_overdue: boolean;
+  client: { id: number; name: string; phone: string | null };
+  property?: { id: number; reference: string; title: string } | null;
+  activity: Option;
+  credited_invoice?: { id: number; number: string | null } | null;
+  issue_date: string | null;
+  due_date: string | null;
+  subtotal: number;
+  vat_total: number;
+  total: number;
+  paid_total: number;
+  credited_total: number;
+  balance: number;
+  notes: string | null;
+  lines?: InvoiceLine[];
+  payments?: Payment[];
+  credit_notes?: { id: number; number: string | null; status: Option; total: number }[];
+  whatsapp_reminder_url?: string | null;
+  issued_at: string | null;
+  created_at: string;
+  can: { update: boolean; issue: boolean; delete: boolean; credit: boolean; pay: boolean; cancel_payment: boolean };
+}
+
+export interface InvoiceSummary {
+  outstanding: number;
+  overdue: number;
+  overdue_count: number;
+  drafts: number;
+}
+
+export interface CashSession {
+  id: number;
+  user?: Ref;
+  date: string;
+  is_today: boolean;
+  opening_amount: number;
+  cash_in: number;
+  movements_total: number;
+  expected_amount: number;
+  counted_amount: number | null;
+  difference: number | null;
+  closing_note: string | null;
+  closed_at: string | null;
+  other_methods?: { method: Option; total: number; count: number }[];
+  payments?: Payment[];
+  movements?: { id: number; type: Option; amount: number; label: string; created_at: string }[];
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  label: string;
+  description: string | null;
+  is_system: boolean;
+  is_super_admin: boolean;
+  permissions: string[];
+  users_count: number;
+  updated_at: string;
+}
+
+export interface PermissionModule {
+  key: string;
+  label: string;
+  permissions: { name: string; label: string; description: string | null; roles: string[] }[];
+}
+
+export interface RentCallRow {
+  id: number;
+  period: string;
+  invoice: {
+    id: number;
+    number: string | null;
+    status: Option;
+    due_date: string | null;
+    total: number;
+    paid_total: number;
+    balance: number;
+    payment_state: Option | null;
+    is_overdue: boolean;
+  };
+  can_quittance: boolean;
+}
+
+export interface Lease {
+  id: number;
+  reference: string;
+  status: Option<"actif" | "resilie">;
+  property: { id: number; reference: string; title: string };
+  tenant: { id: number; name: string; phone: string | null };
+  owner: { id: number; name: string } | null;
+  agent?: { id: number; name: string } | null;
+  start_date: string;
+  end_date: string | null;
+  billing_start: string;
+  rent: number;
+  charges: number;
+  deposit: number;
+  advance_months: number;
+  due_day: number;
+  rent_vat_rate: number;
+  managed: boolean;
+  commission_rate: number;
+  terminated_on: string | null;
+  termination_reason: string | null;
+  notes: string | null;
+  entry_invoice?: { id: number; number: string | null; status: Option; total: number; balance: number } | null;
+  arrears?: number;
+  months_overdue?: number;
+  rent_calls?: RentCallRow[];
+  whatsapp_reminder_url?: string | null;
+  inspections?: LeaseInspectionSummary[];
+  deposit_settlement?: { id: number; number: string; refund: number; balance_due: number; settled_on: string } | null;
+  can: { update: boolean; inspect: boolean; settle_deposit: boolean } | null;
+}
+
+export interface LeaseInspectionSummary {
+  id: number;
+  type: Option<"entree" | "sortie">;
+  inspected_on: string;
+  validated_at: string | null;
+  items_count: number;
+  rated_count: number;
+  photos_count: number;
+}
+
+export interface InspectionItem {
+  id?: number;
+  room: string;
+  element: string;
+  condition: Option | null;
+  comment: string | null;
+  entry_condition?: Option | null;
+  entry_comment?: string | null;
+  degraded?: boolean;
+}
+
+export interface LeaseInspection {
+  id: number;
+  type: Option<"entree" | "sortie">;
+  inspected_on: string;
+  inspector: Ref | null;
+  tenant_present: boolean;
+  electricity_meter: string | null;
+  water_meter: string | null;
+  keys_count: number | null;
+  general_comment: string | null;
+  validated_at: string | null;
+  validator: Ref | null;
+  lease: { id: number; reference: string; status: Option; property: { id: number; reference: string; title: string }; tenant: Ref };
+  items: InspectionItem[];
+  photos: { id: number; item_id: number | null; url: string }[];
+  can: { update: boolean } | null;
+}
+
+export interface DepositSettlement {
+  id: number;
+  number: string;
+  deposit_held: number;
+  arrears_retained: number;
+  deductions: { label: string; amount: number }[];
+  deductions_total: number;
+  refund: number;
+  balance_due: number;
+  balance_invoice: { id: number; number: string | null; status: Option } | null;
+  refund_method: Option | null;
+  refund_reference: string | null;
+  settled_on: string;
+  exit_inspection_id: number | null;
+  note: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  creator?: Ref;
+}
+
+export interface DepositInfo {
+  deposit: number;
+  deposit_collected: number;
+  unpaid_calls: { id: number; period: string; label: string; invoice_number: string | null; balance: number }[];
+  arrears_total: number;
+  exit_inspection: { id: number; inspected_on: string; validated: boolean; degradations: { room: string; element: string; condition: string; comment: string | null }[] } | null;
+  settlement: DepositSettlement | null;
+  cancelled: DepositSettlement[];
+  can_settle: boolean;
+  can_cancel: boolean;
+}
+
+export interface LeaseSummary {
+  active: number;
+  monthly_rent: number;
+  arrears: number;
+  leases_in_arrears: number;
+  deposits_pending: number;
+}
+
+export interface OwnerPayoutRow {
+  id: number;
+  number: string;
+  owner: Ref;
+  period: string;
+  collected: number;
+  commission: number;
+  commission_vat: number;
+  expenses: number;
+  net: number;
+  method: Option;
+  reference: string | null;
+  paid_on: string;
+  note: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+}
+
+export interface OwnerStatement {
+  owner: { id: number; name: string; phone: string | null };
+  period: string;
+  lines: { payment_id: number; receipt: string; paid_on: string; lease: string; property: string; tenant: string; month: string; amount: number; commission_rate: number; commission: number }[];
+  collected: number;
+  commission: number;
+  commission_vat: number;
+  net_before_expenses: number;
 }

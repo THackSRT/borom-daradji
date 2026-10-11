@@ -23,14 +23,18 @@ class ProspectMatcher
     public function matchingCriteria(Property $property): Collection
     {
         $tolerance = config('borom.matching_budget_tolerance');
+        // Bornes arrondies au franc : les colonnes sont entières et PostgreSQL
+        // refuse de comparer un entier à un nombre décimal passé en paramètre.
+        $minBudgetMax = (int) ceil($property->price / (1 + $tolerance));
+        $maxBudgetMin = (int) floor($property->price / (1 - $tolerance));
 
         return SearchCriterion::query()
             ->with('client')
             ->whereHas('client')
             ->where('is_active', true)
             ->where('transaction', $property->transaction)
-            ->where(fn ($q) => $q->whereNull('budget_max')->orWhere('budget_max', '>=', $property->price / (1 + $tolerance)))
-            ->where(fn ($q) => $q->whereNull('budget_min')->orWhere('budget_min', '<=', $property->price / (1 - $tolerance)))
+            ->where(fn ($q) => $q->whereNull('budget_max')->orWhere('budget_max', '>=', $minBudgetMax))
+            ->where(fn ($q) => $q->whereNull('budget_min')->orWhere('budget_min', '<=', $maxBudgetMin))
             ->where(fn ($q) => $q->whereNull('rooms_min')->orWhere('rooms_min', '<=', (int) $property->rooms))
             ->get()
             // Listes JSON (vide = indifférent) : filtrées en PHP, les volumes sont faibles.
@@ -55,8 +59,8 @@ class ProspectMatcher
                 ->with('cover')
                 ->where('transaction', $c->transaction)
                 ->when($c->types->isNotEmpty(), fn ($q) => $q->whereIn('type', $c->types->map->value))
-                ->when($c->budget_max, fn ($q, $max) => $q->where('price', '<=', $max * (1 + $tolerance)))
-                ->when($c->budget_min, fn ($q, $min) => $q->where('price', '>=', $min * (1 - $tolerance)))
+                ->when($c->budget_max, fn ($q, $max) => $q->where('price', '<=', (int) floor($max * (1 + $tolerance))))
+                ->when($c->budget_min, fn ($q, $min) => $q->where('price', '>=', (int) ceil($min * (1 - $tolerance))))
                 ->when($c->rooms_min, fn ($q, $rooms) => $q->where('rooms', '>=', $rooms))
                 ->get()
                 ->filter(fn (Property $p) => self::matchesPlace($c->cities, $p->city))

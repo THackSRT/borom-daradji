@@ -14,7 +14,7 @@ class UpdateSiteSectionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('administrate');
+        return $this->user()->can('site.manage');
     }
 
     /**
