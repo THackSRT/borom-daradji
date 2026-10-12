@@ -26,10 +26,13 @@ use App\Enums\PropertyCheckItem;
 use App\Enums\PropertyDocumentType;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Enums\QuoteStatus;
+use App\Enums\StockMovementType;
 use App\Enums\TaskPriority;
 use App\Enums\TransactionType;
 use App\Enums\VisitFeedback;
 use App\Enums\VisitStatus;
+use App\Enums\WorksiteStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
@@ -70,6 +73,9 @@ class MetaController extends Controller
             'lease_statuses' => LeaseStatus::class,
             'inspection_types' => InspectionType::class,
             'item_conditions' => ItemCondition::class,
+            'quote_statuses' => QuoteStatus::class,
+            'worksite_statuses' => WorksiteStatus::class,
+            'stock_movement_types' => StockMovementType::class,
         ];
 
         $data = array_map(

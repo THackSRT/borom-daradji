@@ -74,6 +74,29 @@ final class PermissionCatalog
                 'payouts.view' => ['Consulter les relevés des propriétaires', 'Loyers encaissés, commission, net à reverser.'],
                 'payouts.manage' => ['Enregistrer les reversements', 'Verser au propriétaire ce qui lui revient, ou annuler un versement.'],
             ]],
+            'works' => ['label' => 'Travaux', 'permissions' => [
+                'works.view' => ['Consulter les devis et les chantiers', 'Devis, chantiers, avancement, journal, photos.'],
+                'works.quotes' => ['Préparer et envoyer les devis', 'Créer, modifier, envoyer, marquer acceptés ou refusés.'],
+                'works.catalog' => ['Gérer le catalogue et les modèles de devis', 'Corps de métier, prestations et prix, modèles réutilisables.'],
+                'works.manage' => ['Gérer les chantiers', 'Statuts, lots et avancement, journal, photos, lien de suivi du client.'],
+                'works.team' => ['Gérer les tâcherons et le pointage', 'Tâcherons, présence journalière, travaux à la tâche.'],
+                'works.cash' => ['Tenir la caisse de chantier', 'Dépenses sur place avec photo du reçu.'],
+                'works.payments' => ['Payer les tâcherons et approvisionner les chantiers', 'Avances et paiements des tâcherons, avances au chef de chantier.'],
+                'works.costs' => ['Voir les budgets et les coûts des chantiers', 'Budget prévu, coût réel, marge, alertes de dépassement.'],
+            ]],
+            'stock' => ['label' => 'Stock et négoce', 'permissions' => [
+                'stock.view' => ['Consulter le stock', 'Articles, quantités en stock, prix de vente, alertes de seuil.'],
+                'stock.manage' => ['Gérer les articles', 'Fiches articles, catégories, prix de vente, seuils, emplacements.'],
+                'stock.purchases' => ['Enregistrer les achats', 'Entrées de marchandises des fournisseurs et paiements des fournisseurs.'],
+                'stock.issue' => ['Sortir du stock', 'Sorties vers les chantiers et retours, pertes et casse.'],
+                'stock.sell' => ['Vendre au comptoir', 'Vente de matériaux : la facture est émise et le stock diminue aussitôt.'],
+                'stock.inventory' => ['Faire les inventaires', 'Comptage physique et ajustement du stock.'],
+                'stock.costs' => ['Voir les coûts du stock', 'Prix d\'achat, coût moyen pondéré, valeur du stock, achats.'],
+            ]],
+            'reports' => ['label' => 'Pilotage', 'permissions' => [
+                'reports.view' => ['Voir le tableau de bord de l\'agence', 'Chiffre d\'affaires par activité, encaissements, impayés, chantiers, stock.'],
+                'reports.export' => ['Exporter pour la comptabilité', 'Journaux des ventes, encaissements et achats, balances ; numéros de compte.'],
+            ]],
             'administration' => ['label' => 'Administration', 'permissions' => [
                 'users.view' => ['Consulter les comptes', 'Liste de l\'équipe et droits de chacun.'],
                 'users.manage' => ['Gérer les comptes', 'Créer, modifier, désactiver, attribuer des rôles, réinitialiser un mot de passe.'],
@@ -135,22 +158,29 @@ final class PermissionCatalog
             ],
             SystemRole::Commercial->value => [
                 'label' => 'Commercial',
-                'description' => 'Suit les prospects et les visites, consulte les biens, encaisse.',
-                'permissions' => ['properties.view', ...$prospection, 'invoices.view', 'payments.create', 'leases.view'],
+                'description' => 'Suit les prospects et les visites, consulte les biens, encaisse, prépare les devis de travaux, vend au comptoir.',
+                'permissions' => ['properties.view', ...$prospection, 'invoices.view', 'payments.create', 'leases.view', 'works.view', 'works.quotes', 'stock.view', 'stock.sell'],
             ],
             SystemRole::ResponsableTravaux->value => [
                 'label' => 'Responsable travaux',
-                'description' => 'Consulte les biens et les clients (les chantiers arrivent au lot 3).',
-                'permissions' => ['properties.view', 'clients.view', 'clients.create', 'clients.update'],
+                'description' => 'Devis, chantiers, tâcherons, caisse de chantier, stock ; consulte les biens et les clients.',
+                'permissions' => [
+                    'properties.view', 'clients.view', 'clients.create', 'clients.update',
+                    'works.view', 'works.quotes', 'works.catalog', 'works.manage', 'works.team', 'works.cash', 'works.payments', 'works.costs',
+                    'stock.view', 'stock.manage', 'stock.purchases', 'stock.issue', 'stock.inventory', 'stock.costs',
+                ],
             ],
             SystemRole::Comptable->value => [
                 'label' => 'Comptable',
-                'description' => 'Factures, avoirs, encaissements, caisses de l\'équipe.',
+                'description' => 'Factures, avoirs, encaissements, caisses de l\'équipe, achats et ventes de matériaux.',
                 'permissions' => [
                     'properties.view', 'properties.mandates', 'clients.view', 'clients.create', 'clients.update',
                     'invoices.view', 'invoices.manage', 'invoices.issue', 'invoices.credit',
                     'payments.create', 'payments.cancel', 'payments.view_all', 'cash.view_all',
                     'leases.view', 'payouts.view', 'payouts.manage', 'deposits.settle',
+                    'works.view', 'works.payments', 'works.costs',
+                    'stock.view', 'stock.purchases', 'stock.sell', 'stock.inventory', 'stock.costs',
+                    'reports.view', 'reports.export',
                 ],
             ],
         ];
@@ -171,6 +201,26 @@ final class PermissionCatalog
             'payouts.view' => ['comptable'],
             'payouts.manage' => ['comptable'],
             'deposits.settle' => ['comptable'],
+            // Travaux (lot 3).
+            'works.view' => ['responsable_travaux', 'commercial', 'comptable'],
+            'works.quotes' => ['responsable_travaux', 'commercial'],
+            'works.catalog' => ['responsable_travaux'],
+            'works.manage' => ['responsable_travaux'],
+            'works.team' => ['responsable_travaux'],
+            'works.cash' => ['responsable_travaux'],
+            'works.payments' => ['responsable_travaux', 'comptable'],
+            'works.costs' => ['responsable_travaux', 'comptable'],
+            // Stock et négoce (lot 4).
+            'stock.view' => ['responsable_travaux', 'comptable', 'commercial'],
+            'stock.manage' => ['responsable_travaux'],
+            'stock.purchases' => ['responsable_travaux', 'comptable'],
+            'stock.issue' => ['responsable_travaux'],
+            'stock.sell' => ['comptable', 'commercial'],
+            'stock.inventory' => ['responsable_travaux', 'comptable'],
+            'stock.costs' => ['responsable_travaux', 'comptable'],
+            // Pilotage (lot 5).
+            'reports.view' => ['comptable'],
+            'reports.export' => ['comptable'],
         ];
     }
 

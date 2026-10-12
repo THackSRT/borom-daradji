@@ -5,11 +5,11 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | Lot | Contenu | Semaines | Heures | État |
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
-| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait** (API, back-office, site), à fusionner |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait** (valeurs par défaut à valider), à fusionner |
-| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
-| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
-| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
+| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait**, fusionné |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | **Fait** sur `lot-5-pilotage` (comptes à valider avec le cabinet) |
 | Recette finale | Corrections, mise en production | 19-20 | — | — |
 
 Hors développement (déjà compris dans les 1 270 h) : maquettes 50 h, gestion de projet et démos 90 h, recette 110 h, reprise des données 30 h, formation 40 h.
@@ -35,7 +35,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 | Plusieurs tableaux de bord CA (5.17, 5.18, 6.5) | Un tableau de bord dirigeant, au lot 5 |
 | Pointage bancaire par import CSV (5.16) | Journal de caisse et rapprochement mobile money manuel |
 
-**Reporté en phase 2** : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
+**Reporté en phase 2** (proposition détaillée, état des lieux et tri dans [`phase-2.md`](phase-2.md)) : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
 
 ---
 
@@ -175,25 +175,119 @@ Règles en place :
 
 ## Lot 3 — Travaux
 
-- Catalogue de prestations par corps de métier (désignation, unité, prix unitaire) ; **14 corps listés dans la v2.0** (le document en annonce 15) plus la peinture, proposée sur le site actuel.
-- Devis par lots tirés du catalogue, remise, modèles réutilisables, PDF, suivi `brouillon → envoye → accepte|refuse|expire` (validité 30 jours).
-- Chantiers : statuts `devis → planifie → en_cours → suspendu → termine → facture`, lots avec % d'avancement, journal, photos géolocalisées et datées.
-- Factures d'acompte, de situation (cumul des situations précédentes) et de solde à partir du devis.
-- Équipes et **tâcherons** : pointage journalier, paiements à la tâche ou à la journée, avances.
-- **Caisse de chantier** : avances au chef de chantier, dépenses avec photo du reçu.
-- Budget prévu et réel (matériaux + main-d'œuvre + caisse), alerte au-delà de 10 % de dépassement.
-- **Lien de suivi client** : URL signée et révocable, en lecture seule (avancement, photos, paiements d'un chantier).
-- **Appli terrain hors ligne** : photos, pointage et dépenses stockés sur le téléphone puis synchronisés.
+**Fait** (branche `lot-3-travaux`) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation des travaux, tâcherons et pointage, caisse de chantier, budget et alerte de dépassement, lien de suivi du client, appli terrain hors ligne. Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Catalogue et devis (D-044) :
+- Corps de métier (15 créés à l'installation : les 14 de la v2.0 et la peinture) et prestations (désignation, unité, prix HT, TVA), modifiables et désactivables (`works.catalog`). Les prix de la démo sont indicatifs.
+- Devis = lots (un par corps de métier ou par étape) de lignes tirées du catalogue ou saisies ; remise globale en %, appliquée ligne par ligne ; TVA par ligne ; montants arrondis au franc par ligne. Numéro `DEV-AAAA-0001` à la création (un devis n'est pas une pièce comptable).
+- Suivi `brouillon → envoye → accepte | refuse | expire`. À l'envoi : date et validité (30 jours, `QUOTE_VALIDITY_DAYS`) ; chaque nuit (`borom:expire-quotes`, 00:15) les devis échus passent en « expiré ». Un devis envoyé ne se modifie plus : on le reprend en brouillon ou on le duplique. Refus avec motif. Un devis expiré se renvoie avant d'être accepté.
+- Modèles réutilisables (devis sans client ni numéro) ; dupliquer un devis ou un modèle. PDF avec conditions (modifiables) et acompte demandé (30 % par défaut, `QUOTE_DEPOSIT_RATE`).
+
+Chantiers (D-045) :
+- Créés à l'acceptation d'un devis (lots et montants repris), ou à la main au stade « devis » ; un devis accepté peut compléter un chantier ouvert du même client (avenant). Le client reçoit la catégorie « client travaux ». Référence `CH-AAAA-0001`.
+- Statuts `devis → planifie → en_cours ⇄ suspendu → termine → facture` (un chantier terminé peut reprendre). Avancement en % par lot ; avancement global pondéré par le montant des lots.
+- Journal : changements de statut et d'avancement inscrits d'office et visibles du client ; notes visibles ou internes. Photos datées et géolocalisées par le téléphone, rattachables à un lot, visibles du client ou non, sur le disque privé.
+
+Facturation des travaux (D-046) :
+- Acompte : % du marché HT, avant la première situation, sans dépasser le marché.
+- Situation : travaux réalisés depuis la précédente (avancement × montant de chaque lot, cumulé, moins ce qui est déjà facturé), acompte déduit au prorata ; un avancement inférieur à ce qui est déjà facturé est refusé.
+- Solde : quand le chantier est terminé ; tout le marché est alors facturé au franc près et le chantier passe en « facturé ».
+- Factures ordinaires du lot 2 (activité « travaux », brouillon à vérifier puis émis, encaissements, relances), TVA ventilée selon les taux des lignes du devis. Une seule facture du chantier en brouillon à la fois ; une facture annulée par avoir ne compte plus.
+
+Tâcherons, caisse de chantier, budget (D-047, D-048) :
+- Tâcherons : artisans et ouvriers sans compte, payés à la journée (tarif journalier) ou à la tâche ; téléphone unique ; désactivés plutôt que supprimés (`works.team`).
+- Pointage du jour (journée ou demi-journée) au tarif du jour figé dans la ligne ; pas de journée à venir ; chantier ouvert seulement ; un tâcheron pointé deux fois le même jour sur le même chantier voit sa ligne mise à jour.
+- Travaux à la tâche (prix convenu) : dus une fois marqués terminés ; une tâche terminée ne s'annule plus.
+- Avances et paiements (`works.payments`) : dû = journées + tâches terminées ; solde = dû − versé, tous chantiers confondus ; un paiement ne dépasse pas le reste dû (au-delà, c'est une avance) ; référence obligatoire hors espèces ; payé ou non avec la caisse du chantier ; jamais supprimé, annulé avec motif.
+- Caisse du chantier, tenue par le chef de chantier : approvisionnement par l'agence (`works.payments`), pris dans la caisse du jour (sortie automatique « avance à un chef de chantier ») ou versé autrement ; dépenses sur place par catégorie avec photo du reçu (`works.cash`), reçu ajoutable après coup, dépenses sans reçu signalées ; paiements de tâcherons ; reliquat rendu (éventuellement remis dans la caisse du jour). Solde négatif admis : le chef a avancé de sa poche. Annulation avec motif ; les espèces de la caisse du jour font le chemin inverse tant qu'elle n'est pas clôturée.
+- Budget prévu (matériaux, main-d'œuvre, autres) et coût réel (`works.costs`) : main-d'œuvre des tâcherons (dû, payé ou non) + matériaux sortis du stock au CMUP (lot 4, retours déduits) + dépenses de la caisse par poste ; marge = marché HT − coût réel. Au-delà de +10 % (`BUDGET_ALERT_TOLERANCE`), une tâche « budget dépassé » au chef de chantier, une seule fois tant que le budget ne change pas.
+
+Lien de suivi du client (D-049) :
+- Adresse `/suivi/{jeton}` (jeton aléatoire de 48 caractères) créée, renouvelée ou révoquée depuis la fiche du chantier (`works.manage`) et envoyée par WhatsApp ; l'ancien lien cesse de fonctionner.
+- Lecture seule, sans compte, non indexé : avancement global et par lot, photos et journal marqués visibles du client, factures émises avec leur PDF, payé et reste à régler. Rien d'interne (budget, coûts, tâcherons, caisse, notes internes, brouillons).
+
+Appli terrain hors ligne (D-050) :
+- Écran « Terrain » (`/admin/terrain`, installable sur le téléphone) : photo (réduite à 1 920 px, géolocalisée), pointage du jour, dépense avec reçu, pour le chantier choisi.
+- Chaque saisie est gardée sur le téléphone (IndexedDB) avec un identifiant unique, puis envoyée dans l'ordre dès que le réseau revient (et chaque minute) ; le serveur ignore une saisie déjà reçue. Une saisie refusée (droit, chantier fermé…) reste affichée avec le motif jusqu'à ce qu'on l'abandonne.
+- L'application s'ouvre sans réseau (service worker) avec les dernières données lues (chantiers, tâcherons, lots) ; le profil reste connecté hors ligne ; sur un téléphone partagé, seules les saisies de la personne connectée partent avec sa session.
+
+### Critères d'acceptation du lot 3
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Works`), sauf le hors-ligne, vérifié dans Chromium (coupure réseau simulée).
+
+- Un devis calcule remise, TVA et totaux au franc près, s'envoie, expire après sa validité, se refuse avec un motif ; accepté, il crée le chantier avec ses lots.
+- L'avancement d'un lot met à jour l'avancement global et s'inscrit au journal visible du client.
+- Acompte, situations et solde additionnés égalent le marché HT au franc près ; l'acompte est déduit au prorata ; une seule facture en brouillon à la fois.
+- Le pointage applique le tarif du jour du tâcheron et n'est pas compté deux fois par une synchronisation relancée ; une tâche n'est due qu'une fois terminée ; un paiement ne dépasse pas le reste dû.
+- La caisse du chantier suit approvisionnements, dépenses, paiements et retours ; un approvisionnement pris dans la caisse du jour en sort, et y revient s'il est annulé.
+- Un dépassement du budget au-delà de 10 % crée une seule alerte, de nouveau possible après une modification du budget.
+- Le lien de suivi montre avancement, photos et journal publics et paiements, rien d'interne ; renouvelé ou révoqué, l'ancien lien ne fonctionne plus.
+- Photos, pointage et dépenses saisis sans réseau sont envoyés au retour du réseau, sans doublon.
+- Chaque action est réservée aux permissions prévues (`works.*`, factures).
 
 ## Lot 4 — Stock et négoce
 
-- Articles (référence, catégorie, unité, prix d'achat et de vente, seuils min/max, emplacement), fournisseurs.
-- Mouvements : entrée fournisseur, sortie vers un chantier (coût imputé au chantier), vente au comptoir (facture du lot 2), perte/casse (motif obligatoire), ajustement d'inventaire.
-- **Valorisation CMUP** recalculée à chaque entrée ; historique des prix.
-- Alertes de seuil, inventaire physique avec écarts.
+**Fait** (branche `lot-4-stock-negoce`) : articles et catégories, mouvements valorisés au CMUP, achats aux fournisseurs et leurs paiements, sorties vers les chantiers et retours, pertes, vente au comptoir, inventaire physique, alertes de seuil. Un seul dépôt (multi-dépôts et commandes fournisseurs reportés en phase 2). Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Articles et valorisation (D-051) :
+- Article : référence (`ART-0001` d'office, ou saisie), désignation, catégorie (10 créées à l'installation, modifiables), unité, prix de vente HT et TVA, seuil d'alerte et stock maximum, emplacement, fournisseur habituel. Désactivé plutôt que supprimé (`stock.manage`).
+- Quantité et coût moyen unitaire pondéré (CMUP) jamais saisis : ils suivent les mouvements. Entrée : CMUP = (stock × CMUP + quantité × prix d'achat) / (stock + quantité). Sortie (chantier, vente, perte) au CMUP du moment, qui ne change pas. Valeur du stock = quantité × CMUP. Quantités à deux décimales (m³ de sable), CMUP à quatre, valeurs des mouvements au franc.
+- Chaque mouvement garde la quantité et le CMUP après lui ; rien ne se modifie ni ne se supprime : une erreur se corrige par le mouvement inverse. Sortie refusée au-delà du stock (`STOCK_ALLOW_NEGATIVE` pour l'autoriser).
+- Prix d'achat, CMUP, valeurs et achats visibles avec `stock.costs` seulement.
+
+Achats aux fournisseurs (D-052) :
+- Bon d'entrée `ACH-AAAA-0001` (`stock.purchases`) : fournisseur (un client, qui reçoit la catégorie « fournisseur »), référence de son bon ou de sa facture, date de réception, lignes (article, quantité, prix unitaire HT, TVA). La marchandise entre en stock à l'enregistrement ; le prix d'achat de l'article devient le dernier payé ; historique des prix sur la fiche article.
+- Échéance à 30 jours par défaut (`PURCHASE_DUE_DAYS`) ; paiements partiels, référence obligatoire hors espèces ; en espèces, sortie automatique de la caisse du jour (mouvement « paiement d'un fournisseur »), réservée à qui tient une caisse. Paiement annulé avec motif (les espèces reviennent tant que la caisse est ouverte).
+- Achat annulé avec motif : la marchandise ressort à son prix d'achat (le CMUP redevient ce qu'il aurait été) ; refusé s'il reste des paiements ou si la marchandise est déjà sortie.
+
+Sorties, pertes, vente au comptoir (D-053) :
+- Bon de sortie vers un chantier ouvert (`stock.issue`), plusieurs articles : coût au CMUP imputé au chantier, compté dans son coût réel (poste matériaux) et son alerte de budget. Retour au dépôt au coût de sortie, sans dépasser ce qui est parti sur ce chantier.
+- Perte ou casse : motif obligatoire. Correction ponctuelle à la quantité constatée, avec motif (`stock.inventory`).
+- Vente au comptoir (`stock.sell`) : client connu, ou de passage (nom, téléphone facultatif ; un numéro connu retrouve la fiche) ; prix de la fiche, modifiable ligne par ligne (alerte sous le coût moyen pour qui voit les coûts). La facture « matériaux » est émise aussitôt (numéro continu du lot 2) et le stock diminue dans la même transaction ; encaissement immédiat possible (`payments.create`, espèces dans la caisse du jour). Rien n'est enregistré si un article manque.
+- Retour de marchandise vendue : rentre en stock au coût de sa sortie, sans dépasser ce qui a été vendu sur la facture ; l'avoir se fait à part (comptable).
+
+Inventaire et alertes (D-054) :
+- Inventaire `INV-AAAA-001` (`stock.inventory`), de tous les articles ou d'une catégorie, un seul en cours : comptage à l'aveugle (le stock théorique n'est pas affiché), enregistré au fil de la saisie. À la validation, chaque article compté est ajusté ; le théorique est relevé à ce moment (les mouvements pendant le comptage sont pris en compte) ; écarts valorisés au CMUP ; non comptés inchangés. Figé une fois validé ; un inventaire en cours peut être supprimé.
+- Seuil d'alerte atteint : une tâche « réapprovisionner » (responsable travaux, sinon dirigeant) avec le fournisseur habituel, une seule fois tant que le stock ne remonte pas au-dessus du seuil. Filtre « À réapprovisionner » dans la liste.
+
+### Critères d'acceptation du lot 4
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Stock`).
+
+- Deux achats à des prix différents donnent le CMUP attendu ; une sortie se fait au CMUP sans le modifier ; l'annulation d'un achat rend le CMUP d'avant.
+- Une sortie vers un chantier compte dans son coût réel ; un retour la diminue au coût de sortie ; aucune sortie au-delà du stock ni vers un chantier fermé.
+- Une perte exige un motif ; le seuil d'alerte crée une seule tâche, de nouveau possible après réapprovisionnement.
+- Un paiement fournisseur en espèces sort de la caisse du jour et y revient s'il est annulé ; un achat payé ne s'annule pas.
+- Une vente au comptoir émet la facture, diminue le stock et encaisse en un geste ; refusée sans rien enregistrer si le stock manque ; un client de passage connu par son téléphone n'est pas recréé.
+- Un inventaire ajuste les articles comptés au stock réel et valorise les écarts ; validé, il ne se modifie plus.
+- Prix d'achat et coûts réservés à `stock.costs` ; chaque action réservée à sa permission (`stock.*`, `payments.create`).
 
 ## Lot 5 — Pilotage
 
-- Tableau de bord dirigeant : CA par activité (immobilier, travaux, négoce), encaissements, impayés, loyers en retard, chantiers en retard ou hors budget, stock sous le seuil.
-- Exports Excel : journal des ventes, des encaissements, des achats, balances clients et fournisseurs, avec numéros de compte SYSCOHADA paramétrables ; format à caler sur le logiciel du cabinet comptable.
-- Recherche globale (clients, biens, chantiers, factures, articles).
+**Fait** (branche `lot-5-pilotage`) : tableau de bord du dirigeant, exports comptables Excel, recherche globale. Valeurs par défaut **à valider** avec le client et son cabinet comptable.
+
+Tableau de bord (`/admin/pilotage`, `reports.view` : dirigeant et comptable par défaut, D-056) :
+- Période : ce mois, mois dernier, trimestre, cette année, année dernière ou dates libres ; comparaison avec la même période du mois, du trimestre ou de l'année d'avant (dates libres : la période de même durée juste avant).
+- Chiffre d'affaires HT = factures émises moins avoirs émis, à la date d'émission, par activité (immobilier, location, travaux, matériaux, autre) ; graphique des douze derniers mois par activité, avec tableau.
+- Encaissements par mode (hors retenues sur caution, qui ne sont pas de l'argent reçu).
+- Reste à encaisser par ancienneté de l'échéance (pas échu, 1-30, 31-60, 61-90, plus de 90 jours) et principaux débiteurs ; loyers en retard ; chantiers en retard ou hors budget ; stock sous le seuil et valeur du stock ; dettes fournisseurs (dont échues).
+
+Exports comptables (`/admin/exports`, `reports.export`, D-057) :
+- Fichiers Excel (.xlsx) : journal des ventes, des encaissements, des achats (avec règlements des fournisseurs) sur une période ; balances clients et fournisseurs à une date.
+- Chaque journal : une feuille « Écritures » (journal, date, n° de pièce, compte, compte de tiers, libellé, débit, crédit), équilibrée pièce par pièce, à importer dans le logiciel du cabinet après correspondance des colonnes, et une feuille de détail.
+- Ventes : client au débit (TTC), compte de ventes de l'activité (HT) et TVA collectée au crédit ; avoir : l'inverse. Encaissements : compte de trésorerie du mode au débit, client au crédit. Achats : achats (HT) et TVA déductible au débit, fournisseur au crédit ; règlements : fournisseur au débit, trésorerie au crédit.
+- Numéros de compte SYSCOHADA proposés (clients 4111, fournisseurs 4011, ventes 7061 / 7073 / 705 / 701 / 707, TVA 4431 et 4452, achats 601, caisse 571, Wave 5211, Orange Money 5212, Free Money 5213, chèques 513, banque 521, cautions 165), journaux VT / AC / TR, comptes de tiers « préfixe + n° de fiche » (C00023, F00007) : tous modifiables. Chaque export est inscrit au journal d'activité.
+
+Recherche globale (Ctrl+K) : clients (nom, e-mail, téléphone même partiel), biens, chantiers, devis, factures, articles, achats, chaque groupe seulement avec le droit de le consulter.
+
+### Critères d'acceptation du lot 5
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Reports`).
+
+- Le chiffre d'affaires par activité déduit les avoirs, ignore les brouillons et se compare à la période précédente.
+- Les encaissements excluent les retenues sur caution ; les impayés sont répartis par ancienneté.
+- Chantiers en retard, stock sous le seuil et dettes fournisseurs apparaissent au tableau de bord.
+- Les journaux exportés sont équilibrés pièce par pièce et utilisent les comptes de chaque activité et mode ; un compte modifié est repris dans l'export suivant.
+- Les balances clients et fournisseurs donnent le solde et la part échue à la date demandée.
+- La recherche globale trouve un client par un numéro partiel et ne montre que les groupes permis.
+- Tableau de bord et exports réservés à `reports.view` et `reports.export`.

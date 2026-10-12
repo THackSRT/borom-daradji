@@ -133,6 +133,30 @@ Quand un module grossit (lot 1 et suivants), garder cette organisation par type 
 - `invoices.paid_total` et `credited_total` sont des cumuls recalculés par le service ; le reste à payer se calcule (`Invoice::balance()`, scopes `outstanding()` et `overdue()`).
 - PDF : dompdf (`barryvdh/laravel-dompdf`), modèles `resources/views/pdf/*.blade.php`, police DejaVu Sans en sous-ensemble, logo intégré en base64, couleur principale du site ; montant en lettres si l'extension `intl` est présente.
 
+### Travaux (lot 3)
+- Services : `QuoteService` (devis, modèles, envoi, acceptation, expiration), `WorksiteService` (chantiers, statuts, avancement, journal, photos, lien de suivi), `WorksBilling` (acompte, situations, solde, par `Billing`), `WorksiteTeam` (pointage, tâches, paiements des tâcherons), `SiteCash` (caisse de chantier), `WorksiteCosts` (budget prévu/réel, alerte). Les contrôleurs valident et appellent ces services ; les règles sont dans les services.
+- Tout ce qui fait monter le coût d'un chantier (pointage, tâche terminée, dépense) appelle `WorksiteCosts::checkAlert()` ; une modification du budget appelle `budgetChanged()` (alerte réarmée).
+- Mouvements automatiques de la caisse du jour (`CashMovementType::isAutomatic()` : caution, avance et retour de chantier) : jamais saisis à la main, exclus de la validation et de l'écran Caisse ; annulés par un mouvement inverse tant que la caisse n'est pas clôturée.
+- Saisies du terrain idempotentes : `client_uuid` unique sur `worksite_photos`, `worksite_attendances` et `site_cash_entries` ; une saisie déjà reçue renvoie l'existante (200 au lieu de 201).
+- Lien de suivi : `Api\Public\WorksiteTrackingController` (`/api/public/worksites/{jeton}`, limité à 60 appels/minute), page `frontend/src/pages/TrackingPage.tsx` chargée à la demande. N'y ajouter que des données que le client peut voir.
+
+### Appli terrain hors ligne (lot 3)
+- `frontend/src/admin/offline/` : `db.ts` (IndexedDB : `outbox` et `cache`), `outbox.ts` (file d'attente, envoi dans l'ordre, `useOutbox()`, `useOutboxAutoSync()` monté dans `AdminLayout`), `cachedQuery.ts` (lecture réseau d'abord, sinon dernière valeur gardée), `image.ts` (réduction des photos), `session.ts` (profil gardé pour l'usage hors ligne).
+- Erreurs à l'envoi : pas de réseau, 429 ou 5xx → nouvel essai plus tard, dans le même ordre ; 401 → attente de la reconnexion ; autre refus (422, 403, 404) → saisie marquée en erreur avec le motif, les suivantes continuent.
+- `frontend/public/sw.js` (enregistré en production seulement, `src/main.tsx`) : pages en « réseau d'abord » avec repli sur la dernière page d'accueil, `/assets/` gardés à la première lecture (80 au plus), `/api/` et `/storage/` jamais interceptés. Caddy sert `sw.js`, `index.html` et le manifeste en `no-cache`. Changer le nom des caches (`borom-shell-v1`…) pour forcer un nettoyage.
+- Tester : `npm run build && npx vite preview` (relais `/api` vers l'API comme en dev) puis, dans Playwright, `context.setOffline(true)`.
+
+### Stock et négoce (lot 4)
+- Toute variation de stock passe par `App\Services\StockService` (`receive`, `issue`, `reverseEntry`, `adjustTo`) : verrou sur l'article, mouvement `stock_movements` (quantité et valeur signées, quantité et CMUP après), mise à jour de l'article, puis contrôle du seuil d'alerte. Ne jamais modifier `articles.quantity` ou `average_cost` ailleurs.
+- Au-dessus : `PurchaseService` (achats, paiements fournisseurs), `StockOperations` (sorties vers chantier, retours, pertes, corrections), `CounterSale` (vente au comptoir par `Billing`), `InventoryService`. `WorksiteCosts` lit les mouvements `sortie_chantier` / `retour_chantier` du chantier.
+- Numéros : `Sequence::next('achat' | 'inventaire')`, et `Sequence::next('article', 0)` (compteur sans année) pour `ART-0001`.
+- Lignes de facture rattachables à un article (`invoice_lines.article_id`, passé par `Billing::saveDraft`).
+
+### Pilotage (lot 5)
+- `App\Services\ReportService` calcule le tableau de bord (agrégats en PHP sur des volumes modestes, mêmes résultats sur SQLite et PostgreSQL) ; `ReportController::period()` lit la période (préréglage ou dates), réutilisée par les exports.
+- `App\Services\AccountingExport` produit les feuilles (écritures, détail, balances) ; `App\Support\Spreadsheet` les écrit en .xlsx avec OpenSpout (dates au format jj/mm/aaaa, montants entiers) ; `App\Support\AccountingAccounts` fusionne les comptes par défaut (`config/borom.php`, `accounting`) et ceux de l'agence.
+- Recherche globale : `Api\SearchController` ; ajouter un type = un groupe soumis à son droit, au format `{id, title, subtitle, url, status}`, et son libellé dans `GlobalSearch.tsx`.
+
 ### Paramètres de l'entreprise
 - `CompanySetting::current()` renvoie l'unique ligne (créée au premier accès). À utiliser pour les en-têtes de documents, la TVA par défaut et le site vitrine.
 

@@ -1,14 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CashSessionController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDocumentController;
 use App\Http\Controllers\Api\CompanySettingsController;
+use App\Http\Controllers\Api\CounterSaleController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepositSettlementController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\InteractionController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LeaseController;
 use App\Http\Controllers\Api\LeaseInspectionController;
@@ -23,12 +28,21 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\PropertyStatusController;
 use App\Http\Controllers\Api\Public\LeadController;
 use App\Http\Controllers\Api\Public\PublicPropertyController;
+use App\Http\Controllers\Api\Public\WorksiteTrackingController;
+use App\Http\Controllers\Api\PurchaseController;
+use App\Http\Controllers\Api\QuoteController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SearchCriterionController;
 use App\Http\Controllers\Api\SiteSettingsController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VisitController;
+use App\Http\Controllers\Api\WorkerController;
+use App\Http\Controllers\Api\WorksiteController;
+use App\Http\Controllers\Api\WorksiteCostController;
+use App\Http\Controllers\Api\WorksiteStockController;
 use App\Support\SiteContent;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +54,12 @@ Route::prefix('public')->group(function () {
     Route::get('properties/{slug}', [PublicPropertyController::class, 'show']);
     Route::get('places', [PublicPropertyController::class, 'places']);
     Route::post('leads', [LeadController::class, 'store'])->middleware('throttle:5,1');
+    // Lien de suivi d'un chantier, envoyé au client.
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::get('worksites/{token}', [WorksiteTrackingController::class, 'show']);
+        Route::get('worksites/{token}/photos/{photo}', [WorksiteTrackingController::class, 'photo']);
+        Route::get('worksites/{token}/invoices/{invoice}/pdf', [WorksiteTrackingController::class, 'invoicePdf']);
+    });
 });
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
 
@@ -50,6 +70,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('meta', MetaController::class);
     Route::get('dashboard', DashboardController::class);
+    Route::get('search', SearchController::class);
+    Route::get('reports/overview', [ReportController::class, 'overview']);
+    Route::get('reports/exports/{type}', [ExportController::class, 'download']);
+    Route::get('settings/accounting', [ExportController::class, 'accounts']);
+    Route::put('settings/accounting', [ExportController::class, 'updateAccounts']);
     Route::get('settings/company', [CompanySettingsController::class, 'show']);
 
     // Biens (droits détaillés dans PropertyPolicy).
@@ -127,6 +152,51 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('owners/{client}/statement', [OwnerPayoutController::class, 'statement']);
     Route::post('owners/{client}/payouts', [OwnerPayoutController::class, 'store']);
 
+    // Travaux : catalogue, devis, chantiers.
+    Route::get('trades', [CatalogController::class, 'trades']);
+    Route::post('trades', [CatalogController::class, 'storeTrade']);
+    Route::put('trades/{trade}', [CatalogController::class, 'updateTrade']);
+    Route::get('catalog-items', [CatalogController::class, 'items']);
+    Route::post('catalog-items', [CatalogController::class, 'storeItem']);
+    Route::put('catalog-items/{item}', [CatalogController::class, 'updateItem']);
+    Route::apiResource('quotes', QuoteController::class);
+    Route::post('quotes/{quote}/send', [QuoteController::class, 'send']);
+    Route::post('quotes/{quote}/accept', [QuoteController::class, 'accept']);
+    Route::post('quotes/{quote}/refuse', [QuoteController::class, 'refuse']);
+    Route::post('quotes/{quote}/reopen', [QuoteController::class, 'reopen']);
+    Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf']);
+    Route::apiResource('worksites', WorksiteController::class)->except(['destroy']);
+    Route::post('worksites/{worksite}/status', [WorksiteController::class, 'transition']);
+    Route::put('worksites/{worksite}/lots/{lot}/progress', [WorksiteController::class, 'progress']);
+    Route::post('worksites/{worksite}/logs', [WorksiteController::class, 'storeLog']);
+    Route::delete('worksites/{worksite}/logs/{log}', [WorksiteController::class, 'destroyLog']);
+    Route::post('worksites/{worksite}/photos', [WorksiteController::class, 'storePhoto']);
+    Route::get('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'photo']);
+    Route::put('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'updatePhoto']);
+    Route::delete('worksites/{worksite}/photos/{photo}', [WorksiteController::class, 'destroyPhoto']);
+    Route::get('worksites/{worksite}/billing', [WorksiteController::class, 'billing']);
+    Route::get('worksites/{worksite}/invoices/preview', [WorksiteController::class, 'previewInvoice']);
+    Route::post('worksites/{worksite}/invoices', [WorksiteController::class, 'storeInvoice']);
+    Route::post('worksites/{worksite}/tracking', [WorksiteController::class, 'enableTracking']);
+    Route::delete('worksites/{worksite}/tracking', [WorksiteController::class, 'revokeTracking']);
+    Route::get('worksites/{worksite}/team', [WorksiteCostController::class, 'team']);
+    Route::post('worksites/{worksite}/attendances', [WorksiteCostController::class, 'storeAttendance']);
+    Route::delete('worksites/{worksite}/attendances/{attendance}', [WorksiteCostController::class, 'destroyAttendance']);
+    Route::post('worksites/{worksite}/tasks', [WorksiteCostController::class, 'storeTask']);
+    Route::put('worksites/{worksite}/tasks/{task}', [WorksiteCostController::class, 'updateTask']);
+    Route::get('worksites/{worksite}/cash', [WorksiteCostController::class, 'cash']);
+    Route::post('worksites/{worksite}/cash', [WorksiteCostController::class, 'storeCashEntry']);
+    Route::post('worksites/{worksite}/cash/{entry}/receipt', [WorksiteCostController::class, 'attachReceipt']);
+    Route::get('worksites/{worksite}/cash/{entry}/receipt', [WorksiteCostController::class, 'receipt']);
+    Route::post('worksites/{worksite}/cash/{entry}/cancel', [WorksiteCostController::class, 'cancelCashEntry']);
+    Route::get('worksites/{worksite}/budget', [WorksiteCostController::class, 'budget']);
+    Route::get('worksites/{worksite}/stock', [WorksiteStockController::class, 'index']);
+    Route::post('worksites/{worksite}/stock-exits', [WorksiteStockController::class, 'store']);
+    Route::post('worksites/{worksite}/stock-returns', [WorksiteStockController::class, 'return']);
+    Route::apiResource('workers', WorkerController::class)->except(['destroy']);
+    Route::post('workers/{worker}/payments', [WorkerController::class, 'storePayment']);
+    Route::post('workers/{worker}/payments/{payment}/cancel', [WorkerController::class, 'cancelPayment']);
+
     // Caisse journalière.
     Route::get('cash-sessions', [CashSessionController::class, 'index']);
     Route::get('cash-sessions/current', [CashSessionController::class, 'current']);
@@ -136,6 +206,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
 
     // Administration (RBAC) : comptes, rôles, paramètres, site, journal.
+    Route::get('team', [UserController::class, 'team']);
+
+    // Stock et négoce (droits stock.*).
+    Route::get('article-categories', [ArticleController::class, 'categories']);
+    Route::post('article-categories', [ArticleController::class, 'storeCategory']);
+    Route::put('article-categories/{category}', [ArticleController::class, 'updateCategory']);
+    Route::get('stock-movements', [ArticleController::class, 'movements']);
+    Route::apiResource('articles', ArticleController::class)->except(['destroy']);
+    Route::post('articles/{article}/loss', [ArticleController::class, 'loss']);
+    Route::post('articles/{article}/correction', [ArticleController::class, 'correction']);
+    Route::apiResource('purchases', PurchaseController::class)->except(['destroy']);
+    Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
+    Route::post('purchases/{purchase}/payments', [PurchaseController::class, 'storePayment']);
+    Route::post('purchases/{purchase}/payments/{payment}/cancel', [PurchaseController::class, 'cancelPayment']);
+    Route::post('counter-sales', [CounterSaleController::class, 'store']);
+    Route::post('invoices/{invoice}/stock-returns', [CounterSaleController::class, 'returnGoods']);
+    Route::apiResource('inventories', InventoryController::class);
+    Route::post('inventories/{inventory}/validate', [InventoryController::class, 'validateCount']);
     Route::apiResource('users', UserController::class);
     Route::get('roles', [RoleController::class, 'index']);
     Route::get('roles/{role}', [RoleController::class, 'show']);

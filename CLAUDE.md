@@ -14,6 +14,7 @@ Logiciel de gestion de **Borom Daradji**, une agence de Dakar qui fait de l'immo
 4. [`docs/architecture.md`](docs/architecture.md) : architecture, mécanismes transverses, conventions de code.
 5. [`docs/decisions.md`](docs/decisions.md) : décisions déjà prises et leurs raisons. **Ne pas les rediscuter sans élément nouveau.**
 6. [`docs/sources.md`](docs/sources.md) : résumé des documents du client (cahier des charges v2.0 et chiffrage) et erreurs relevées dedans.
+7. [`docs/phase-2.md`](docs/phase-2.md) : état des lieux après les lots 0 à 5 et proposition de phase 2 (lot 6 de consolidation, modules retenus, fonctionnalités retirées).
 
 ## Commandes
 
@@ -74,5 +75,7 @@ Back-office : http://localhost:8080/admin. Comptes de démo (seeder) : `dirigean
 - **Docker** : ne pas retirer `--no-reload` de `artisan serve` dans l'image de dev (sans lui, l'API perd les variables du conteneur et retombe sur SQLite) ni les lignes `<server>` de `phpunit.xml` (sans elles, les tests vident la base PostgreSQL de dev).
 - **PostgreSQL** (D-039) : base de production ; les tests tournent sur SQLite, donc lancer aussi `make test-pgsql` quand on touche aux requêtes. Pièges déjà rencontrés : `like` y distingue les majuscules (utiliser `whereLike`/`orWhereLike`) ; comparer une colonne entière à un nombre décimal plante (arrondir en PHP avant) ; une valeur plus longue que sa colonne (`string('type', 20)`) plante, alors que SQLite l'accepte ; ne pas tester l'ordre des clés JSON.
 - **Docker dans le bac à sable cloud** : lancer `dockerd` soi-même ; Docker Hub limite les téléchargements (passer par `mirror.gcr.io/library/…` puis `docker tag`) ; le dépôt de paquets Alpine est bloqué, donc l'image PHP réelle (extensions gd, intl…) ne s'y construit pas. Pour tester, une variante Debian sans gd/intl construite à part a suffi (les 8 tests d'images échouent alors, c'est attendu) ; elle n'a pas non plus `pdo_pgsql` : tester PostgreSQL avec le PHP de la machine contre le conteneur `db` (port publié par un fichier compose d'appoint hors dépôt).
+- **Appli terrain hors ligne** (D-050) : le service worker n'est enregistré qu'en production. Pour le tester : `npm run build && npx vite preview` (port 4173, `/api` relayé) puis Playwright avec `context.setOffline(true)`. Changer une règle de saisie du terrain = garder le `client_uuid` (dédoublonnage côté serveur) et la compatibilité des saisies déjà en attente sur les téléphones.
+- Mise en page sur téléphone : une grille `grid lg:grid-cols-[…]` sans `grid-cols-1` s'élargit au contenu (boutons `whitespace-nowrap`) et déborde à 390 px : toujours mettre `grid-cols-1`.
 - Vérifier les écrans dans un vrai navigateur : Playwright est disponible (`/opt/pw-browsers`) ; les photos de démo (Unsplash) sont bloquées par le bac à sable, c'est normal.
 - Pour arrêter les serveurs de développement, ne pas lancer `pkill -f "artisan serve"` depuis un shell dont la commande contient ce texte : il se tue lui-même. Passer par `ps aux | grep … | awk '{print $2}' | xargs kill`.

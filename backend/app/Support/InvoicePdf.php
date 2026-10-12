@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\LeaseInspection;
 use App\Models\OwnerPayout;
 use App\Models\Payment;
+use App\Models\Quote;
 use App\Models\RentCall;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
@@ -104,6 +105,21 @@ final class InvoicePdf
             ...self::common(),
             'inWords' => self::inWords($settlement->refund),
         ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)->download("{$settlement->number}.pdf");
+    }
+
+    /**
+     * Devis de travaux, par lots, avec la zone « Bon pour accord ».
+     */
+    public static function quote(Quote $quote): Response
+    {
+        $quote->loadMissing(['client', 'property', 'lots.lines', 'lots.trade']);
+        $name = $quote->number ?? 'modele-'.$quote->id;
+
+        return Pdf::loadView('pdf.quote', [
+            'quote' => $quote,
+            ...self::common(),
+            'inWords' => self::inWords($quote->total),
+        ])->setPaper('a4')->setOption('isFontSubsettingEnabled', true)->download("{$name}.pdf");
     }
 
     /**

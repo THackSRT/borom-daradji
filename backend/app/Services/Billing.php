@@ -61,6 +61,7 @@ final class Billing
             foreach (array_values($lines) as $position => $line) {
                 $computed = self::computeLine($line);
                 $invoice->lines()->create([
+                    'article_id' => $line['article_id'] ?? null,
                     'position' => $position,
                     'description' => $line['description'],
                     'quantity' => $line['quantity'],

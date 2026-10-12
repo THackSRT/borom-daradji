@@ -27,10 +27,10 @@ Logiciel de gestion de l'agence Borom Daradji (Dakar) : immobilier, gestion loca
 | --- | --- | --- |
 | 0. Socle | Comptes, rôles et droits (RBAC), paramètres de l'entreprise, journal d'activité | Fait (API et écrans) |
 | 1. Biens et prospects | Biens, vérification foncière, CRM, visites, site vitrine | Fait (API, back-office, site vitrine paramétrable) |
-| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | Fait (états des lieux et restitution de la caution compris), à fusionner |
-| 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client | À faire |
-| 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir | À faire |
-| 5. Pilotage | Tableau de bord, exports comptables | À faire |
+| 2. Encaissements et location | Factures, encaissements mobile money, baux, loyers, quittances | Fait (états des lieux et restitution de la caution compris) |
+| 3. Travaux | Devis par lots, chantiers, tâcherons, caisse de chantier, suivi client, appli terrain hors ligne | Fait (branche `lot-3-travaux`) |
+| 4. Stock et négoce | Articles, entrées et sorties, coût moyen pondéré, vente au comptoir, inventaire | Fait |
+| 5. Pilotage | Tableau de bord, exports comptables, recherche globale | Fait (branche `lot-5-pilotage`) |
 
 ## Démarrer avec Docker (recommandé)
 
@@ -78,6 +78,7 @@ make prod-director         # crée le premier compte dirigeant (pas de données 
 - Services : `web` (Caddy : site, back-office, relais de l'API, photos, HTTPS), `app` (API, PHP-FPM), `scheduler` (tâches planifiées), `db` (PostgreSQL 17). Au démarrage, `app` applique les migrations et `borom:sync-permissions`.
 - Mise à jour : `git pull` puis `make prod-up`.
 - Sauvegarde : `make prod-backup` (base et fichiers dans `backups/`, à copier hors du serveur ; à planifier dans le cron du serveur, par exemple chaque nuit). Restauration de la base : `gunzip < backups/base-….sql.gz | docker compose -f compose.prod.yaml --env-file .env.prod exec -T db sh -c 'psql -q -U "$POSTGRES_USER" "$POSTGRES_DB"'`.
+- Appli terrain : sur le téléphone du chef de chantier, ouvrir `https://<domaine>/admin/terrain` une première fois connecté (les chantiers et tâcherons sont gardés sur le téléphone), puis « Ajouter à l'écran d'accueil ». Le hors-ligne demande HTTPS (le service worker n'existe pas en HTTP, sauf sur `localhost`).
 - Journaux : `make prod-logs`. Essai sur sa machine : `SITE_ADDRESS=http://localhost` et `APP_URL=http://localhost` dans `.env.prod`.
 
 ## Sans Docker

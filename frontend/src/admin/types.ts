@@ -243,7 +243,10 @@ export type MetaKey =
   | "cash_movement_types"
   | "lease_statuses"
   | "inspection_types"
-  | "item_conditions";
+  | "item_conditions"
+  | "quote_statuses"
+  | "worksite_statuses"
+  | "stock_movement_types";
 
 export type Meta = Record<MetaKey, Option[]>;
 
@@ -519,4 +522,358 @@ export interface OwnerStatement {
   commission: number;
   commission_vat: number;
   net_before_expenses: number;
+}
+
+/* ---------- Travaux (lot 3) ---------- */
+
+export interface Trade {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  items_count?: number;
+}
+
+export interface CatalogItem {
+  id: number;
+  trade: { id: number; name: string } | null;
+  designation: string;
+  unit: string;
+  unit_price: number;
+  vat_rate: number | null;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface QuoteLine {
+  id?: number;
+  catalog_item_id: number | null;
+  designation: string;
+  unit: string | null;
+  quantity: number;
+  unit_price: number;
+  vat_rate: number;
+  amount?: number;
+  net_amount?: number;
+  vat_amount?: number;
+}
+
+export interface QuoteLot {
+  id?: number;
+  title: string;
+  trade_id: number | null;
+  total_ht?: number;
+  lines: QuoteLine[];
+}
+
+export interface Quote {
+  id: number;
+  number: string | null;
+  is_template: boolean;
+  template_name: string | null;
+  status: Option<"brouillon" | "envoye" | "accepte" | "refuse" | "expire">;
+  title: string;
+  site_address: string | null;
+  client: { id: number; name: string; phone: string | null } | null;
+  property: { id: number; reference: string; title: string } | null;
+  worksite: { id: number; reference: string; status: Option } | null;
+  issue_date: string | null;
+  valid_until: string | null;
+  discount_rate: number;
+  deposit_rate: number;
+  deposit_amount: number;
+  subtotal: number;
+  discount_amount: number;
+  total_ht: number;
+  vat_total: number;
+  total: number;
+  conditions: string | null;
+  notes: string | null;
+  sent_at: string | null;
+  decided_at: string | null;
+  refusal_reason: string | null;
+  lots?: QuoteLot[];
+  lots_count?: number;
+  whatsapp_url?: string | null;
+  creator?: Ref | null;
+  can: { update: boolean; decide: boolean; delete: boolean } | null;
+  created_at: string;
+}
+
+export interface QuoteSummary {
+  drafts: number;
+  pending: number;
+  pending_total: number;
+  accepted_this_year: number;
+}
+
+export interface Worksite {
+  id: number;
+  reference: string;
+  title: string;
+  status: Option<"devis" | "planifie" | "en_cours" | "suspendu" | "termine" | "facture">;
+  allowed_transitions: Option[];
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  client: { id: number; name: string; phone: string | null };
+  property?: { id: number; reference: string; title: string } | null;
+  quote?: { id: number; number: string | null } | null;
+  manager: Ref | null;
+  start_date: string | null;
+  planned_end_date: string | null;
+  actual_end_date: string | null;
+  is_late: boolean;
+  progress?: number;
+  contract_ht: number;
+  contract_total: number;
+  budget?: { materials: number; labor: number; other: number; total: number };
+  notes: string | null;
+  lots?: { id: number; title: string; trade_id: number | null; amount_ht: number; progress: number }[];
+  logs?: { id: number; kind: string; logged_on: string; body: string; is_public: boolean; user: Ref | null; created_at: string }[];
+  photos?: { id: number; lot_id: number | null; caption: string | null; taken_at: string; latitude: number | null; longitude: number | null; is_public: boolean; url: string }[];
+  tracking_token?: string | null;
+  can: { update: boolean; costs: boolean } | null;
+  created_at: string;
+}
+
+export interface WorksiteSummary {
+  open: number;
+  in_progress: number;
+  late: number;
+}
+
+
+export interface Worker {
+  id: number;
+  name: string;
+  phone: string | null;
+  trade: Ref | null;
+  pay_type: Option<"journalier" | "tache">;
+  daily_rate: number;
+  is_active: boolean;
+  notes: string | null;
+  earned?: number;
+  paid?: number;
+  balance?: number;
+  created_at: string;
+}
+
+export interface WorkerPayment {
+  id: number;
+  kind: Option<"avance" | "paiement">;
+  amount: number;
+  paid_on: string;
+  method: Option;
+  reference: string | null;
+  note: string | null;
+  from_site_cash: boolean;
+  worksite?: { id: number; reference: string; title: string } | null;
+  paid_by?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface WorkerDetail extends Worker {
+  worksites: { id: number; reference: string; title: string; status: Option; days: number; earned: number; paid: number }[];
+  attendances: { id: number; worked_on: string; days: number; amount: number; worksite: { id: number; reference: string } }[];
+  tasks: { id: number; description: string; amount: number; status: string; completed_on: string | null; worksite: { id: number; reference: string } }[];
+  payments: WorkerPayment[];
+  can: { pay: boolean; update: boolean };
+}
+
+export interface Attendance {
+  id: number;
+  worker: Ref;
+  worked_on: string;
+  days: number;
+  daily_rate: number;
+  amount: number;
+  note: string | null;
+  client_uuid: string | null;
+}
+
+export interface WorkerTask {
+  id: number;
+  worker: Ref;
+  description: string;
+  amount: number;
+  status: Option<"en_cours" | "terminee" | "annulee">;
+  completed_on: string | null;
+}
+
+export interface WorksiteTeam {
+  date: string;
+  crew: {
+    worker: { id: number; name: string; phone: string | null; trade: string | null; pay_type: string; daily_rate: number; is_active: boolean };
+    days: number;
+    earned: number;
+    paid: number;
+    balance: number;
+  }[];
+  attendances: Attendance[];
+  tasks: WorkerTask[];
+  can: { team: boolean; pay: boolean };
+}
+
+export interface SiteCashEntry {
+  id: number;
+  kind: Option<"approvisionnement" | "depense" | "paiement_tacheron" | "retour">;
+  category: Option | null;
+  amount: number;
+  signed_amount: number;
+  label: string;
+  spent_on: string;
+  receipt_url: string | null;
+  from_cash_register: boolean;
+  client_uuid: string | null;
+  author?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface SiteCash {
+  totals: { approvisionnement: number; depense: number; paiement_tacheron: number; retour: number; balance: number; missing_receipts: number };
+  entries: SiteCashEntry[];
+  categories: Option[];
+  can: { spend: boolean; supply: boolean };
+}
+
+export interface WorksiteBudget {
+  planned: { materials: number; labor: number; other: number; total: number };
+  actual: { materials: number; labor: number; other: number; total: number };
+  labor_detail: { days: number; attendances: number; tasks: number };
+  expenses_by_category: { key: string; label: string; total: number }[];
+  consumed_rate: number | null;
+  tolerance: number;
+  over_budget: boolean;
+  contract_ht: number;
+  margin: number;
+  alerted_at: string | null;
+  cash_balance: number;
+}
+
+export interface ArticleCategory {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  articles_count?: number;
+}
+
+export interface Article {
+  id: number;
+  reference: string;
+  name: string;
+  category: Ref | null;
+  unit: string;
+  sale_price: number;
+  vat_rate: number;
+  quantity: number;
+  min_quantity: number;
+  max_quantity: number | null;
+  is_low: boolean;
+  location: string | null;
+  supplier: { id: number; name: string; phone: string | null } | null;
+  is_active: boolean;
+  notes: string | null;
+  purchase_price?: number;
+  average_cost?: number;
+  stock_value?: number;
+  created_at: string;
+}
+
+export interface StockMovement {
+  id: number;
+  type: Option;
+  quantity: number;
+  quantity_after: number;
+  moved_on: string;
+  reason: string | null;
+  article?: { id: number; reference: string; name: string; unit: string };
+  worksite?: { id: number; reference: string; title: string } | null;
+  purchase?: { id: number; number: string } | null;
+  invoice?: { id: number; number: string | null } | null;
+  author?: Ref | null;
+  unit_cost?: number;
+  value?: number;
+  average_cost_after?: number;
+  created_at: string;
+}
+
+export interface ArticleDetail extends Article {
+  movements: StockMovement[];
+  purchase_prices: { purchase: { id: number; number: string }; received_on: string; supplier: string; quantity: number; unit_cost: number }[] | null;
+  can: { manage: boolean; issue: boolean; inventory: boolean };
+}
+
+export interface StockSummary {
+  articles: number;
+  low: number;
+  out_of_stock: number;
+  stock_value?: number;
+}
+
+export interface Purchase {
+  id: number;
+  number: string;
+  supplier?: { id: number; name: string; phone: string | null };
+  supplier_reference: string | null;
+  received_on: string;
+  due_date: string | null;
+  subtotal: number;
+  vat_total: number;
+  total: number;
+  paid_total: number;
+  balance: number;
+  is_overdue: boolean;
+  notes: string | null;
+  lines?: { id: number; article: { id: number; reference: string; name: string; unit: string }; quantity: number; unit_cost: number; vat_rate: number; amount: number; vat_amount: number }[];
+  payments?: { id: number; amount: number; paid_on: string; method: Option; reference: string | null; note: string | null; paid_by: Ref | null; cancelled_at: string | null; cancel_reason: string | null }[];
+  author?: Ref | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+export interface PurchaseSummary {
+  unpaid_count: number;
+  unpaid_total: number;
+  overdue_count: number;
+  month_total: number;
+}
+
+export interface InventorySummaryRow {
+  id: number;
+  number: string;
+  counted_on: string;
+  status: Option<"en_cours" | "valide">;
+  category: Ref | null;
+  notes: string | null;
+  lines_count: number;
+  counted_count: number;
+  value_difference: number | null;
+  author: Ref | null;
+  validated_at: string | null;
+  validator: Ref | null;
+}
+
+export interface InventoryDetail extends InventorySummaryRow {
+  lines: {
+    article: { id: number; reference: string; name: string; unit: string; location: string | null; category: string | null; quantity: number | null };
+    counted_quantity: number | null;
+    expected_quantity: number | null;
+    difference: number | null;
+    value_difference: number | null;
+    note: string | null;
+  }[];
+}
+
+export interface WorksiteStock {
+  articles: { article: { id: number; reference: string; name: string; unit: string }; quantity: number; value: number | null }[];
+  total: number | null;
+  movements: StockMovement[];
+  can: { issue: boolean };
 }

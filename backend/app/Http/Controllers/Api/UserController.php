@@ -19,6 +19,15 @@ use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    /**
+     * Équipe active, nom seulement : pour choisir à qui confier un chantier, une tâche… sans donner
+     * accès à la gestion des comptes.
+     */
+    public function team(): JsonResponse
+    {
+        return response()->json(['data' => User::query()->active()->orderBy('name')->get(['id', 'name'])]);
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorizeRead($request);
