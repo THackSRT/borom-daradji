@@ -77,6 +77,12 @@ class AuthenticationTest extends TestCase
         $this->getJson('/api/auth/me')->assertUnauthorized();
     }
 
+    public function test_api_answers_401_even_without_a_json_accept_header(): void
+    {
+        // Robots, curl : pas d'en-tête Accept. Pas de page de connexion côté Laravel.
+        $this->get('/api/auth/me')->assertUnauthorized()->assertJsonPath('message', 'Unauthenticated.');
+    }
+
     public function test_logout_revokes_the_current_token(): void
     {
         $user = User::factory()->create();

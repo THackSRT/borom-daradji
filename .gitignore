@@ -1,0 +1,4 @@
+# Variables de production (mots de passe, APP_KEY) et sauvegardes : jamais dans le dépôt.
+.env
+.env.prod
+backups/

@@ -5,11 +5,11 @@ Le système est livré en 6 lots, environ 20 semaines avec 2 développeurs, pour
 | Lot | Contenu | Semaines | Heures | État |
 | --- | --- | --- | --- | --- |
 | 0. Socle | Comptes, rôles, paramètres, journal | 1-2 | 70 | **Fait** (API) |
-| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | À faire |
-| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | À faire |
-| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | À faire |
-| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | À faire |
-| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | À faire |
+| 1. Biens et prospects | Biens, foncier, CRM, visites, mandats, site vitrine | 3-6 | 190 | **Fait**, fusionné |
+| 2. Encaissements et location | Facturation de base, encaissements, baux, loyers | 7-10 | 210 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 3. Travaux | Devis, chantiers, tâcherons, caisse, suivi client | 11-15 | 270 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 4. Stock et négoce | Articles, mouvements, CMUP, comptoir | 16-17 | 130 | **Fait**, fusionné (valeurs par défaut à valider) |
+| 5. Pilotage | Tableau de bord, exports comptables | 18 | 80 | **Fait** sur `lot-5-pilotage` (comptes à valider avec le cabinet) |
 | Recette finale | Corrections, mise en production | 19-20 | — | — |
 
 Hors développement (déjà compris dans les 1 270 h) : maquettes 50 h, gestion de projet et démos 90 h, recette 110 h, reprise des données 30 h, formation 40 h.
@@ -24,7 +24,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 
 | v2.0 | Retenu |
 | --- | --- |
-| Permissions granulaires par module, action et donnée (6.2) | 5 rôles fixes, cumulables |
+| Permissions granulaires par module, action et donnée (6.2) | RBAC : rôles paramétrables par le dirigeant, permissions par action, droits individuels (D-034 ; 5 rôles fixes au départ, D-005) |
 | Valorisation FIFO (4.16) | CMUP (la v2.0 mélangeait FIFO et moyenne pondérée) |
 | ElasticSearch, PostGIS (1.5, 1.6, 6.9, 6.10) | Recherche SQL ; latitude/longitude simples ; carte Leaflet + OpenStreetMap |
 | Lead scoring automatique (2.5) | Statut choisi par l'agent + date du dernier contact |
@@ -35,7 +35,7 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 | Plusieurs tableaux de bord CA (5.17, 5.18, 6.5) | Un tableau de bord dirigeant, au lot 5 |
 | Pointage bancaire par import CSV (5.16) | Journal de caisse et rapprochement mobile money manuel |
 
-**Reporté en phase 2** : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
+**Reporté en phase 2** (proposition détaillée, état des lieux et tri dans [`phase-2.md`](phase-2.md)) : prévisionnel de trésorerie (5.20), objectifs de CA (5.27), commandes fournisseurs (4.18), multi-dépôts (4.9), tutoriels vidéo (6.22) et aide contextuelle (6.20), API WhatsApp Business, paiement en ligne Wave/Orange Money, accusés de lecture des emails (3.8, 5.9), espace client complet, signature numérique, application native.
 
 ---
 
@@ -44,19 +44,21 @@ Les numéros renvoient au document v2.0 du client (résumé dans [`sources.md`](
 Livré sur la branche `lot-0-socle`. Détail de l'API dans [`backend/README.md`](../backend/README.md).
 
 - Connexion par jeton Sanctum, par email **ou** téléphone ; 5 échecs → blocage 60 s ; jeton valable 30 jours.
-- 5 rôles cumulables (`App\Enums\Role`) ; la gate `administrate` réserve comptes, paramètres et journal au dirigeant.
+- Rôles cumulables ; depuis D-034, RBAC complet (rôles paramétrables, permissions par module, droits individuels), voir `architecture.md`.
 - Comptes désactivés, jamais supprimés ; un compte désactivé perd l'accès immédiatement (middleware `active`) ; le dirigeant connecté ne peut ni se désactiver ni retirer son rôle de dirigeant.
 - Paramètres de l'entreprise (une ligne : NINEA, RCCM, TVA 18 %, XOF, WhatsApp, logo, coordonnées bancaires) + version publique sans données fiscales ni bancaires.
 - Journal d'activité automatique (trait `LogsActivity`) : création, modification avant/après, suppression, connexion, déconnexion ; mots de passe jamais copiés ; purge après 365 jours.
 - Commande `borom:create-director` pour créer le premier compte en production.
 
-**Reste à faire pour clore le lot 0** : écrans de connexion, de gestion des comptes et des paramètres dans le back-office (le dossier `frontend/` n'existe pas encore) ; traduction française des messages de validation génériques de Laravel ; déploiement sur un serveur.
+**Écrans** de connexion, de gestion des comptes, des rôles et des paramètres : faits dans le back-office. **Déploiement** : environnement Docker de production prêt (D-037) ; reste à choisir le serveur et le nom de domaine.
 
 ---
 
-## Lot 1 — Biens et prospects (prochain lot)
+## Lot 1 — Biens et prospects (API faite)
 
 Objectif : publier un bien vérifié sur le site et suivre chaque prospect jusqu'à la visite.
+
+**État** : API livrée sur la branche `lot-1-biens-prospects` (86 tests). Écarts avec la spécification ci-dessous, décidés pendant l'implémentation : client avec un seul champ `name` (D-021) ; critères de recherche sans équipements ; site vitrine montrant aussi les biens `en_negociation` (D-020) ; `GET /api/public/places` (villes et quartiers) au lieu de `/neighborhoods` ; photos de démonstration en URL externes. Reste : les écrans (front).
 
 ### Modèle de données proposé
 
@@ -110,35 +112,182 @@ Reprendre le code du dépôt `borom-daradji-properties` (Vite, React, TypeScript
 
 ## Lot 2 — Encaissements et location
 
+**Fait** (branche `lot-2-encaissements-location`) : factures et avoirs, encaissements, reçus, caisse journalière, PDF, écrans Factures et Caisse ; baux, appels de loyer automatiques, arriérés et relances, quittances, relevés de gérance et reversements ; états des lieux d'entrée et de sortie avec photos ; restitution de la caution.
+
+États des lieux (D-040, **à valider**) :
+- Un état des lieux d'entrée et un de sortie au plus par bail (`leases.manage` pour les faire, `leases.view` pour les consulter). L'entrée propose les pièces de `config/borom.php` (`inspection_template`), une chambre et une salle de bain par chambre et salle de bain du bien ; la sortie reprend les lignes de l'entrée. Lignes, pièces et éléments modifiables.
+- Chaque élément : état parmi neuf, bon, usure normale, dégradé, hors service ou manquant ; commentaire ; photos. Relevés des compteurs d'électricité et d'eau, nombre de clés, présence du locataire, observations.
+- Dégradation = à la sortie, pire qu'à l'entrée **et** au-delà de l'usure normale (l'usure due à l'usage normal ne se retient pas). Les dégradations sont proposées comme retenues à la restitution de la caution.
+- Validation : chaque élément doit avoir un état ; ensuite plus aucune modification ni photo (pièce opposable). PDF à signer par l'agence et le locataire (les photos restent dans le logiciel, comptées sur le PDF).
+- Photos converties en WebP sur le disque privé, servies par une route contrôlée ; 150 par état des lieux (`INSPECTION_MAX_PHOTOS`).
+
+Restitution de la caution (D-041, **à valider**) :
+- Après la résiliation, une seule fois par bail, avec la permission `deposits.settle` (comptable par défaut). Numéro `CAU-AAAA-0001`.
+- Caution encaissée proposée : avec facture d'entrée, ses encaissements couvrent d'abord la caution ; sans facture d'entrée (bail saisi après coup), la caution du bail est réputée reçue. Montant modifiable.
+- Ordre d'imputation : 1. loyers impayés, du plus ancien au plus récent (option désactivable), par des encaissements « retenue sur caution » sur les appels de loyer (le mois est payé, quittance possible, et pour un bail géré le loyer revient au propriétaire) ; 2. réparations et autres retenues saisies (libellé, montant) ; 3. le reste est rendu au locataire.
+- Remboursement : mode et référence comme un encaissement ; en espèces, sortie de la caisse du jour de la personne qui rend (mouvement « restitution de caution »), refusé si la caisse n'a pas assez d'espèces.
+- Retenues supérieures à la caution : le reste dû est facturé au locataire (brouillon pour le comptable).
+- Décompte PDF remis au locataire.
+- Annulation avec motif (D-043) : les loyers retenus redeviennent impayés, les espèces rendues reviennent dans la caisse par un mouvement inverse, la facture de reste dû en brouillon est supprimée ; une nouvelle restitution est alors possible (nouveau numéro). Refusée si la caisse est clôturée, si la facture de reste dû est émise (avoir d'abord) ou si un loyer retenu a déjà été reversé au propriétaire.
+
+Relances et fin de bail (D-042, **à valider**) :
+- Chaque matin (`borom:remind-overdue`, 07:10), toute facture émise impayée (loyers compris) qui atteint un palier de retard (J+3, J+15, J+30 par défaut, `REMINDER_DAYS`) donne une tâche « Relancer … » : une par client et par personne, au palier le plus haut atteint, jamais deux fois pour le même palier. Elle va à l'agent du bail, sinon à celui du bien, sinon à la personne qui suit le client, sinon à un comptable. Rien n'est envoyé au client : la personne relance par téléphone ou WhatsApp.
+- Fin de bail prévue dans 60 jours (`LEASE_END_ALERT_DAYS`, `borom:check-lease-ends`, 07:05) : une tâche, une seule fois, pour l'agent (préavis, état des lieux de sortie, caution).
+- Résiliation : option « Remettre le bien en location » (cochée par défaut) : le bien loué redevient disponible et réapparaît sur le site ; refusée avec le motif si la vérification foncière n'est plus à jour.
+- « Cautions à restituer » : baux résiliés dont la caution n'est pas restituée, en filtre de la liste des baux et en encart de l'accueil (permission `deposits.settle`).
+
+### Critères d'acceptation du lot 2
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Billing`, `tests/Feature/Rental`).
+
+- Une facture émise reçoit un numéro continu, ne se modifie plus et se corrige par un avoir plafonné.
+- Un encaissement Wave ou Orange Money sans référence, ou avec une référence déjà saisie, est refusé ; les espèces alimentent la caisse du jour, qui se clôture avec un écart expliqué.
+- Un bail créé depuis un bien à louer émet les appels de loyer des mois payés d'avance et des mois déjà échus, puis un appel chaque mois, sans doublon, jusqu'à la fin du bail.
+- Un loyer entièrement payé donne une quittance ; un loyer impayé apparaît en arriéré et déclenche des relances à J+3, J+15 et J+30.
+- Le relevé d'un propriétaire liste les loyers encaissés sur ses baux gérés, moins la commission et sa TVA ; un loyer reversé ne l'est jamais deux fois.
+- Un état des lieux de sortie reprend les lignes de l'entrée et signale les dégradations ; validé, il ne se modifie plus.
+- La restitution de la caution solde les loyers impayés, retient les réparations, rend le reste (sortie de caisse en espèces) ou facture le reste dû ; elle s'annule avec un motif.
+- Chaque action est réservée aux permissions prévues (factures, encaissements, caisse, baux, reversements, cautions).
+
+Règles de la gestion locative (valeurs par défaut dans `config/borom.php`, modifiables bail par bail, **à valider** avec le client) :
+- Un seul bail en cours par bien ; le bien passe en « Loué » quand c'est permis par son statut. Seuls les biens « à louer » se louent. Un bail en gestion exige un propriétaire.
+- Un appel de loyer par mois = une facture (activité « location », loyer + charges, TVA du bail : 0 % par défaut), échéance le jour choisi (5 par défaut), émise automatiquement chaque matin (`borom:generate-rent-calls`, 06:00), sans doublon. Les mois payés d'avance et les mois déjà échus (bail saisi après coup) sont appelés à la signature. Plus d'appel après la fin prévue ou la résiliation.
+- Facture d'entrée en brouillon : caution (TVA 0) et frais d'agence (TVA de l'entreprise).
+- Arriérés = reste à payer des appels dont l'échéance est passée ; relance WhatsApp listant les mois dus. Quittance PDF seulement quand le mois est entièrement payé.
+- Reversement : loyers encaissés sur les baux gérés, pas encore reversés, jusqu'à la fin du mois choisi ; commission du bail (10 % par défaut) calculée sur le montant encaissé, TVA sur la commission (18 % par défaut), frais déduits saisis à la main ; un loyer reversé ne compte plus ; annuler un reversement remet ses loyers à reverser. Numéros `BAIL-AAAA-0001`, `REV-AAAA-0001`.
+
+Règles en place :
+- Brouillon modifiable et supprimable, sans numéro. À l'émission : numéro `FAC-AAAA-00001` (avoir `AV-AAAA-00001`) attribué dans la même transaction que le changement de statut, date d'émission, échéance (15 jours par défaut, `INVOICE_DUE_DAYS`). Une facture émise ne se modifie ni ne se supprime.
+- Totaux toujours recalculés côté serveur ; montant HT et TVA arrondis au franc **par ligne** ; TVA choisie par ligne (taux de l'entreprise par défaut).
+- Avoir préparé depuis une facture émise (reprend ses lignes, à ajuster), même client, plafonné à ce qui reste à créditer. Facture entièrement créditée et non payée = « annulée par avoir ».
+- Reste à payer = total − avoirs − encaissements valides. Encaissement refusé s'il dépasse le reste, si la facture est un brouillon, si la date est future ; référence obligatoire hors espèces, refusée si déjà enregistrée pour le même mode (double saisie). Reçu `REC-AAAA-00001`, justificatif sur le disque privé, consultation journalisée.
+- Espèces rattachées à la caisse du jour de la personne qui encaisse (créée d'office). Mouvements : apport, dépôt en banque, dépense, remise au dirigeant ; une sortie ne peut pas dépasser les espèces présentes. Clôture : montant compté, écart avec le théorique, explication obligatoire si écart. Caisse clôturée : plus d'espèces, plus d'annulation de ses encaissements.
+- Encaissement jamais supprimé : annulation avec motif (comptable ou dirigeant).
+- Droits (RBAC, D-034) : permissions `invoices.view|manage|issue|credit`, `payments.create|cancel|view_all`, `cash.view_all`. Par défaut, le comptable prépare, émet, fait les avoirs et annule ; agents et commerciaux consultent et encaissent ; chacun voit sa caisse ; le dirigeant ajuste dans « Rôles et droits ».
+
 - **Socle de facturation** réutilisé par les lots 3 et 4 : factures (lignes, HT, TVA, TTC), avoirs, numérotation `FAC-AAAA-00001` **continue et sans trou** (compteur verrouillé en transaction, jamais de suppression d'une facture émise), PDF depuis un modèle HTML, reçus.
 - **Encaissements** : modes `especes`, `wave`, `orange_money`, `free_money`, `cheque`, `virement` ; référence de transaction ; capture d'écran ; paiement partiel ; reste dû recalculé ; caisse journalière par utilisateur avec clôture.
 - **Baux** : bien, locataire, propriétaire, loyer, charges, caution et avance en mois, jour d'échéance, durée, commission de gestion (% du loyer), statut.
 - **Appels de loyer** générés automatiquement chaque mois (tâche planifiée) ; quittance PDF à l'encaissement complet ; arriérés par locataire ; rappels par lien WhatsApp ou SMS.
-- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution.
+- **État des lieux** d'entrée et de sortie : pièces, état, photos ; sert à restituer ou retenir la caution (fait, voir plus haut).
 - **Reversements** : relevé mensuel par propriétaire (loyers encaissés − commission − frais) et enregistrement du versement.
 - Questions bloquantes avant de commencer : voir « Questions ouvertes » dans [`journal.md`](journal.md).
 
 ## Lot 3 — Travaux
 
-- Catalogue de prestations par corps de métier (désignation, unité, prix unitaire) ; **14 corps listés dans la v2.0** (le document en annonce 15) plus la peinture, proposée sur le site actuel.
-- Devis par lots tirés du catalogue, remise, modèles réutilisables, PDF, suivi `brouillon → envoye → accepte|refuse|expire` (validité 30 jours).
-- Chantiers : statuts `devis → planifie → en_cours → suspendu → termine → facture`, lots avec % d'avancement, journal, photos géolocalisées et datées.
-- Factures d'acompte, de situation (cumul des situations précédentes) et de solde à partir du devis.
-- Équipes et **tâcherons** : pointage journalier, paiements à la tâche ou à la journée, avances.
-- **Caisse de chantier** : avances au chef de chantier, dépenses avec photo du reçu.
-- Budget prévu et réel (matériaux + main-d'œuvre + caisse), alerte au-delà de 10 % de dépassement.
-- **Lien de suivi client** : URL signée et révocable, en lecture seule (avancement, photos, paiements d'un chantier).
-- **Appli terrain hors ligne** : photos, pointage et dépenses stockés sur le téléphone puis synchronisés.
+**Fait** (branche `lot-3-travaux`) : catalogue et devis, chantiers (lots, avancement, journal, photos), facturation des travaux, tâcherons et pointage, caisse de chantier, budget et alerte de dépassement, lien de suivi du client, appli terrain hors ligne. Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Catalogue et devis (D-044) :
+- Corps de métier (15 créés à l'installation : les 14 de la v2.0 et la peinture) et prestations (désignation, unité, prix HT, TVA), modifiables et désactivables (`works.catalog`). Les prix de la démo sont indicatifs.
+- Devis = lots (un par corps de métier ou par étape) de lignes tirées du catalogue ou saisies ; remise globale en %, appliquée ligne par ligne ; TVA par ligne ; montants arrondis au franc par ligne. Numéro `DEV-AAAA-0001` à la création (un devis n'est pas une pièce comptable).
+- Suivi `brouillon → envoye → accepte | refuse | expire`. À l'envoi : date et validité (30 jours, `QUOTE_VALIDITY_DAYS`) ; chaque nuit (`borom:expire-quotes`, 00:15) les devis échus passent en « expiré ». Un devis envoyé ne se modifie plus : on le reprend en brouillon ou on le duplique. Refus avec motif. Un devis expiré se renvoie avant d'être accepté.
+- Modèles réutilisables (devis sans client ni numéro) ; dupliquer un devis ou un modèle. PDF avec conditions (modifiables) et acompte demandé (30 % par défaut, `QUOTE_DEPOSIT_RATE`).
+
+Chantiers (D-045) :
+- Créés à l'acceptation d'un devis (lots et montants repris), ou à la main au stade « devis » ; un devis accepté peut compléter un chantier ouvert du même client (avenant). Le client reçoit la catégorie « client travaux ». Référence `CH-AAAA-0001`.
+- Statuts `devis → planifie → en_cours ⇄ suspendu → termine → facture` (un chantier terminé peut reprendre). Avancement en % par lot ; avancement global pondéré par le montant des lots.
+- Journal : changements de statut et d'avancement inscrits d'office et visibles du client ; notes visibles ou internes. Photos datées et géolocalisées par le téléphone, rattachables à un lot, visibles du client ou non, sur le disque privé.
+
+Facturation des travaux (D-046) :
+- Acompte : % du marché HT, avant la première situation, sans dépasser le marché.
+- Situation : travaux réalisés depuis la précédente (avancement × montant de chaque lot, cumulé, moins ce qui est déjà facturé), acompte déduit au prorata ; un avancement inférieur à ce qui est déjà facturé est refusé.
+- Solde : quand le chantier est terminé ; tout le marché est alors facturé au franc près et le chantier passe en « facturé ».
+- Factures ordinaires du lot 2 (activité « travaux », brouillon à vérifier puis émis, encaissements, relances), TVA ventilée selon les taux des lignes du devis. Une seule facture du chantier en brouillon à la fois ; une facture annulée par avoir ne compte plus.
+
+Tâcherons, caisse de chantier, budget (D-047, D-048) :
+- Tâcherons : artisans et ouvriers sans compte, payés à la journée (tarif journalier) ou à la tâche ; téléphone unique ; désactivés plutôt que supprimés (`works.team`).
+- Pointage du jour (journée ou demi-journée) au tarif du jour figé dans la ligne ; pas de journée à venir ; chantier ouvert seulement ; un tâcheron pointé deux fois le même jour sur le même chantier voit sa ligne mise à jour.
+- Travaux à la tâche (prix convenu) : dus une fois marqués terminés ; une tâche terminée ne s'annule plus.
+- Avances et paiements (`works.payments`) : dû = journées + tâches terminées ; solde = dû − versé, tous chantiers confondus ; un paiement ne dépasse pas le reste dû (au-delà, c'est une avance) ; référence obligatoire hors espèces ; payé ou non avec la caisse du chantier ; jamais supprimé, annulé avec motif.
+- Caisse du chantier, tenue par le chef de chantier : approvisionnement par l'agence (`works.payments`), pris dans la caisse du jour (sortie automatique « avance à un chef de chantier ») ou versé autrement ; dépenses sur place par catégorie avec photo du reçu (`works.cash`), reçu ajoutable après coup, dépenses sans reçu signalées ; paiements de tâcherons ; reliquat rendu (éventuellement remis dans la caisse du jour). Solde négatif admis : le chef a avancé de sa poche. Annulation avec motif ; les espèces de la caisse du jour font le chemin inverse tant qu'elle n'est pas clôturée.
+- Budget prévu (matériaux, main-d'œuvre, autres) et coût réel (`works.costs`) : main-d'œuvre des tâcherons (dû, payé ou non) + matériaux sortis du stock au CMUP (lot 4, retours déduits) + dépenses de la caisse par poste ; marge = marché HT − coût réel. Au-delà de +10 % (`BUDGET_ALERT_TOLERANCE`), une tâche « budget dépassé » au chef de chantier, une seule fois tant que le budget ne change pas.
+
+Lien de suivi du client (D-049) :
+- Adresse `/suivi/{jeton}` (jeton aléatoire de 48 caractères) créée, renouvelée ou révoquée depuis la fiche du chantier (`works.manage`) et envoyée par WhatsApp ; l'ancien lien cesse de fonctionner.
+- Lecture seule, sans compte, non indexé : avancement global et par lot, photos et journal marqués visibles du client, factures émises avec leur PDF, payé et reste à régler. Rien d'interne (budget, coûts, tâcherons, caisse, notes internes, brouillons).
+
+Appli terrain hors ligne (D-050) :
+- Écran « Terrain » (`/admin/terrain`, installable sur le téléphone) : photo (réduite à 1 920 px, géolocalisée), pointage du jour, dépense avec reçu, pour le chantier choisi.
+- Chaque saisie est gardée sur le téléphone (IndexedDB) avec un identifiant unique, puis envoyée dans l'ordre dès que le réseau revient (et chaque minute) ; le serveur ignore une saisie déjà reçue. Une saisie refusée (droit, chantier fermé…) reste affichée avec le motif jusqu'à ce qu'on l'abandonne.
+- L'application s'ouvre sans réseau (service worker) avec les dernières données lues (chantiers, tâcherons, lots) ; le profil reste connecté hors ligne ; sur un téléphone partagé, seules les saisies de la personne connectée partent avec sa session.
+
+### Critères d'acceptation du lot 3
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Works`), sauf le hors-ligne, vérifié dans Chromium (coupure réseau simulée).
+
+- Un devis calcule remise, TVA et totaux au franc près, s'envoie, expire après sa validité, se refuse avec un motif ; accepté, il crée le chantier avec ses lots.
+- L'avancement d'un lot met à jour l'avancement global et s'inscrit au journal visible du client.
+- Acompte, situations et solde additionnés égalent le marché HT au franc près ; l'acompte est déduit au prorata ; une seule facture en brouillon à la fois.
+- Le pointage applique le tarif du jour du tâcheron et n'est pas compté deux fois par une synchronisation relancée ; une tâche n'est due qu'une fois terminée ; un paiement ne dépasse pas le reste dû.
+- La caisse du chantier suit approvisionnements, dépenses, paiements et retours ; un approvisionnement pris dans la caisse du jour en sort, et y revient s'il est annulé.
+- Un dépassement du budget au-delà de 10 % crée une seule alerte, de nouveau possible après une modification du budget.
+- Le lien de suivi montre avancement, photos et journal publics et paiements, rien d'interne ; renouvelé ou révoqué, l'ancien lien ne fonctionne plus.
+- Photos, pointage et dépenses saisis sans réseau sont envoyés au retour du réseau, sans doublon.
+- Chaque action est réservée aux permissions prévues (`works.*`, factures).
 
 ## Lot 4 — Stock et négoce
 
-- Articles (référence, catégorie, unité, prix d'achat et de vente, seuils min/max, emplacement), fournisseurs.
-- Mouvements : entrée fournisseur, sortie vers un chantier (coût imputé au chantier), vente au comptoir (facture du lot 2), perte/casse (motif obligatoire), ajustement d'inventaire.
-- **Valorisation CMUP** recalculée à chaque entrée ; historique des prix.
-- Alertes de seuil, inventaire physique avec écarts.
+**Fait** (branche `lot-4-stock-negoce`) : articles et catégories, mouvements valorisés au CMUP, achats aux fournisseurs et leurs paiements, sorties vers les chantiers et retours, pertes, vente au comptoir, inventaire physique, alertes de seuil. Un seul dépôt (multi-dépôts et commandes fournisseurs reportés en phase 2). Valeurs par défaut dans `config/borom.php`, **à valider** avec le client.
+
+Articles et valorisation (D-051) :
+- Article : référence (`ART-0001` d'office, ou saisie), désignation, catégorie (10 créées à l'installation, modifiables), unité, prix de vente HT et TVA, seuil d'alerte et stock maximum, emplacement, fournisseur habituel. Désactivé plutôt que supprimé (`stock.manage`).
+- Quantité et coût moyen unitaire pondéré (CMUP) jamais saisis : ils suivent les mouvements. Entrée : CMUP = (stock × CMUP + quantité × prix d'achat) / (stock + quantité). Sortie (chantier, vente, perte) au CMUP du moment, qui ne change pas. Valeur du stock = quantité × CMUP. Quantités à deux décimales (m³ de sable), CMUP à quatre, valeurs des mouvements au franc.
+- Chaque mouvement garde la quantité et le CMUP après lui ; rien ne se modifie ni ne se supprime : une erreur se corrige par le mouvement inverse. Sortie refusée au-delà du stock (`STOCK_ALLOW_NEGATIVE` pour l'autoriser).
+- Prix d'achat, CMUP, valeurs et achats visibles avec `stock.costs` seulement.
+
+Achats aux fournisseurs (D-052) :
+- Bon d'entrée `ACH-AAAA-0001` (`stock.purchases`) : fournisseur (un client, qui reçoit la catégorie « fournisseur »), référence de son bon ou de sa facture, date de réception, lignes (article, quantité, prix unitaire HT, TVA). La marchandise entre en stock à l'enregistrement ; le prix d'achat de l'article devient le dernier payé ; historique des prix sur la fiche article.
+- Échéance à 30 jours par défaut (`PURCHASE_DUE_DAYS`) ; paiements partiels, référence obligatoire hors espèces ; en espèces, sortie automatique de la caisse du jour (mouvement « paiement d'un fournisseur »), réservée à qui tient une caisse. Paiement annulé avec motif (les espèces reviennent tant que la caisse est ouverte).
+- Achat annulé avec motif : la marchandise ressort à son prix d'achat (le CMUP redevient ce qu'il aurait été) ; refusé s'il reste des paiements ou si la marchandise est déjà sortie.
+
+Sorties, pertes, vente au comptoir (D-053) :
+- Bon de sortie vers un chantier ouvert (`stock.issue`), plusieurs articles : coût au CMUP imputé au chantier, compté dans son coût réel (poste matériaux) et son alerte de budget. Retour au dépôt au coût de sortie, sans dépasser ce qui est parti sur ce chantier.
+- Perte ou casse : motif obligatoire. Correction ponctuelle à la quantité constatée, avec motif (`stock.inventory`).
+- Vente au comptoir (`stock.sell`) : client connu, ou de passage (nom, téléphone facultatif ; un numéro connu retrouve la fiche) ; prix de la fiche, modifiable ligne par ligne (alerte sous le coût moyen pour qui voit les coûts). La facture « matériaux » est émise aussitôt (numéro continu du lot 2) et le stock diminue dans la même transaction ; encaissement immédiat possible (`payments.create`, espèces dans la caisse du jour). Rien n'est enregistré si un article manque.
+- Retour de marchandise vendue : rentre en stock au coût de sa sortie, sans dépasser ce qui a été vendu sur la facture ; l'avoir se fait à part (comptable).
+
+Inventaire et alertes (D-054) :
+- Inventaire `INV-AAAA-001` (`stock.inventory`), de tous les articles ou d'une catégorie, un seul en cours : comptage à l'aveugle (le stock théorique n'est pas affiché), enregistré au fil de la saisie. À la validation, chaque article compté est ajusté ; le théorique est relevé à ce moment (les mouvements pendant le comptage sont pris en compte) ; écarts valorisés au CMUP ; non comptés inchangés. Figé une fois validé ; un inventaire en cours peut être supprimé.
+- Seuil d'alerte atteint : une tâche « réapprovisionner » (responsable travaux, sinon dirigeant) avec le fournisseur habituel, une seule fois tant que le stock ne remonte pas au-dessus du seuil. Filtre « À réapprovisionner » dans la liste.
+
+### Critères d'acceptation du lot 4
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Stock`).
+
+- Deux achats à des prix différents donnent le CMUP attendu ; une sortie se fait au CMUP sans le modifier ; l'annulation d'un achat rend le CMUP d'avant.
+- Une sortie vers un chantier compte dans son coût réel ; un retour la diminue au coût de sortie ; aucune sortie au-delà du stock ni vers un chantier fermé.
+- Une perte exige un motif ; le seuil d'alerte crée une seule tâche, de nouveau possible après réapprovisionnement.
+- Un paiement fournisseur en espèces sort de la caisse du jour et y revient s'il est annulé ; un achat payé ne s'annule pas.
+- Une vente au comptoir émet la facture, diminue le stock et encaisse en un geste ; refusée sans rien enregistrer si le stock manque ; un client de passage connu par son téléphone n'est pas recréé.
+- Un inventaire ajuste les articles comptés au stock réel et valorise les écarts ; validé, il ne se modifie plus.
+- Prix d'achat et coûts réservés à `stock.costs` ; chaque action réservée à sa permission (`stock.*`, `payments.create`).
 
 ## Lot 5 — Pilotage
 
-- Tableau de bord dirigeant : CA par activité (immobilier, travaux, négoce), encaissements, impayés, loyers en retard, chantiers en retard ou hors budget, stock sous le seuil.
-- Exports Excel : journal des ventes, des encaissements, des achats, balances clients et fournisseurs, avec numéros de compte SYSCOHADA paramétrables ; format à caler sur le logiciel du cabinet comptable.
-- Recherche globale (clients, biens, chantiers, factures, articles).
+**Fait** (branche `lot-5-pilotage`) : tableau de bord du dirigeant, exports comptables Excel, recherche globale. Valeurs par défaut **à valider** avec le client et son cabinet comptable.
+
+Tableau de bord (`/admin/pilotage`, `reports.view` : dirigeant et comptable par défaut, D-056) :
+- Période : ce mois, mois dernier, trimestre, cette année, année dernière ou dates libres ; comparaison avec la même période du mois, du trimestre ou de l'année d'avant (dates libres : la période de même durée juste avant).
+- Chiffre d'affaires HT = factures émises moins avoirs émis, à la date d'émission, par activité (immobilier, location, travaux, matériaux, autre) ; graphique des douze derniers mois par activité, avec tableau.
+- Encaissements par mode (hors retenues sur caution, qui ne sont pas de l'argent reçu).
+- Reste à encaisser par ancienneté de l'échéance (pas échu, 1-30, 31-60, 61-90, plus de 90 jours) et principaux débiteurs ; loyers en retard ; chantiers en retard ou hors budget ; stock sous le seuil et valeur du stock ; dettes fournisseurs (dont échues).
+
+Exports comptables (`/admin/exports`, `reports.export`, D-057) :
+- Fichiers Excel (.xlsx) : journal des ventes, des encaissements, des achats (avec règlements des fournisseurs) sur une période ; balances clients et fournisseurs à une date.
+- Chaque journal : une feuille « Écritures » (journal, date, n° de pièce, compte, compte de tiers, libellé, débit, crédit), équilibrée pièce par pièce, à importer dans le logiciel du cabinet après correspondance des colonnes, et une feuille de détail.
+- Ventes : client au débit (TTC), compte de ventes de l'activité (HT) et TVA collectée au crédit ; avoir : l'inverse. Encaissements : compte de trésorerie du mode au débit, client au crédit. Achats : achats (HT) et TVA déductible au débit, fournisseur au crédit ; règlements : fournisseur au débit, trésorerie au crédit.
+- Numéros de compte SYSCOHADA proposés (clients 4111, fournisseurs 4011, ventes 7061 / 7073 / 705 / 701 / 707, TVA 4431 et 4452, achats 601, caisse 571, Wave 5211, Orange Money 5212, Free Money 5213, chèques 513, banque 521, cautions 165), journaux VT / AC / TR, comptes de tiers « préfixe + n° de fiche » (C00023, F00007) : tous modifiables. Chaque export est inscrit au journal d'activité.
+
+Recherche globale (Ctrl+K) : clients (nom, e-mail, téléphone même partiel), biens, chantiers, devis, factures, articles, achats, chaque groupe seulement avec le droit de le consulter.
+
+### Critères d'acceptation du lot 5
+
+Chacun est couvert par un test de fonctionnalité (`tests/Feature/Reports`).
+
+- Le chiffre d'affaires par activité déduit les avoirs, ignore les brouillons et se compare à la période précédente.
+- Les encaissements excluent les retenues sur caution ; les impayés sont répartis par ancienneté.
+- Chantiers en retard, stock sous le seuil et dettes fournisseurs apparaissent au tableau de bord.
+- Les journaux exportés sont équilibrés pièce par pièce et utilisent les comptes de chaque activité et mode ; un compte modifié est repris dans l'export suivant.
+- Les balances clients et fournisseurs donnent le solde et la part échue à la date demandée.
+- La recherche globale trouve un client par un numéro partiel et ne montre que les groupes permis.
+- Tableau de bord et exports réservés à `reports.view` et `reports.export`.

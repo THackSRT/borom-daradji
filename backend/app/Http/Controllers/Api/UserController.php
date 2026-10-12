@@ -2,36 +2,51 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\AccessGuard;
+use App\Support\ActivityLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    /**
+     * Équipe active, nom seulement : pour choisir à qui confier un chantier, une tâche… sans donner
+     * accès à la gestion des comptes.
+     */
+    public function team(): JsonResponse
+    {
+        return response()->json(['data' => User::query()->active()->orderBy('name')->get(['id', 'name'])]);
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorizeRead($request);
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', Rule::enum(Role::class)],
+            'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
             'active' => ['nullable', 'boolean'],
         ]);
 
         $users = User::query()
+            ->with(['roles.permissions', 'permissions'])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%"));
+                    ->whereLike('name', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
+                    ->orWhereLike('phone', "%{$search}%"));
             })
-            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->withRole(Role::from($role)))
+            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->withRole($role))
             ->when(isset($filters['active']), fn ($query) => $query->where('is_active', $request->boolean('active')))
             ->orderBy('name')
             ->paginate(25)
@@ -40,27 +55,37 @@ class UserController extends Controller
         return UserResource::collection($users);
     }
 
-    public function store(StoreUserRequest $request): UserResource
+    public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = User::create($request->validated());
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create($request->safe()->except(['roles', 'permissions']));
+            $this->syncAccess($user, $request);
 
-        return new UserResource($user);
+            return $user;
+        });
+
+        return (new UserResource($user->fresh()))->response()->setStatusCode(201);
     }
 
-    public function show(User $user): UserResource
+    public function show(Request $request, User $user): UserResource
     {
+        $this->authorizeRead($request);
+
         return new UserResource($user);
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
-        $user->update($request->validated());
+        DB::transaction(function () use ($request, $user) {
+            $user->update($request->safe()->except(['roles', 'permissions']));
+            $this->syncAccess($user, $request);
+        });
 
         if (! $user->is_active) {
             $user->tokens()->delete();
         }
 
-        return new UserResource($user);
+        return new UserResource($user->fresh());
     }
 
     /**
@@ -68,15 +93,58 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user): Response
     {
+        abort_unless($request->user()->can('users.manage'), 403);
+
         if ($user->is($request->user())) {
-            throw ValidationException::withMessages([
-                'user' => 'Vous ne pouvez pas désactiver votre propre compte.',
-            ]);
+            throw ValidationException::withMessages(['user' => 'Vous ne pouvez pas désactiver votre propre compte.']);
+        }
+        if ($user->isSuperAdmin() && ! $request->user()->isSuperAdmin()) {
+            throw ValidationException::withMessages(['user' => 'Seul un dirigeant peut désactiver le compte d\'un dirigeant.']);
+        }
+        if ($user->isSuperAdmin() && AccessGuard::activeSuperAdminCount(except: $user) === 0) {
+            throw ValidationException::withMessages(['user' => 'C\'est le dernier dirigeant actif : nommez-en un autre avant.']);
         }
 
         $user->update(['is_active' => false]);
         $user->tokens()->delete();
 
         return response()->noContent();
+    }
+
+    private function authorizeRead(Request $request): void
+    {
+        abort_unless($request->user()->hasPermission('users.view', 'users.manage'), 403);
+    }
+
+    /**
+     * Rôles et permissions individuelles, avec une trace avant/après dans le journal.
+     */
+    private function syncAccess(User $user, Request $request): void
+    {
+        if (! $request->has('roles') && ! $request->has('permissions')) {
+            return;
+        }
+
+        $before = ['roles' => $user->roles()->pluck('name')->sort()->values()->all(), 'permissions' => $user->permissions()->pluck('name')->sort()->values()->all()];
+
+        if ($request->has('roles')) {
+            $user->syncRoles((array) $request->input('roles'));
+        }
+        if ($request->has('permissions')) {
+            $user->syncPermissions((array) $request->input('permissions'));
+        }
+
+        $user->unsetRelation('roles')->unsetRelation('permissions');
+        $after = ['roles' => $user->roles()->pluck('name')->sort()->values()->all(), 'permissions' => $user->permissions()->pluck('name')->sort()->values()->all()];
+
+        $changes = [];
+        foreach (['roles', 'permissions'] as $key) {
+            if ($before[$key] !== $after[$key]) {
+                $changes[$key] = ['old' => $before[$key], 'new' => $after[$key]];
+            }
+        }
+        if ($changes) {
+            ActivityLogger::log('access_changed', $user, "Droits de {$user->name} modifiés", $changes);
+        }
     }
 }
